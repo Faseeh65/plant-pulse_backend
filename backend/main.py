@@ -1,8 +1,10 @@
 from fastapi import FastAPI, HTTPException, Header, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 from supabase import create_client, Client
 import os
 import random
+import uuid
 from dotenv import load_dotenv
 from typing import Optional
 
@@ -264,6 +266,76 @@ async def get_treatment_data(disease_id: str, acres: float = 1.0, lang: Optional
     except Exception as e:
         if isinstance(e, HTTPException): raise e
         raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
+
+
+# ─── Scan History ─────────────────────────────────────────────────────────────
+
+class ScanSaveRequest(BaseModel):
+    """
+    Payload sent by the Flutter app after a successful /predict call.
+    user_id    – Supabase auth UID (from currentUser.id)
+    plant_name – e.g. "Tomato"
+    disease_result – full label e.g. "Tomato___Early_blight"
+    confidence_score – float 0-1
+    """
+    user_id: str
+    plant_name: str
+    disease_result: str
+    confidence_score: float
+
+
+@app.post("/api/v1/scans/save")
+async def save_scan(payload: ScanSaveRequest):
+    """
+    Securely persists a completed scan to the Supabase scan_history table.
+
+    The Flutter app calls this immediately after a successful /predict response,
+    passing the authenticated user's UID so history is tied to the account.
+
+    Returns the new record's UUID on success.
+    Raises HTTP 503 if Supabase is not configured (offline mode).
+    """
+    if supabase is None:
+        raise HTTPException(
+            status_code=503,
+            detail="Database unavailable — running in offline mode."
+        )
+
+    # Validate user_id is a non-empty string (basic guard)
+    if not payload.user_id or not payload.user_id.strip():
+        raise HTTPException(status_code=400, detail="user_id is required.")
+
+    # Clamp confidence to [0, 1]
+    confidence = max(0.0, min(1.0, payload.confidence_score))
+
+    record_id = str(uuid.uuid4())
+
+    try:
+        response = supabase.table("scan_history").insert({
+            "id":               record_id,
+            "user_id":          payload.user_id.strip(),
+            "plant_name":       payload.plant_name.strip(),
+            "disease_result":   payload.disease_result.strip(),
+            "confidence_score": confidence,
+        }).execute()
+
+        # supabase-py v2 raises on error; data is a list of inserted rows
+        data = response.data
+        if not data:
+            raise HTTPException(status_code=500, detail="Insert returned no data.")
+
+        return {
+            "success":   True,
+            "record_id": record_id,
+            "message":   "Scan saved to history.",
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[scan_history] insert failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to save scan: {str(e)}")
+
 
 if __name__ == "__main__":
     import uvicorn

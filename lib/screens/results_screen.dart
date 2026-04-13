@@ -1,9 +1,11 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/disease_result.dart';
+import '../services/api_service.dart';
 import 'treatment_detail_screen.dart';
 
-class ResultsScreen extends StatelessWidget {
+class ResultsScreen extends StatefulWidget {
   final String imagePath;
   final String diseaseNameEnglish;
   final String diseaseNameUrdu;
@@ -24,7 +26,55 @@ class ResultsScreen extends StatelessWidget {
   });
 
   @override
+  State<ResultsScreen> createState() => _ResultsScreenState();
+}
+
+class _ResultsScreenState extends State<ResultsScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Fire-and-forget cloud save — never blocks UI
+    _saveToCloudSilently();
+  }
+
+  Future<void> _saveToCloudSilently() async {
+    final userId = Supabase.instance.client.auth.currentUser?.id;
+    if (userId == null) return; // not logged in — skip
+
+    final plantName = widget.diseaseNameEnglish.split('___').first;
+    final saved = await ApiService().saveScanResult(
+      userId:          userId,
+      plantName:       plantName,
+      diseaseResult:   widget.diseaseNameEnglish,
+      confidenceScore: widget.confidence,
+    );
+
+    if (!saved && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text(
+            'Failed to save to history.',
+            style: TextStyle(fontSize: 13),
+          ),
+          backgroundColor: Colors.amber.shade800,
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 3),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          margin: const EdgeInsets.all(16),
+        ),
+      );
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    // Unwrap widget fields for use in build
+    final imagePath                = widget.imagePath;
+    final diseaseNameEnglish       = widget.diseaseNameEnglish;
+    final confidence               = widget.confidence;
+    final isRefined                = widget.isRefined;
+    final secondaryInspectionRequired = widget.secondaryInspectionRequired;
+    final diagnosisData            = widget.diagnosisData;
     final bool isHealthy = diseaseNameEnglish.toLowerCase().contains('healthy');
     final String cleanName = diseaseNameEnglish.split('___').last.replaceAll('_', ' ');
     final String plantType = diseaseNameEnglish.split('___').first;

@@ -5,7 +5,7 @@ import '../models/disease_result.dart';
 
 class ApiService {
   // Use public IPv4 for global accessibility (Delivery Mode)
-  static const String baseUrl = "http://192.168.1.220:8000";
+  static const String baseUrl = "https://plant-pulsebackend-production.up.railway.app";
   bool _hasLoggedSuccess = false;
 
   /// Singleton pattern
@@ -55,6 +55,40 @@ class ApiService {
         throw Exception('CONNECTION_FAILED');
       }
       rethrow;
+    }
+  }
+  /// Silently saves a completed scan to the cloud via the FastAPI backend.
+  ///
+  /// Returns [true] on success, [false] on any network or server error.
+  /// Never throws — caller shows a subtle SnackBar on false.
+  Future<bool> saveScanResult({
+    required String userId,
+    required String plantName,
+    required String diseaseResult,
+    required double confidenceScore,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/api/v1/scans/save'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'user_id':          userId,
+          'plant_name':       plantName,
+          'disease_result':   diseaseResult,
+          'confidence_score': confidenceScore,
+        }),
+      ).timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        debugPrint('✅ Scan saved to cloud history.');
+        return true;
+      } else {
+        debugPrint('⚠️ saveScanResult HTTP ${response.statusCode}: ${response.body}');
+        return false;
+      }
+    } catch (e) {
+      debugPrint('⚠️ saveScanResult failed (network): $e');
+      return false;
     }
   }
 }
