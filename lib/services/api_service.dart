@@ -109,9 +109,113 @@ class ApiService {
       rethrow;
     }
   }
+  /// Fetches all upcoming reminders for this user from the backend.
+  Future<List<SprayReminder>> fetchActiveReminders(String userId) async {
+    final uri = Uri.parse('$baseUrl/api/v1/reminders/active')
+        .replace(queryParameters: {'user_id': userId});
+    try {
+      final response =
+          await http.get(uri).timeout(const Duration(seconds: 10));
+      if (response.statusCode == 200) {
+        final decoded =
+            jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+        final list = (decoded['reminders'] as List?) ?? [];
+        return list
+            .map((e) => SprayReminder.fromJson(e as Map<String, dynamic>))
+            .toList();
+      }
+      throw Exception('REMINDERS_ERROR_${response.statusCode}');
+    } catch (e) {
+      debugPrint('fetchActiveReminders failed: $e');
+      rethrow;
+    }
+  }
+
+  /// Schedules a new spray reminder via the backend.
+  Future<String?> createReminder({
+    required String userId,
+    required String plantName,
+    required String diseaseName,
+    required String treatmentType,
+    required DateTime scheduledTime,
+  }) async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/api/v1/reminders/create'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({
+              'user_id':        userId,
+              'plant_name':     plantName,
+              'disease_name':   diseaseName,
+              'treatment_type': treatmentType,
+              'scheduled_time': scheduledTime.toUtc().toIso8601String(),
+            }),
+          )
+          .timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+        return decoded['record_id'] as String?;
+      }
+      debugPrint('createReminder HTTP ${response.statusCode}: ${response.body}');
+      return null;
+    } catch (e) {
+      debugPrint('createReminder failed: $e');
+      return null;
+    }
+  }
+
+  /// Marks a reminder as completed (updates DB, caller cancels OS notification).
+  Future<bool> markReminderComplete(String reminderId, String userId) async {
+    try {
+      final response = await http
+          .patch(
+            Uri.parse('$baseUrl/api/v1/reminders/$reminderId/complete')
+                .replace(queryParameters: {'user_id': userId}),
+          )
+          .timeout(const Duration(seconds: 10));
+      return response.statusCode == 200;
+    } catch (e) {
+      debugPrint('markReminderComplete failed: $e');
+      return false;
+    }
+  }
 }
 
-// ─── Data Models ──────────────────────────────────────────────────────────────
+// ─── Reminder Model ───────────────────────────────────────────────────────────
+
+class SprayReminder {
+  final String id;
+  final String plantName;
+  final String diseaseName;
+  final String treatmentType;
+  final DateTime scheduledTime;
+  final bool isCompleted;
+
+  const SprayReminder({
+    required this.id,
+    required this.plantName,
+    required this.diseaseName,
+    required this.treatmentType,
+    required this.scheduledTime,
+    required this.isCompleted,
+  });
+
+  factory SprayReminder.fromJson(Map<String, dynamic> j) => SprayReminder(
+        id:            j['id'] as String,
+        plantName:     j['plant_name'] as String? ?? '',
+        diseaseName:   j['disease_name'] as String? ?? '',
+        treatmentType: j['treatment_type'] as String? ?? '',
+        scheduledTime: DateTime.parse(j['scheduled_time'] as String),
+        isCompleted:   j['is_completed'] as bool? ?? false,
+      );
+
+  /// Stable integer ID for OS notification scheduling (based on UUID hash).
+  int get notifId => id.hashCode.abs() % 2147483647;
+}
+
+// ─── Stats Data Models ────────────────────────────────────────────────────────
 
 class TopDisease {
   final String disease;

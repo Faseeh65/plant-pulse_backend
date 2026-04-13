@@ -424,6 +424,129 @@ async def crop_summary(user_id: str):
         raise HTTPException(status_code=500, detail=f"Stats query failed: {str(e)}")
 
 
+# ─── Spray Reminders ──────────────────────────────────────────────────────────
+
+class ReminderCreateRequest(BaseModel):
+    """
+    Payload to schedule a new spray reminder.
+    scheduled_time must be a valid ISO-8601 datetime string (UTC preferred).
+    """
+    user_id:        str
+    plant_name:     str
+    disease_name:   str
+    treatment_type: str
+    scheduled_time: str   # ISO-8601 e.g. "2025-04-15T09:00:00Z"
+
+
+@app.post("/api/v1/reminders/create")
+async def create_reminder(payload: ReminderCreateRequest):
+    """
+    Inserts a new spray reminder into the spray_reminders table.
+    Returns the new record's UUID.
+    """
+    if supabase is None:
+        raise HTTPException(status_code=503, detail="Database unavailable.")
+
+    if not payload.user_id.strip():
+        raise HTTPException(status_code=400, detail="user_id is required.")
+
+    # Basic ISO string validation — supabase will raise if format is wrong
+    if not payload.scheduled_time.strip():
+        raise HTTPException(status_code=400, detail="scheduled_time is required.")
+
+    record_id = str(uuid.uuid4())
+
+    try:
+        response = supabase.table("spray_reminders").insert({
+            "id":             record_id,
+            "user_id":        payload.user_id.strip(),
+            "plant_name":     payload.plant_name.strip(),
+            "disease_name":   payload.disease_name.strip(),
+            "treatment_type": payload.treatment_type.strip(),
+            "scheduled_time": payload.scheduled_time.strip(),
+            "is_completed":   False,
+        }).execute()
+
+        if not response.data:
+            raise HTTPException(status_code=500, detail="Insert returned no data.")
+
+        return {
+            "success":   True,
+            "record_id": record_id,
+            "message":   "Reminder scheduled.",
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[reminders/create] failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to create reminder: {str(e)}")
+
+
+@app.get("/api/v1/reminders/active")
+async def get_active_reminders(user_id: str):
+    """
+    Returns all upcoming (is_completed=false, scheduled_time >= now) reminders
+    for the specified user, ordered by scheduled_time ascending.
+    """
+    if supabase is None:
+        raise HTTPException(status_code=503, detail="Database unavailable.")
+
+    if not user_id.strip():
+        raise HTTPException(status_code=400, detail="user_id is required.")
+
+    try:
+        from datetime import datetime, timezone
+        now_iso = datetime.now(timezone.utc).isoformat()
+
+        response = supabase.table("spray_reminders") \
+            .select("id, plant_name, disease_name, treatment_type, scheduled_time, is_completed") \
+            .eq("user_id", user_id.strip()) \
+            .eq("is_completed", False) \
+            .gte("scheduled_time", now_iso) \
+            .order("scheduled_time", desc=False) \
+            .execute()
+
+        return {
+            "reminders": response.data or [],
+            "count":     len(response.data or []),
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[reminders/active] failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch reminders: {str(e)}")
+
+
+@app.patch("/api/v1/reminders/{reminder_id}/complete")
+async def complete_reminder(reminder_id: str, user_id: str):
+    """
+    Marks a specific reminder as completed.
+    user_id is required to ensure the user owns the reminder.
+    """
+    if supabase is None:
+        raise HTTPException(status_code=503, detail="Database unavailable.")
+
+    try:
+        response = supabase.table("spray_reminders") \
+            .update({"is_completed": True}) \
+            .eq("id", reminder_id) \
+            .eq("user_id", user_id) \
+            .execute()
+
+        if not response.data:
+            raise HTTPException(status_code=404, detail="Reminder not found or not owned by user.")
+
+        return {"success": True, "message": "Reminder marked as complete."}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[reminders/complete] failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to complete reminder: {str(e)}")
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)

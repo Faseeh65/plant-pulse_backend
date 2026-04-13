@@ -12,9 +12,13 @@ import 'screens/home_screen.dart';
 import 'screens/splash_screen.dart';
 import 'services/causal_service.dart';
 import 'services/database_service.dart';
+import 'services/notification_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Init notification channel + timezone DB before anything else
+  await NotificationService.instance.init();
   
   await dotenv.load(fileName: ".env");
 
