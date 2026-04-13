@@ -337,6 +337,93 @@ async def save_scan(payload: ScanSaveRequest):
         raise HTTPException(status_code=500, detail=f"Failed to save scan: {str(e)}")
 
 
+# ─── Crop Statistics ──────────────────────────────────────────────────────────
+
+@app.get("/api/v1/stats/crop-summary")
+async def crop_summary(user_id: str):
+    """
+    Aggregates scan_history for the specified user and returns:
+      - total_scans
+      - healthy_count / diseased_count + percentages
+      - top_diseases: list of {disease, count, percentage} sorted desc
+
+    Query param: user_id (Supabase auth UID)
+    """
+    if supabase is None:
+        raise HTTPException(
+            status_code=503,
+            detail="Database unavailable — running in offline mode."
+        )
+
+    if not user_id or not user_id.strip():
+        raise HTTPException(status_code=400, detail="user_id is required.")
+
+    try:
+        # Fetch all scans for this user (only needed columns)
+        response = supabase.table("scan_history") \
+            .select("disease_result, confidence_score") \
+            .eq("user_id", user_id.strip()) \
+            .execute()
+
+        rows = response.data or []
+        total_scans = len(rows)
+
+        if total_scans == 0:
+            return {
+                "total_scans":       0,
+                "healthy_count":     0,
+                "diseased_count":    0,
+                "healthy_pct":       0.0,
+                "diseased_pct":      0.0,
+                "top_diseases":      [],
+            }
+
+        # ── Healthy vs Diseased ────────────────────────────────────────────
+        healthy_count = sum(
+            1 for r in rows
+            if "healthy" in r.get("disease_result", "").lower()
+        )
+        diseased_count = total_scans - healthy_count
+
+        def pct(n): return round((n / total_scans) * 100, 1)
+
+        # ── Disease frequency map ──────────────────────────────────────────
+        freq: dict[str, int] = {}
+        for r in rows:
+            label = r.get("disease_result", "Unknown")
+            # Exclude healthy entries from disease breakdown
+            if "healthy" not in label.lower():
+                freq[label] = freq.get(label, 0) + 1
+
+        top_diseases = sorted(
+            [
+                {
+                    "disease":    label,
+                    "count":      count,
+                    "percentage": pct(count),
+                }
+                for label, count in freq.items()
+            ],
+            key=lambda x: x["count"],
+            reverse=True,
+        )[:10]  # cap at top-10
+
+        return {
+            "total_scans":    total_scans,
+            "healthy_count":  healthy_count,
+            "diseased_count": diseased_count,
+            "healthy_pct":    pct(healthy_count),
+            "diseased_pct":   pct(diseased_count),
+            "top_diseases":   top_diseases,
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[crop_summary] query failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Stats query failed: {str(e)}")
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
