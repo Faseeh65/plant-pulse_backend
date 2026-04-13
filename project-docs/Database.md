@@ -55,19 +55,26 @@ CREATE TABLE scan_history (
   created_at timestamptz DEFAULT now()
 );
 
--- 3. ROW LEVEL SECURITY (RLS)
-ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
-ALTER TABLE scan_history ENABLE ROW LEVEL SECURITY;
-ALTER TABLE crops ENABLE ROW LEVEL SECURITY;
-ALTER TABLE pests ENABLE ROW LEVEL SECURITY;
-ALTER TABLE diseases ENABLE ROW LEVEL SECURITY;
+CREATE TABLE scans (
+  id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE,
+  disease_name text NOT NULL,
+  confidence float NOT NULL,
+  causal_factor text,
+  image_url text,
+  created_at timestamptz DEFAULT now()
+);
 
--- POLICIES
-CREATE POLICY "Public Read Access" ON crops FOR SELECT USING (true);
-CREATE POLICY "Public Read Access" ON pests FOR SELECT USING (true);
-CREATE POLICY "Public Read Access" ON diseases FOR SELECT USING (true);
-CREATE POLICY "Profiles are viewable by owner" ON profiles FOR SELECT USING (auth.uid() = id);
-CREATE POLICY "Users can manage own scans" ON scan_history FOR ALL USING (auth.uid() = user_id);
+-- Enable RLS for the scans table
+ALTER TABLE scans ENABLE ROW LEVEL SECURITY;
+
+-- Policy to ensure users can only see their own scans
+CREATE POLICY "Users can only see their own scans" ON scans 
+  FOR SELECT USING (auth.uid() = user_id);
+
+-- Policy to ensure users can only insert their own scans
+CREATE POLICY "Users can only insert their own scans" ON scans 
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
 
 -- 4. INITIAL SEED DATA
 INSERT INTO crops (name_en, name_ur) VALUES ('Tomato', 'ٹماٹر');

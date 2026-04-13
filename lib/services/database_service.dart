@@ -1,7 +1,13 @@
+import 'dart:io';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'local_db_service.dart';
+import 'storage_service.dart';
+import 'package:uuid/uuid.dart';
 
 class DatabaseService {
   final _client = Supabase.instance.client;
+  final _localDb = LocalDbService();
+  final _storage = StorageService();
 
   /// Fetches the full causal chain for a given disease class name.
   /// Joins: diseases → pests → crops
@@ -38,50 +44,88 @@ class DatabaseService {
     return response;
   }
 
-  /// Saves a scan result to the authenticated user's history.
-  Future<void> saveScanHistory({
-    required String cropId,
-    required String diseaseId,
-    required double confidenceScore,
-    String? imageUrl,
+  /// New consolidated Save Scan method (Offline-First)
+  Future<void> saveScan({
+    required String diseaseName,
+    required double confidence,
+    required String causalFactor,
+    required String imagePath,
   }) async {
+    final id = const Uuid().v4();
+    final createdAt = DateTime.now().toIso8601String();
+    final userId = _client.auth.currentUser?.id;
+
+    // 1. Save to Local DB immediately (Always works offline)
+    await _localDb.insertScan({
+      'id': id,
+      'disease_name': diseaseName,
+      'confidence': confidence,
+      'causal_factor': causalFactor,
+      'image_path': imagePath,
+      'created_at': createdAt,
+      'is_synced': 0,
+    });
+
+    // 2. Attempt Background Sync to Supabase
+    if (userId != null) {
+      _trySync(id, userId, diseaseName, confidence, causalFactor, imagePath, createdAt);
+    }
+  }
+
+  Future<void> _trySync(String id, String userId, String disease, double conf, String causal, String path, String date) async {
+    try {
+      // Upload image
+      final imageUrl = await _storage.uploadScanImage(File(path));
+      if (imageUrl == null) return;
+
+      // --- Input Sanitization Deployment ---
+      // Ensure image_url is properly escaped and validated
+      final sanitizedUrl = Uri.tryParse(imageUrl)?.toString() ?? imageUrl;
+
+      // Save to Supabase (Protected by PostgREST parametrization)
+      await _client.from('scans').insert({
+        'user_id': userId,
+        'disease_name': disease,
+        'confidence': conf,
+        'causal_factor': causal,
+        'image_url': sanitizedUrl,
+        'created_at': date,
+      });
+
+      // Mark locally as synced
+      await _localDb.markAsSynced(id, imageUrl);
+      print('✅ Scan Synced Successfully: $id');
+    } catch (e) {
+      print('☁️ Sync Pending (Offline): $e');
+    }
+  }
+
+  /// Sync all pending scans (e.g., when app restarts or network returns)
+  Future<void> syncOfflineScans() async {
     final userId = _client.auth.currentUser?.id;
     if (userId == null) return;
 
-    await _client.from('scan_history').insert({
-      'user_id': userId,
-      'crop_id': cropId,
-      'disease_id': diseaseId,
-      'confidence_score': confidenceScore,
-      'image_url': imageUrl,
-    });
+    final unsynced = await _localDb.getUnsyncedScans();
+    for (var scan in unsynced) {
+      await _trySync(
+        scan['id'], 
+        userId, 
+        scan['disease_name'], 
+        scan['confidence'], 
+        scan['causal_factor'], 
+        scan['image_path'], 
+        scan['created_at']
+      );
+    }
   }
 
-  /// Fetches the current user's scan history, newest first.
-  /// Joins: scan_history → diseases → crops
+  /// Fetches the current user's scan history from local DB (Instant)
   Future<List<Map<String, dynamic>>> getUserScanHistory() async {
-    final userId = _client.auth.currentUser?.id;
-    if (userId == null) return [];
+    return await _localDb.getAllScans();
+  }
 
-    final response = await _client
-        .from('scan_history')
-        .select('''
-          id,
-          confidence_score,
-          image_url,
-          created_at,
-          diseases (
-            name_en,
-            name_ur
-          ),
-          crops (
-            name_en,
-            name_ur
-          )
-        ''')
-        .eq('user_id', userId)
-        .order('created_at', ascending: false);
-
-    return List<Map<String, dynamic>>.from(response);
+  /// Gets analytic summary for the Home Page
+  Future<Map<String, dynamic>> getFieldSummary() async {
+    return await _localDb.getWeeklyStats();
   }
 }

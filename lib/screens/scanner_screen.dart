@@ -1,6 +1,15 @@
-import 'package:camera/camera.dart';
+import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:camera/camera.dart';
+import 'package:http/http.dart' as http;
+import '../services/api_service.dart';
+import '../services/causal_service.dart';
+import '../services/database_service.dart';
+import '../models/causal_logic.dart';
+import '../models/disease_result.dart';
 import 'results_screen.dart';
+import '../widgets/questionnaire_overlay.dart';
 
 class ScannerScreen extends StatefulWidget {
   const ScannerScreen({super.key});
@@ -12,35 +21,26 @@ class ScannerScreen extends StatefulWidget {
 class _ScannerScreenState extends State<ScannerScreen> with SingleTickerProviderStateMixin {
   CameraController? _controller;
   bool _isProcessing = false;
-  late AnimationController _pulseController;
-  late Animation<double> _pulseAnimation;
+  final CausalService _causalService = CausalService();
+  final ApiService _apiService = ApiService();
 
   @override
   void initState() {
     super.initState();
     _initializeCamera();
-    
-    _pulseController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 1),
-    )..repeat(reverse: true);
-    
-    _pulseAnimation = Tween<double>(begin: 0.3, end: 1.0).animate(
-      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
-    );
   }
 
   Future<void> _initializeCamera() async {
     try {
       final cameras = await availableCameras();
       if (cameras.isEmpty) return;
-      
+
       _controller = CameraController(
         cameras.first,
         ResolutionPreset.high,
         enableAudio: false,
       );
-      
+
       await _controller!.initialize();
       if (mounted) setState(() {});
     } catch (e) {
@@ -51,223 +51,443 @@ class _ScannerScreenState extends State<ScannerScreen> with SingleTickerProvider
   @override
   void dispose() {
     _controller?.dispose();
-    _pulseController.dispose();
     super.dispose();
+  }
+
+  /// Sends the captured image to FastAPI /predict endpoint via HTTP POST multipart.
+  /// Returns {'label': String, 'confidence': double} or throws on failure.
+  Future<Map<String, dynamic>> _predictViaApi(File imageFile) async {
+    final uri = Uri.parse('${ApiService.baseUrl}/predict');
+    final request = http.MultipartRequest('POST', uri);
+    request.files.add(
+      await http.MultipartFile.fromPath('file', imageFile.path),
+    );
+    request.headers['Accept'] = 'application/json';
+
+    final streamedResponse = await request.send().timeout(const Duration(seconds: 30));
+    final responseBody = await streamedResponse.stream.bytesToString();
+
+    if (streamedResponse.statusCode == 200) {
+      final decoded = jsonDecode(responseBody) as Map<String, dynamic>;
+      // Expected response: {"label": "...", "confidence": 0.87}
+      final label = decoded['label'] as String? ?? 'Unknown';
+      final confidence = (decoded['confidence'] as num?)?.toDouble() ?? 0.0;
+      return {'label': label, 'confidence': confidence};
+    } else {
+      debugPrint('Predict API error ${streamedResponse.statusCode}: $responseBody');
+      throw Exception('PREDICT_API_ERROR_${streamedResponse.statusCode}');
+    }
   }
 
   void _captureAndAnalyze() async {
     if (_controller == null || !_controller!.value.isInitialized || _isProcessing) return;
 
-    setState(() {
-      _isProcessing = true;
-    });
+    setState(() => _isProcessing = true);
 
     try {
-      // For now, simulate capture and processing
-      await Future.delayed(const Duration(seconds: 2));
-      
+      final XFile photo = await _controller!.takePicture();
+      final File imageFile = File(photo.path);
+
+      // Send image to FastAPI backend
+      final rawResult = await _predictViaApi(imageFile);
+      final String label = rawResult['label'] as String;
+      final double confidence = rawResult['confidence'] as double;
+
       if (!mounted) return;
-      
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (context) => const ResultsScreen(
-            diseaseNameEnglish: 'Apple Scab',
-            diseaseNameUrdu: 'سیب کی کھجلی',
-            confidence: 0.95,
+
+      // --- Confidence Gate (Anti-Garbage Logic) ---
+      // If confidence < 45%, DO NOT proceed to results
+      if (confidence < 0.45 || label == 'Unknown') {
+        setState(() => _isProcessing = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text(
+              'براہ کرم پودے کے پتے پر فوکس کریں۔',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+              textDirection: TextDirection.rtl,
+            ),
+            backgroundColor: Colors.redAccent,
+            duration: const Duration(seconds: 4),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            margin: const EdgeInsets.all(16),
           ),
-        ),
+        );
+        return;
+      }
+
+      // Check if we should show the questionnaire
+      final bool isHealthy = label.toLowerCase().contains('healthy');
+      final rule = _causalService.getRuleForLabel(label);
+
+      if (isHealthy || rule == null) {
+        _navigateToResults(
+          photo.path,
+          RefinedResult(
+            label: label,
+            originalConfidence: confidence,
+            refinedConfidence: confidence,
+            secondaryInspectionRequired: false,
+            answers: [],
+          ),
+        );
+      } else {
+        // Show Questionnaire overlay
+        if (!mounted) return;
+        showGeneralDialog(
+          context: context,
+          barrierDismissible: false,
+          pageBuilder: (ctx, anim1, anim2) {
+            return QuestionnaireOverlay(
+              label: label,
+              questions: rule.questions,
+              onCompleted: (answers) {
+                final refined = _causalService.refineResult(
+                  label: label,
+                  originalConfidence: confidence,
+                  answers: answers,
+                );
+                Navigator.pop(ctx); // Close Overlay
+                _navigateToResults(photo.path, refined);
+              },
+              onSkip: () {
+                Navigator.pop(ctx); // Close Overlay
+                _navigateToResults(
+                  photo.path,
+                  RefinedResult(
+                    label: label,
+                    originalConfidence: confidence,
+                    refinedConfidence: confidence,
+                    secondaryInspectionRequired: false,
+                    answers: [],
+                  ),
+                );
+              },
+            );
+          },
+        );
+      }
+    } catch (e) {
+      debugPrint('SCAN ERROR: $e');
+      if (mounted) {
+        setState(() => _isProcessing = false);
+        final isConnError = e.toString().contains('CONNECT') ||
+            e.toString().contains('SocketException') ||
+            e.toString().contains('TimeoutException') ||
+            e.toString().contains('CONNECTION_FAILED');
+
+        if (isConnError) {
+          _showConnectionErrorDialog();
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Scan Error: $e\nسکین میں خرابی آ گئی۔ دوبارہ کوشش کریں۔',
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+              backgroundColor: Colors.redAccent,
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        }
+      }
+    }
+  }
+
+  void _navigateToResults(String imagePath, RefinedResult result) async {
+    if (!mounted) return;
+
+    setState(() => _isProcessing = true);
+
+    DiseaseResult? diseaseResult;
+    Map<String, dynamic>? diseaseDetails;
+
+    try {
+      final lang = Localizations.localeOf(context).languageCode;
+
+      // Fetch data from FastAPI
+      diseaseResult = await _apiService.fetchDiagnosisDetails(
+        result.label,
+        lang: lang,
       );
     } catch (e) {
-      debugPrint('Capture error: $e');
-      if (mounted) setState(() => _isProcessing = false);
+      debugPrint('FastAPI fetch failed (using fallback): $e');
+      // Create a fallback DiseaseResult so the user can still see results
+      diseaseResult = DiseaseResult(
+        disease: result.label,
+        language: 'en',
+        instruction: 'Treatment data is currently unavailable. Please consult a local agricultural expert.\nعلاج کی معلومات دستیاب نہیں۔ مقامی زرعی ماہر سے مشورہ کریں۔',
+        dosagePerAcre: 'N/A',
+        recommendations: [],
+      );
     }
+
+    try {
+      final dbService = DatabaseService();
+      diseaseDetails = await dbService.getDiseaseWithCausalChain(result.label);
+
+      // Save to local history
+      await dbService.saveScan(
+        diseaseName: result.label,
+        confidence: result.refinedConfidence,
+        causalFactor: diseaseDetails != null ? 'Knowledge Base Sync' : 'Direct AI',
+        imagePath: imagePath,
+      );
+    } catch (e) {
+      debugPrint('DB save error (non-fatal): $e');
+    }
+
+    // --- Critical: Guard against widget being unmounted during async gap ---
+    if (!mounted) {
+      return; // Cannot setState or navigate; widget is gone
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ResultsScreen(
+          imagePath: imagePath,
+          diseaseNameEnglish: result.label,
+          diseaseNameUrdu: diseaseDetails?['name_ur'] ?? 'تشخیص شدہ بیماری',
+          confidence: result.refinedConfidence,
+          isRefined: result.answers.isNotEmpty,
+          secondaryInspectionRequired: result.secondaryInspectionRequired,
+          diagnosisData: diseaseResult!,
+        ),
+      ),
+    ).then((_) {
+      // Always reset processing state when user returns from ResultsScreen
+      if (mounted) setState(() => _isProcessing = false);
+    });
+  }
+
+  void _showConnectionErrorDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: const [
+            Icon(Icons.wifi_off_rounded, color: Colors.redAccent),
+            SizedBox(width: 10),
+            Text('Connection Error'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: const [
+            Text('Cannot reach the PlantPulse server. Please ensure your laptop is running and connected to the same network.'),
+            SizedBox(height: 15),
+            Text(
+              'سرور سے رابطہ نہیں ہو سکا۔ براہ کرم یقینی بنائیں کہ آپ کا لیپ ٹاپ آن ہے اور اسی نیٹ ورک سے منسلک ہے۔',
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('OK / ٹھیک ہے', style: TextStyle(color: Color(0xFF2ECC71), fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showComingSoon(String feature) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('$feature — Feature Coming Soon\n$feature — جلد آ رہا ہے',
+          style: const TextStyle(fontWeight: FontWeight.bold)),
+        backgroundColor: const Color(0xFF2ECC71),
+        duration: const Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     if (_controller == null || !_controller!.value.isInitialized) {
       return const Scaffold(
-        body: Center(child: CircularProgressIndicator(color: Color(0xFF1B5E20))),
+        backgroundColor: Colors.black,
+        body: Center(child: CircularProgressIndicator(color: Color(0xFF6CFB7B))),
       );
     }
 
     return Scaffold(
       backgroundColor: Colors.black,
-      extendBodyBehindAppBar: true,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
-      ),
       body: Stack(
         fit: StackFit.expand,
         children: [
           // Camera Preview
           CameraPreview(_controller!),
-          
-          // Shaded Overlay with Clear Center
-          AnimatedBuilder(
-            animation: _pulseAnimation,
-            builder: (context, child) {
-              return CustomPaint(
-                painter: ScannerFramePainter(
-                  glowOpacity: _pulseAnimation.value,
-                ),
-              );
-            },
+
+          // Glassmorphism Overlay (Clear & Interactive-Safe)
+          IgnorePointer(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final frameW = constraints.maxWidth * 0.7;
+                final frameH = frameW * 1.2;
+                return Center(
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 60),
+                      const Text(
+                        'Scanner',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1.2,
+                        ),
+                      ),
+                      const Spacer(),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(30),
+                        child: Container(
+                          width: frameW,
+                          height: frameH,
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.white.withOpacity(0.5), width: 2),
+                          ),
+                        ),
+                      ),
+                      const Spacer(flex: 2),
+                    ],
+                  ),
+                );
+              },
+            ),
           ),
-          
-          // Processing Indicator
+
+          // Bottom Navigation Style Bar
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: _buildBottomBar(),
+          ),
+
           if (_isProcessing)
             Container(
               color: Colors.black54,
-              child: const Center(
+              child: Center(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    CircularProgressIndicator(color: Colors.white),
-                    SizedBox(height: 16),
+                    const CircularProgressIndicator(color: Color(0xFF6CFB7B)),
+                    const SizedBox(height: 16),
                     Text(
-                      'Analyzing Plant...',
-                      style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
-                    )
+                      'Analyzing leaf...\nپتے کا تجزیہ ہو رہا ہے...',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 14, fontWeight: FontWeight.w500),
+                    ),
                   ],
                 ),
               ),
             ),
-            
-          // Capture Button
-          Align(
-            alignment: Alignment.bottomCenter,
-            child: Padding(
-              padding: const EdgeInsets.only(bottom: 48.0),
-              child: GestureDetector(
-                onTap: _captureAndAnalyze,
-                child: Container(
-                  width: 80,
-                  height: 80,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white, width: 4),
-                  ),
-                  child: Center(
-                    child: Container(
-                      width: 64,
-                      height: 64,
-                      decoration: const BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Color(0xFF1B5E20), // Forest Green
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          )
         ],
       ),
     );
   }
-}
 
-class ScannerFramePainter extends CustomPainter {
-  final double glowOpacity;
+  Widget _buildBottomBar() {
+    return SafeArea(
+      top: false,
+      child: Container(
+        height: 100,
+        margin: const EdgeInsets.only(bottom: 12, left: 20, right: 20),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1A1A1A).withOpacity(0.9),
+          borderRadius: BorderRadius.circular(40),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.3),
+              blurRadius: 16,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            // Home Button
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => Navigator.pop(context),
+              child: const Padding(
+                padding: EdgeInsets.all(8.0),
+                child: Icon(Icons.home_outlined, color: Colors.white60, size: 28),
+              ),
+            ),
 
-  ScannerFramePainter({required this.glowOpacity});
+            // Gallery — wired with SnackBar
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => _showComingSoon('Gallery Upload'),
+              child: const Padding(
+                padding: EdgeInsets.all(8.0),
+                child: Icon(Icons.grid_view_outlined, color: Colors.white60, size: 28),
+              ),
+            ),
 
-  @override
-  void paint(Canvas canvas, Size size) {
-    final cx = size.width / 2;
-    final cy = size.height / 2;
-    final frameSize = size.width * 0.75;
-    final half = frameSize / 2;
+            // Main Scan Button — always ready (no model init required)
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: _isProcessing ? null : _captureAndAnalyze,
+              child: Container(
+                height: 70,
+                width: 70,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF6CFB7B), Color(0xFF2ECC71)],
+                  ),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x442ECC71),
+                      blurRadius: 12,
+                      offset: Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: _isProcessing
+                    ? const SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.5,
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                        ),
+                      )
+                    : const Icon(Icons.add_a_photo, color: Colors.black, size: 30),
+              ),
+            ),
 
-    final rect = Rect.fromLTRB(cx - half, cy - half, cx + half, cy + half);
-    final rrect = RRect.fromRectAndRadius(rect, const Radius.circular(20));
+            // History — wired with SnackBar
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => _showComingSoon('Scan History'),
+              child: const Padding(
+                padding: EdgeInsets.all(8.0),
+                child: Icon(Icons.history, color: Colors.white60, size: 28),
+              ),
+            ),
 
-    // Dark Background outside the frame
-    final scrimPath = Path()
-      ..addRect(Rect.fromLTWH(0, 0, size.width, size.height))
-      ..addRRect(rrect)
-      ..fillType = PathFillType.evenOdd;
-    
-    canvas.drawPath(
-      scrimPath,
-      Paint()..color = Colors.black.withOpacity(0.6),
+            // Profile — wired with SnackBar
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => _showComingSoon('Profile'),
+              child: const Padding(
+                padding: EdgeInsets.all(8.0),
+                child: Icon(Icons.person_outline, color: Colors.white60, size: 28),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
-
-    // Glowing border
-    final glowPaint = Paint()
-      ..color = const Color(0xFF1B5E20).withOpacity(glowOpacity) // Shimmering green
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 6
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8);
-    
-    canvas.drawRRect(rrect, glowPaint);
-
-    // Solid border
-    final solidPaint = Paint()
-      ..color = const Color(0xFF1B5E20)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 3;
-      
-    canvas.drawRRect(rrect, solidPaint);
-    
-    // Draw Corner Accents
-    final cornerLength = frameSize * 0.15;
-    final cornerPaint = Paint()
-      ..color = Colors.white
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 4
-      ..strokeCap = StrokeCap.round;
-
-    // Top-Left
-    canvas.drawPath(
-      Path()
-        ..moveTo(rect.left, rect.top + cornerLength)
-        ..lineTo(rect.left, rect.top + 20)
-        ..arcToPoint(Offset(rect.left + 20, rect.top), radius: const Radius.circular(20))
-        ..lineTo(rect.left + cornerLength, rect.top),
-      cornerPaint,
-    );
-    
-    // Top-Right
-    canvas.drawPath(
-      Path()
-        ..moveTo(rect.right - cornerLength, rect.top)
-        ..lineTo(rect.right - 20, rect.top)
-        ..arcToPoint(Offset(rect.right, rect.top + 20), radius: const Radius.circular(20))
-        ..lineTo(rect.right, rect.top + cornerLength),
-      cornerPaint,
-    );
-    
-    // Bottom-Left
-    canvas.drawPath(
-      Path()
-        ..moveTo(rect.left, rect.bottom - cornerLength)
-        ..lineTo(rect.left, rect.bottom - 20)
-        ..arcToPoint(Offset(rect.left + 20, rect.bottom), radius: const Radius.circular(20), clockwise: false)
-        ..lineTo(rect.left + cornerLength, rect.bottom),
-      cornerPaint,
-    );
-    
-    // Bottom-Right
-    canvas.drawPath(
-      Path()
-        ..moveTo(rect.right - cornerLength, rect.bottom)
-        ..lineTo(rect.right - 20, rect.bottom)
-        ..arcToPoint(Offset(rect.right, rect.bottom - 20), radius: const Radius.circular(20), clockwise: false)
-        ..lineTo(rect.right, rect.bottom - cornerLength),
-      cornerPaint,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant ScannerFramePainter oldDelegate) {
-    return oldDelegate.glowOpacity != glowOpacity;
   }
 }

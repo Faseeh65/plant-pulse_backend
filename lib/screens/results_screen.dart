@@ -1,170 +1,281 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import '../models/disease_result.dart';
+import 'treatment_detail_screen.dart';
 
 class ResultsScreen extends StatelessWidget {
+  final String imagePath;
   final String diseaseNameEnglish;
   final String diseaseNameUrdu;
   final double confidence;
+  final bool isRefined;
+  final bool secondaryInspectionRequired;
+  final DiseaseResult diagnosisData;
 
   const ResultsScreen({
     super.key,
+    required this.imagePath,
     required this.diseaseNameEnglish,
     required this.diseaseNameUrdu,
     required this.confidence,
+    this.isRefined = false,
+    this.secondaryInspectionRequired = false,
+    required this.diagnosisData,
   });
 
   @override
   Widget build(BuildContext context) {
+    final bool isHealthy = diseaseNameEnglish.toLowerCase().contains('healthy');
+    final String cleanName = diseaseNameEnglish.split('___').last.replaceAll('_', ' ');
+    final String plantType = diseaseNameEnglish.split('___').first;
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Scan Results'),
-      ),
+      backgroundColor: const Color(0xFF141414), // Dark background matching the "Details" screen
       body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Image Container
-              Container(
-                height: 250,
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade200,
-                  borderRadius: BorderRadius.circular(20),
-                  image: const DecorationImage(
-                    image: AssetImage('assets/images/LOGO.png'), // Placeholder image
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Top Image with Rounded Bottom Corners
+            ClipRRect(
+              borderRadius: const BorderRadius.only(
+                bottomLeft: Radius.circular(30),
+                bottomRight: Radius.circular(30),
+              ),
+              child: Stack(
+                children: [
+                  Image.file(
+                    File(imagePath),
+                    height: 350,
+                    width: double.infinity,
                     fit: BoxFit.cover,
                   ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 10,
-                      offset: const Offset(0, 5),
-                    )
-                  ],
-                ),
-              ),
-              const SizedBox(height: 32),
-              
-              // Disease Name Card
-              Container(
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 10,
-                      offset: const Offset(0, 5),
-                    )
-                  ],
-                ),
-                child: Column(
-                  children: [
-                    Text(
-                      diseaseNameEnglish,
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF1B5E20),
-                      ),
-                      textAlign: TextAlign.center,
+                  Positioned(
+                    top: 50,
+                    left: 20,
+                    child: IconButton(
+                      icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
+                      onPressed: () => Navigator.pop(context),
                     ),
-                    const SizedBox(height: 8),
-                    Directionality(
-                      textDirection: TextDirection.rtl,
+                  ),
+                  const Positioned(
+                    top: 60,
+                    left: 0,
+                    right: 0,
+                    child: Center(
                       child: Text(
-                        diseaseNameUrdu,
-                        style: const TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF1B5E20),
-                          fontFamily: 'NotoNastaliqUrdu', // Standard for Urdu if added later
+                        'Details',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1.2,
                         ),
-                        textAlign: TextAlign.center,
                       ),
                     ),
-                    const SizedBox(height: 16),
-                    const Divider(),
-                    const SizedBox(height: 16),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.analytics, color: Color(0xFF757575)),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Confidence: ${(confidence * 100).toStringAsFixed(1)}%',
-                          style: const TextStyle(
-                            fontSize: 16,
-                            color: Color(0xFF757575),
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 32),
+            ),
+            
+            const SizedBox(height: 24),
 
-              // Recommended Action
-              const Text(
-                'Recommended Action',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF212121),
+            // Main Title & Subtitle
+            Center(
+              child: Column(
+                children: [
+                  Text(
+                    plantType,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 26,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    cleanName,
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.7),
+                      fontSize: 16,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 30),
+
+            // Horizontal Thumbnails Row (Mocked from original image for aesthetic)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: List.generate(4, (index) {
+                  return ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.file(
+                      File(imagePath),
+                      width: 70,
+                      height: 70,
+                      fit: BoxFit.cover,
+                      // Adding varying opacity or slight color filters just to make them look like different angle shots
+                      color: Colors.white.withOpacity(1.0 - (index * 0.1)),
+                      colorBlendMode: BlendMode.dstATop,
+                    ),
+                  );
+                }),
+              ),
+            ),
+
+            const SizedBox(height: 30),
+
+            // Secondary Inspection Warning (Only if triggered)
+            if (secondaryInspectionRequired)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.redAccent.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(15),
+                    border: Border.all(color: Colors.redAccent.withOpacity(0.3)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.warning_amber_rounded, color: Colors.redAccent),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: const [
+                            Text(
+                              'Secondary Inspection Required',
+                              style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold),
+                            ),
+                            Text(
+                              'تفصیلی معائنے کی ضرورت ہے',
+                              style: TextStyle(color: Colors.redAccent, fontSize: 12),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE8F5E9), // Light green tint
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: const Color(0xFFC8E6C9)),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: const [
-                        Icon(Icons.healing, color: Color(0xFF1B5E20)),
-                        SizedBox(width: 8),
-                        Text(
-                          'Treatment Plan',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF1B5E20),
-                          ),
-                        ),
-                      ],
+
+            if (secondaryInspectionRequired) const SizedBox(height: 20),
+
+            // Report Details Section
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '$plantType Report',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
                     ),
-                    const SizedBox(height: 16),
-                    const Text(
-                      '1. Remove infected leaves immediately and destroy them.\n'
-                      '2. Ensure proper plant spacing for better air circulation.\n'
-                      '3. Apply a suitable fungicide early in the morning.\n'
-                      '4. Avoid overhead watering to keep leaves dry.',
-                      style: TextStyle(
-                        fontSize: 15,
-                        height: 1.5,
-                        color: Color(0xFF212121),
+                  ),
+                  const SizedBox(height: 24),
+
+                  _buildReportRow(
+                    'Pathology:', 
+                    isHealthy 
+                        ? 'No disease found, you really take good care of your plant.' 
+                        : 'FastAPI Analysis: ${diagnosisData.disease.split('___').last.replaceAll('_', ' ')} detected.\n\n${diagnosisData.instruction.split('\n\n').first}',
+                  ),
+                  _buildReportRow(
+                    'Health Condition:', 
+                    isHealthy 
+                      ? 'Your plant looks perfectly alright no health issue found.' 
+                      : 'The scan indicates a ${isRefined ? "refined " : ""}confidence of ${(confidence * 100).toStringAsFixed(1)}%. Treatment required immediately.'
+                  ),
+                  _buildReportRow('Dosage Recommendation:', diagnosisData.dosagePerAcre),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 40),
+
+            // Bottom Action Button
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
+              child: GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => TreatmentDetailScreen(
+                        diseaseLabel: diseaseNameEnglish,
+                        plantName: plantType,
+                        preFetchedData: diagnosisData, // Pass the backend result
                       ),
                     ),
-                  ],
+                  );
+                },
+                child: Container(
+                  height: 60,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF6CFB7B), Color(0xFF2ECC71)],
+                    ),
+                    borderRadius: BorderRadius.circular(15),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF2ECC71).withOpacity(0.3),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
+                      )
+                    ],
+                  ),
+                  child: Center(
+                    child: Text(
+                      isHealthy ? 'Water me' : 'Treat Plant',
+                      style: const TextStyle(
+                        color: Colors.black,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
                 ),
               ),
-              const SizedBox(height: 48),
-              ElevatedButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Back to Home'),
-              ),
-              const SizedBox(height: 24),
-            ],
-          ),
+            ),
+          ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildReportRow(String title, String description) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 20.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            description,
+            style: TextStyle(
+              color: Colors.white.withOpacity(0.8),
+              fontSize: 14,
+              height: 1.5,
+            ),
+          ),
+        ],
       ),
     );
   }
