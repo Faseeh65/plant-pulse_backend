@@ -12,6 +12,15 @@ from typing import Optional, Set, Dict
 # Load environment variables
 load_dotenv()
 
+app = FastAPI(title="Plant Pulse API")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 # ─── Endpoints ───────────────────────────────────────────────────────────────
 
 @app.get("/health")
@@ -25,12 +34,6 @@ async def health_check():
         "db_connected": supabase is not None,
         "mode": "production" if os.getenv("RAILWAY_ENVIRONMENT") else "development"
     }
-
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
 # Connect to Supabase
 SUPABASE_URL = os.getenv("SUPABASE_URL")
@@ -177,15 +180,6 @@ class ProfileUpdate(BaseModel):
     phone: Optional[str] = ""
     location: Optional[str] = ""
 
-            "notes": "ٹھنڈے اور برساتی موسم کی پیش گوئی کی صورت میں حفاظتی سپرے کریں۔"
-        },
-        "dosage_per_acre_g": 450,
-        "products": [
-            {"name": "Tilt", "company": "Syngenta", "size": "100ml", "price": 1450},
-            {"name": "Nativo", "company": "Bayer", "size": "100g", "price": 2200},
-        ]
-    }
-}
 
 def calculate_pkr_price(products, acres: float):
     """
@@ -204,9 +198,8 @@ def calculate_pkr_price(products, acres: float):
     return results
 
 @app.get("/")
-@app.get("/health")
-async def health_check():
-    return {"status": "Plant Pulse API is Online", "database": "connected" if SUPABASE_URL else "disconnected"}
+async def root():
+    return {"message": "Plant Pulse API is running."}
 
 
 # --- Disease labels the model can detect ---
