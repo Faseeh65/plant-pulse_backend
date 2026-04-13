@@ -7,6 +7,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 import '../providers/locale_provider.dart';
 import '../services/auth_service.dart';
+import '../services/api_service.dart';
 
 // ─── constants ───────────────────────────────────────────────────────────────
 const _bg       = Color(0xFF0A1108);
@@ -29,6 +30,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final _phoneCtrl    = TextEditingController();
   final _locationCtrl = TextEditingController();
   final _formKey      = GlobalKey<FormState>();
+  final _apiService   = ApiService();
 
   // ── state ────────────────────────────────────────────────────────────
   bool   _isSaving        = false;
@@ -54,16 +56,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   // ── data loading ─────────────────────────────────────────────────────
-  void _loadProfile() {
+  Future<void> _loadProfile() async {
     final user = Supabase.instance.client.auth.currentUser;
     if (user == null) return;
+
+    // 1. Initial load from Auth metadata (fast)
     setState(() {
-      _email      = user.email ?? '';
+      _email             = user.email ?? '';
       _nameCtrl.text     = user.userMetadata?['full_name']   ?? '';
       _phoneCtrl.text    = user.userMetadata?['phone']        ?? '';
       _locationCtrl.text = user.userMetadata?['location']     ?? '';
-      _avatarUrl  = user.userMetadata?['avatar_url'] ?? '';
+      _avatarUrl         = user.userMetadata?['avatar_url']   ?? '';
     });
+
+    // 2. Definitive load from Backend (reliable cloud sync)
+    final cloudProfile = await _apiService.fetchUserProfile(user.id);
+    if (cloudProfile != null && mounted) {
+      setState(() {
+        _nameCtrl.text     = cloudProfile['full_name'] ?? _nameCtrl.text;
+        _phoneCtrl.text    = cloudProfile['phone']     ?? _phoneCtrl.text;
+        _locationCtrl.text = cloudProfile['location']  ?? _locationCtrl.text;
+        if (cloudProfile['avatar_url'] != null) {
+          _avatarUrl = cloudProfile['avatar_url'];
+        }
+      });
+    }
   }
 
   Future<void> _loadNotifPref() async {
@@ -81,8 +98,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
   // ── save profile ──────────────────────────────────────────────────────
   Future<void> _saveProfile() async {
     if (!_formKey.currentState!.validate()) return;
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) return;
+
     setState(() => _isSaving = true);
     try {
+      // 1. Update Auth metadata (for local display next launch)
       await Supabase.instance.client.auth.updateUser(
         UserAttributes(
           data: {
@@ -92,8 +113,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
           },
         ),
       );
+
+      // 2. Sync to Backend Database (truth source)
+      final success = await _apiService.updateUserProfile(
+        userId:   user.id,
+        fullName: _nameCtrl.text.trim(),
+        phone:    _phoneCtrl.text.trim(),
+        location: _locationCtrl.text.trim(),
+      );
+
       if (!mounted) return;
-      _showSnack('Profile saved successfully ✓', isSuccess: true);
+      if (success) {
+        _showSnack('Profile saved and synced successfully ✓', isSuccess: true);
+      } else {
+        _showSnack('Saved locally, but Cloud sync failed (Offline).');
+      }
     } catch (e) {
       if (mounted) _showSnack('Save failed: $e');
     } finally {

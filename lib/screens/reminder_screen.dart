@@ -562,11 +562,11 @@ class _ReminderScreenState extends State<ReminderScreen> {
               const SizedBox(height: 8),
               Text(
                 error.contains('503')
-                    ? 'Database offline — try again later.'
+                    ? 'Database Offline: Please ensure SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are added to your Railway Variables.'
                     : 'Check your internet connection.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                    color: Colors.white.withOpacity(0.45), fontSize: 13),
+                    color: Colors.white.withOpacity(0.45), fontSize: 13, height: 1.4),
               ),
               const SizedBox(height: 24),
               ElevatedButton.icon(

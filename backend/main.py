@@ -7,14 +7,25 @@ import os
 import random
 import uuid
 from dotenv import load_dotenv
-from typing import Optional, Set
+from typing import Optional, Set, Dict
 
 # Load environment variables
 load_dotenv()
 
-app = FastAPI(title="Plant Pulse API")
+# ─── Endpoints ───────────────────────────────────────────────────────────────
 
-app.add_middleware(
+@app.get("/health")
+async def health_check():
+    """
+    Returns API status and database connectivity info.
+    Mobile app uses this to show 'Database Offline' warnings.
+    """
+    return {
+        "status": "online",
+        "db_connected": supabase is not None,
+        "mode": "production" if os.getenv("RAILWAY_ENVIRONMENT") else "development"
+    }
+
     CORSMiddleware,
     allow_origins=["*"],
     allow_methods=["*"],
@@ -148,6 +159,24 @@ TREATMENT_DATA = {
         },
         "ur": {
             "solution": "ہوا کی نکاسی کو بہتر بنائیں اور اوپر سے پانی دینے سے گریز کریں۔",
+            "notes": "اگر ٹھنڈے اور ابر آلود موسم کی پیش گوئی ہو تو حفاظتی اسپرے کریں۔"
+        },
+        "dosage_per_acre_g": 300,
+        "products": [
+            {"name": "Tilt", "company": "Syngenta", "size": "100ml", "price": 2200},
+            {"name": "Nativo", "company": "Bayer", "size": "100g", "price": 4500},
+        ]
+    }
+}
+
+# ─── New Models for Phase 8 Architecture ──────────────────────────────────────
+
+class ProfileUpdate(BaseModel):
+    user_id: str
+    full_name: Optional[str] = ""
+    phone: Optional[str] = ""
+    location: Optional[str] = ""
+
             "notes": "ٹھنڈے اور برساتی موسم کی پیش گوئی کی صورت میں حفاظتی سپرے کریں۔"
         },
         "dosage_per_acre_g": 450,
@@ -602,6 +631,58 @@ async def complete_reminder(reminder_id: str, user_id: str):
     except Exception as e:
         print(f"[reminders/complete] failed: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to complete reminder: {str(e)}")
+
+
+# ─── Profile Management ──────────────────────────────────────────────────────
+
+@app.get("/api/v1/profile/{user_id}")
+async def get_user_profile(user_id: str):
+    """
+    Fetches user profile data from the 'profiles' table.
+    """
+    if supabase is None:
+        raise HTTPException(status_code=503, detail="Database unavailable.")
+
+    try:
+        response = supabase.table("profiles").select("*").eq("id", user_id).execute()
+        if not response.data:
+            # Return empty skeleton so UI doesn't crash
+            return {"id": user_id, "full_name": "", "phone": "", "location": ""}
+        return response.data[0]
+    except Exception as e:
+        print(f"[profile/get] failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch profile: {str(e)}")
+
+@app.post("/api/v1/profile/sync")
+async def sync_user_profile(payload: ProfileUpdate):
+    """
+    Upserts user profile data (name, phone, location).
+    """
+    if supabase is None:
+        raise HTTPException(status_code=503, detail="Database unavailable.")
+
+    if not payload.user_id:
+        raise HTTPException(status_code=400, detail="user_id is required.")
+
+    try:
+        data = {
+            "id": payload.user_id,
+            "full_name": payload.full_name,
+            "phone": payload.phone,
+            "location": payload.location,
+            "updated_at": "now()"
+        }
+
+        # Supabase UPSERT based on 'id' primary key
+        response = supabase.table("profiles").upsert(data).execute()
+
+        if not response.data:
+            raise HTTPException(status_code=500, detail="Profile sync failed.")
+
+        return {"success": True, "message": "Profile synced successfully."}
+    except Exception as e:
+        print(f"[profile/sync] failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to sync profile: {str(e)}")
 
 
 if __name__ == "__main__":

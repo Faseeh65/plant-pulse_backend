@@ -207,6 +207,51 @@ class ApiService {
       return false;
     }
   }
+
+  // ─── Profile Integration ──────────────────────────────────────────────────
+
+  /// Fetches user profile from the backend.
+  /// Used by ProfileScreen to ensure cross-device consistency.
+  Future<Map<String, dynamic>?> fetchUserProfile(String userId) async {
+    final uri = Uri.parse('$baseUrl/api/v1/profile/$userId');
+    try {
+      final response = await http.get(uri).timeout(const Duration(seconds: 10));
+      if (response.statusCode == 200) {
+        return jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+      }
+      debugPrint('fetchUserProfile HTTP ${response.statusCode}: ${response.body}');
+      return null;
+    } catch (e) {
+      debugPrint('fetchUserProfile failed: $e');
+      return null;
+    }
+  }
+
+  /// Syncs local profile changes to the cloud.
+  Future<bool> updateUserProfile({
+    required String userId,
+    String? fullName,
+    String? phone,
+    String? location,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/api/v1/profile/sync'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'user_id':   userId,
+          'full_name': fullName ?? '',
+          'phone':     phone ?? '',
+          'location':  location ?? '',
+        }),
+      ).timeout(const Duration(seconds: 10));
+
+      return response.statusCode == 200;
+    } catch (e) {
+      debugPrint('updateUserProfile failed: $e');
+      return false;
+    }
+  }
 }
 
 // ─── Reminder Model ───────────────────────────────────────────────────────────

@@ -480,12 +480,12 @@ class _StatsScreenState extends State<StatsScreen> {
                       fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
               Text(
-                error.contains('STATS_ERROR_503')
-                    ? 'Database offline — try again later.'
-                    : 'Check your internet connection.',
+                error.contains('STATS_ERROR_503') || error.contains('REMINDERS_ERROR_503')
+                    ? 'Database Offline: Please ensure SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are added to your Railway Variables.'
+                    : 'Check your internet connection or server status.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                    color: Colors.white.withOpacity(0.45), fontSize: 13),
+                    color: Colors.white.withOpacity(0.45), fontSize: 13, height: 1.4),
               ),
               const SizedBox(height: 28),
               ElevatedButton.icon(
