@@ -3,6 +3,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/database_service.dart';
 import 'scanner_screen.dart';
 import 'history_screen.dart';
+import 'stats_screen.dart';
+import 'reminder_screen.dart';
+import 'profile_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -29,6 +32,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Safely compute bottom padding for devices with navigation bars (Oppo F21 Pro, etc.)
+    final double bottomPadding = MediaQuery.of(context).padding.bottom;
+    // Nav bar height + safe margin above system navigation gestures
+    final double navBarSpace = 80.0 + bottomPadding + 20.0;
+
     return Scaffold(
       body: FutureBuilder<List<Map<String, dynamic>>>(
         future: _dbService.getUserScanHistory(),
@@ -37,10 +45,11 @@ class _HomeScreenState extends State<HomeScreen> {
           final bool hasHistory = history.isNotEmpty;
 
           return CustomScrollView(
+            physics: const BouncingScrollPhysics(),
             slivers: [
-              // Luxury Header — increased height to prevent overflow
+              // Luxury Header — safe height for all device sizes
               SliverAppBar(
-                expandedHeight: 260.0,
+                expandedHeight: 230.0,
                 floating: false,
                 pinned: true,
                 backgroundColor: const Color(0xFF0A1108),
@@ -54,11 +63,13 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ),
                     child: SafeArea(
+                      bottom: false, // Bottom handled by nav bar space
                       child: Padding(
-                        padding: const EdgeInsets.fromLTRB(24, 16, 24, 20),
+                        padding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisAlignment: MainAxisAlignment.end,
+                          mainAxisSize: MainAxisSize.min,
                           children: [
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -66,12 +77,13 @@ class _HomeScreenState extends State<HomeScreen> {
                                 Flexible(
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
                                     children: [
                                       const Text(
                                         'Plant Pulse',
                                         style: TextStyle(
                                           color: Color(0xFF6CFB7B),
-                                          fontSize: 32,
+                                          fontSize: 28,
                                           fontWeight: FontWeight.bold,
                                         ),
                                       ),
@@ -79,7 +91,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                         'Keep your crops healthy',
                                         style: TextStyle(
                                           color: Colors.white.withOpacity(0.7),
-                                          fontSize: 16,
+                                          fontSize: 14,
                                         ),
                                       ),
                                     ],
@@ -88,7 +100,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 _buildHistoryBadge(context),
                               ],
                             ),
-                            const SizedBox(height: 16),
+                            const SizedBox(height: 12),
                             _buildFieldSummary(),
                           ],
                         ),
@@ -114,14 +126,14 @@ class _HomeScreenState extends State<HomeScreen> {
               if (hasHistory) ...[
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(24, 32, 24, 16),
+                    padding: const EdgeInsets.fromLTRB(24, 28, 24, 14),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         const Text(
                           'Past History',
                           style: TextStyle(
-                            fontSize: 22,
+                            fontSize: 20,
                             fontWeight: FontWeight.bold,
                             color: Colors.white,
                           ),
@@ -151,31 +163,46 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ] else if (snapshot.connectionState == ConnectionState.done) ...[
                 // Empty State Placeholder
-                const SliverFillRemaining(
+                SliverFillRemaining(
                   hasScrollBody: false,
-                  child: Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.spa_outlined, color: Colors.white10, size: 80),
-                        SizedBox(height: 16),
-                        Text(
-                          'No scans yet',
-                          style: TextStyle(color: Colors.white24, fontSize: 18),
-                        ),
-                      ],
+                  child: Padding(
+                    padding: EdgeInsets.only(bottom: navBarSpace),
+                    child: const Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.spa_outlined, color: Colors.white10, size: 80),
+                          SizedBox(height: 16),
+                          Text(
+                            'No scans yet',
+                            style: TextStyle(color: Colors.white24, fontSize: 18),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
+              ] else ...[
+                // Loading state placeholder
+                const SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Center(
+                    child: CircularProgressIndicator(color: Color(0xFF6CFB7B)),
+                  ),
+                ),
               ],
-              
-              const SliverToBoxAdapter(child: SizedBox(height: 120)),
+
+              // Dynamic bottom spacer that accounts for nav bar + system insets
+              SliverToBoxAdapter(child: SizedBox(height: navBarSpace)),
             ],
           );
         },
       ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-      floatingActionButton: _buildCustomNavBar(context),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      floatingActionButton: SafeArea(
+        top: false,
+        child: _buildCustomNavBar(context),
+      ),
     );
   }
 
@@ -285,32 +312,49 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildCustomNavBar(BuildContext context) {
     return Container(
-      height: 80,
-      margin: const EdgeInsets.symmetric(horizontal: 24),
+      height: 72,
+      margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
       padding: const EdgeInsets.symmetric(horizontal: 8),
       decoration: BoxDecoration(
-        color: const Color(0xFF1A1A1A).withOpacity(0.95),
+        color: const Color(0xFF1A1A1A).withOpacity(0.97),
         borderRadius: BorderRadius.circular(40),
-        border: Border.all(color: Colors.white.withOpacity(0.05)),
+        border: Border.all(color: Colors.white.withOpacity(0.08)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.4),
+            blurRadius: 20,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
           // Home (active)
-          const Icon(Icons.home_filled, color: Color(0xFF6CFB7B), size: 28),
-          
-          // Status — wired with SnackBar
+          const Padding(
+            padding: EdgeInsets.all(8.0),
+            child: Icon(Icons.home_filled, color: Color(0xFF6CFB7B), size: 26),
+          ),
+
+          // Status — navigates to StatsScreen
           GestureDetector(
             behavior: HitTestBehavior.opaque,
-            onTap: () => _showComingSoon('Crop Status'),
-            child: const Padding(
-              padding: EdgeInsets.all(8.0),
-              child: Icon(Icons.insert_chart_outlined, color: Colors.white38, size: 28),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const StatsScreen()),
+            ),
+            child: const Tooltip(
+              message: 'Crop Status',
+              child: Padding(
+                padding: EdgeInsets.all(8.0),
+                child: Icon(Icons.insert_chart_outlined, color: Colors.white38, size: 26),
+              ),
             ),
           ),
-          
+
           // Core Scan Trigger
           GestureDetector(
+            behavior: HitTestBehavior.opaque,
             onTap: () {
               Navigator.push(
                 context,
@@ -318,35 +362,54 @@ class _HomeScreenState extends State<HomeScreen> {
               );
             },
             child: Container(
-              height: 60,
-              width: 60,
+              height: 56,
+              width: 56,
               decoration: const BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: LinearGradient(
                   colors: [Color(0xFF6CFB7B), Color(0xFF2ECC71)],
                 ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Color(0x442ECC71),
+                    blurRadius: 12,
+                    offset: Offset(0, 3),
+                  ),
+                ],
               ),
-              child: const Icon(Icons.add_a_photo, color: Colors.black, size: 28),
+              child: const Icon(Icons.add_a_photo, color: Colors.black, size: 26),
             ),
           ),
-          
-          // Reminders — wired with SnackBar
+
+          // Reminders — navigates to ReminderScreen
           GestureDetector(
             behavior: HitTestBehavior.opaque,
-            onTap: () => _showComingSoon('Reminders'),
-            child: const Padding(
-              padding: EdgeInsets.all(8.0),
-              child: Icon(Icons.notifications_none, color: Colors.white38, size: 28),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const ReminderScreen()),
+            ),
+            child: const Tooltip(
+              message: 'Reminders',
+              child: Padding(
+                padding: EdgeInsets.all(8.0),
+                child: Icon(Icons.notifications_none, color: Colors.white38, size: 26),
+              ),
             ),
           ),
-          
-          // Profile — wired with SnackBar
+
+          // Profile — navigates to ProfileScreen
           GestureDetector(
             behavior: HitTestBehavior.opaque,
-            onTap: () => _showComingSoon('Profile'),
-            child: const Padding(
-              padding: EdgeInsets.all(8.0),
-              child: Icon(Icons.person_outline, color: Colors.white38, size: 28),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const ProfileScreen()),
+            ),
+            child: const Tooltip(
+              message: 'Profile',
+              child: Padding(
+                padding: EdgeInsets.all(8.0),
+                child: Icon(Icons.person_outline, color: Colors.white38, size: 26),
+              ),
             ),
           ),
         ],

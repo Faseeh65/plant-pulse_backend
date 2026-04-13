@@ -41,18 +41,28 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     if (!isHealthy) {
       if (mounted) {
         setState(() {
-          _status = 'FastAPI Server Offline\nPlease start your backend on 0.0.0.0';
+          _status = 'Backend Offline — Running in Demo Mode\nبیک اینڈ آف لائن — ڈیمو موڈ';
           _isError = true;
         });
+        // Give user 2 seconds to see warning, then continue anyway
+        await Future.delayed(const Duration(seconds: 2));
+        if (!mounted) return;
+        setState(() => _isError = false);
       }
-      return; // Do not let the user enter if server is unreachable
     }
 
     if (mounted) {
-      final session = Supabase.instance.client.auth.currentSession;
-      if (session != null) {
-        Navigator.pushReplacementNamed(context, '/home');
-      } else {
+      try {
+        // Guard: Supabase.instance may throw if keys were missing at startup
+        final session = Supabase.instance.client.auth.currentSession;
+        if (session != null) {
+          Navigator.pushReplacementNamed(context, '/home');
+        } else {
+          Navigator.pushReplacementNamed(context, '/auth');
+        }
+      } catch (e) {
+        // Supabase not initialized — go straight to auth screen
+        debugPrint('⚠️ Supabase not initialized, redirecting to auth: $e');
         Navigator.pushReplacementNamed(context, '/auth');
       }
     }

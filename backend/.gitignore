@@ -26,5 +26,4 @@ Thumbs.db
 *.pt
 *.pth
 *.onnx
-*.tflite
 models/

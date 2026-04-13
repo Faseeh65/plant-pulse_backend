@@ -3,9 +3,13 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:permission_handler/permission_handler.dart';
 import '../services/api_service.dart';
 import '../services/causal_service.dart';
 import '../services/database_service.dart';
+import '../services/scan_guard.dart';
 import '../models/causal_logic.dart';
 import '../models/disease_result.dart';
 import 'results_screen.dart';
@@ -28,6 +32,155 @@ class _ScannerScreenState extends State<ScannerScreen> with SingleTickerProvider
   void initState() {
     super.initState();
     _initializeCamera();
+  }
+
+  // ── Gallery picker ──────────────────────────────────────────────────────
+  Future<void> _pickFromGallery() async {
+    if (_isProcessing) return;
+
+    // On Android 13+ (API 33+) we need READ_MEDIA_IMAGES.
+    // On older Android we need READ_EXTERNAL_STORAGE.
+    final Permission storagePermission =
+        (await Permission.photos.status).isGranted ||
+                (await Permission.photos.request()).isGranted
+            ? Permission.photos
+            : Permission.storage;
+
+    final PermissionStatus status = await storagePermission.status;
+
+    if (status.isGranted) {
+      // ── Permission granted — open native gallery ──
+      final ImagePicker picker = ImagePicker();
+      final XFile? picked =
+          await picker.pickImage(source: ImageSource.gallery, imageQuality: 90);
+
+      if (picked == null) return; // user cancelled
+
+      final File imageFile = File(picked.path);
+      setState(() => _isProcessing = true);
+
+      try {
+        final rawResult = await _predictViaApi(imageFile);
+        final String label      = rawResult['label'] as String;
+        final double confidence = rawResult['confidence'] as double;
+
+        // ── Two-layer defence: background class + 85% confidence gate ──
+        ScanGuard.instance.validate(label, confidence);
+
+        if (!mounted) return;
+
+        final bool isHealthy = label.toLowerCase().contains('healthy');
+        final rule = _causalService.getRuleForLabel(label);
+
+        if (isHealthy || rule == null) {
+          _navigateToResults(
+            picked.path,
+            RefinedResult(
+              label: label,
+              originalConfidence: confidence,
+              refinedConfidence: confidence,
+              secondaryInspectionRequired: false,
+              answers: [],
+            ),
+          );
+        } else {
+          if (!mounted) return;
+          showGeneralDialog(
+            context: context,
+            barrierDismissible: false,
+            pageBuilder: (ctx, anim1, anim2) {
+              return QuestionnaireOverlay(
+                label: label,
+                questions: rule.questions,
+                onCompleted: (answers) {
+                  final refined = _causalService.refineResult(
+                    label: label,
+                    originalConfidence: confidence,
+                    answers: answers,
+                  );
+                  Navigator.pop(ctx);
+                  _navigateToResults(picked.path, refined);
+                },
+                onSkip: () {
+                  Navigator.pop(ctx);
+                  _navigateToResults(
+                    picked.path,
+                    RefinedResult(
+                      label: label,
+                      originalConfidence: confidence,
+                      refinedConfidence: confidence,
+                      secondaryInspectionRequired: false,
+                      answers: [],
+                    ),
+                  );
+                },
+              );
+            },
+          );
+        }
+      } catch (e) {
+        debugPrint('GALLERY SCAN ERROR: $e');
+        if (mounted) {
+          setState(() => _isProcessing = false);
+          if (e is UnrecognizedScanException) {
+            _showRejectionSheet(e);
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Scan Error: $e'),
+                backgroundColor: Colors.redAccent,
+                duration: const Duration(seconds: 3),
+              ),
+            );
+          }
+        }
+      }
+    } else if (status.isPermanentlyDenied) {
+      // ── Permanently denied — guide user to Settings ──
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text(
+            'Gallery permission denied. Enable it in Settings.',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          backgroundColor: Colors.redAccent,
+          duration: const Duration(seconds: 4),
+          behavior: SnackBarBehavior.floating,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          margin: const EdgeInsets.all(16),
+          action: SnackBarAction(
+            label: 'Settings',
+            textColor: Colors.white,
+            onPressed: () => openAppSettings(),
+          ),
+        ),
+      );
+    } else {
+      // ── Denied (first time or temporary) — request permission ──
+      final PermissionStatus newStatus = await storagePermission.request();
+      if (newStatus.isGranted) {
+        _pickFromGallery(); // retry after grant
+      } else {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text(
+              'گیلری تک رسائی کی اجازت درکار ہے۔',
+              style: TextStyle(fontWeight: FontWeight.bold),
+              textDirection: TextDirection.rtl,
+            ),
+            backgroundColor: Colors.orange,
+            duration: const Duration(seconds: 3),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12)),
+            margin: const EdgeInsets.all(16),
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _initializeCamera() async {
@@ -60,7 +213,11 @@ class _ScannerScreenState extends State<ScannerScreen> with SingleTickerProvider
     final uri = Uri.parse('${ApiService.baseUrl}/predict');
     final request = http.MultipartRequest('POST', uri);
     request.files.add(
-      await http.MultipartFile.fromPath('file', imageFile.path),
+      await http.MultipartFile.fromPath(
+        'file',
+        imageFile.path,
+        contentType: MediaType('image', 'jpeg'),
+      ),
     );
     request.headers['Accept'] = 'application/json';
 
@@ -93,28 +250,10 @@ class _ScannerScreenState extends State<ScannerScreen> with SingleTickerProvider
       final String label = rawResult['label'] as String;
       final double confidence = rawResult['confidence'] as double;
 
-      if (!mounted) return;
+      // ── Two-layer defence: background class + 85% confidence gate ──
+      ScanGuard.instance.validate(label, confidence);
 
-      // --- Confidence Gate (Anti-Garbage Logic) ---
-      // If confidence < 45%, DO NOT proceed to results
-      if (confidence < 0.45 || label == 'Unknown') {
-        setState(() => _isProcessing = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text(
-              'براہ کرم پودے کے پتے پر فوکس کریں۔',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-              textDirection: TextDirection.rtl,
-            ),
-            backgroundColor: Colors.redAccent,
-            duration: const Duration(seconds: 4),
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            margin: const EdgeInsets.all(16),
-          ),
-        );
-        return;
-      }
+      if (!mounted) return;
 
       // Check if we should show the questionnaire
       final bool isHealthy = label.toLowerCase().contains('healthy');
@@ -171,6 +310,13 @@ class _ScannerScreenState extends State<ScannerScreen> with SingleTickerProvider
       debugPrint('SCAN ERROR: $e');
       if (mounted) {
         setState(() => _isProcessing = false);
+
+        if (e is UnrecognizedScanException) {
+          // Professional rejection sheet — never a raw SnackBar
+          _showRejectionSheet(e);
+          return;
+        }
+
         final isConnError = e.toString().contains('CONNECT') ||
             e.toString().contains('SocketException') ||
             e.toString().contains('TimeoutException') ||
@@ -260,6 +406,149 @@ class _ScannerScreenState extends State<ScannerScreen> with SingleTickerProvider
       if (mounted) setState(() => _isProcessing = false);
     });
   }
+
+  // ── Professional Rejection Sheet ────────────────────────────────────────
+  /// Shown whenever [ScanGuard] throws [UnrecognizedScanException].
+  /// Displays a clear, bilingual, actionable error so the user knows
+  /// exactly what went wrong and what to do next.
+  void _showRejectionSheet(UnrecognizedScanException e) {
+    if (!mounted) return;
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) => Container(
+        margin: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(24, 28, 24, 32),
+        decoration: BoxDecoration(
+          color: const Color(0xFF111F0F),
+          borderRadius: BorderRadius.circular(28),
+          border: Border.all(color: Colors.redAccent.withOpacity(0.35), width: 1.5),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // ── Icon ──
+            Container(
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                color: Colors.redAccent.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.search_off_rounded,
+                color: Colors.redAccent,
+                size: 46,
+              ),
+            ),
+            const SizedBox(height: 18),
+
+            // ── Title ──
+            const Text(
+              'Unrecognized Scan',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 0.3,
+              ),
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              'ناقابلِ شناخت اسکین',
+              style: TextStyle(
+                color: Colors.white54,
+                fontSize: 14,
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // ── Confidence badge (only if below threshold) ──
+            if (e.confidence > 0 && e.confidence < ScanGuard.kConfidenceThreshold)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.redAccent.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.redAccent.withOpacity(0.25)),
+                ),
+                child: Text(
+                  'Confidence: ${(e.confidence * 100).toStringAsFixed(1)}%  '  
+                  '(min ${(ScanGuard.kConfidenceThreshold * 100).toStringAsFixed(0)}% required)',
+                  style: const TextStyle(color: Colors.redAccent, fontSize: 12, fontWeight: FontWeight.w600),
+                ),
+              ),
+
+            const SizedBox(height: 20),
+
+            // ── Instructions ──
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFF152213),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _tipRow(Icons.wb_sunny_outlined,
+                      'Ensure good natural lighting on the leaf.'),
+                  const SizedBox(height: 10),
+                  _tipRow(Icons.center_focus_strong_outlined,
+                      'Point camera at a single leaf, filling the frame.'),
+                  const SizedBox(height: 10),
+                  _tipRow(Icons.do_not_disturb_alt_outlined,
+                      'Avoid backgrounds, hands, or mixed objects.'),
+                  const SizedBox(height: 14),
+                  const Divider(color: Color(0xFF1E3A1A)),
+                  const SizedBox(height: 10),
+                  const Text(
+                    'براہ کرم یقینی بنائیں کہ ایک حقیقی، واضح اور روشن پتہ فریم میں ہو۔',
+                    textDirection: TextDirection.rtl,
+                    style: TextStyle(color: Colors.white60, fontSize: 13, height: 1.5),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 24),
+
+            // ── Retry button ──
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF6CFB7B),
+                  foregroundColor: Colors.black,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16)),
+                ),
+                icon: const Icon(Icons.camera_alt_outlined, size: 20),
+                label: const Text(
+                  'Try Again  •  دوبارہ کوشش کریں',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                ),
+                onPressed: () => Navigator.pop(ctx),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _tipRow(IconData icon, String text) => Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: const Color(0xFF6CFB7B), size: 18),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(text,
+                style: const TextStyle(color: Colors.white70, fontSize: 13, height: 1.4)),
+          ),
+        ],
+      );
 
   void _showConnectionErrorDialog() {
     showDialog(
@@ -423,10 +712,10 @@ class _ScannerScreenState extends State<ScannerScreen> with SingleTickerProvider
               ),
             ),
 
-            // Gallery — wired with SnackBar
+            // Gallery — opens native image picker with permission handling
             GestureDetector(
               behavior: HitTestBehavior.opaque,
-              onTap: () => _showComingSoon('Gallery Upload'),
+              onTap: _pickFromGallery,
               child: const Padding(
                 padding: EdgeInsets.all(8.0),
                 child: Icon(Icons.grid_view_outlined, color: Colors.white60, size: 28),
