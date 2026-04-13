@@ -59,6 +59,9 @@ class ApiService {
   }
   /// Silently saves a completed scan to the cloud via the FastAPI backend.
   ///
+  /// [plantName] is the raw label prefix (e.g. "Tomato" or "Corn_Maize").
+  /// It is normalised to the canonical CropType string before sending.
+  ///
   /// Returns [true] on success, [false] on any network or server error.
   /// Never throws — caller shows a subtle SnackBar on false.
   Future<bool> saveScanResult({
@@ -73,7 +76,7 @@ class ApiService {
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'user_id':          userId,
-          'plant_name':       plantName,
+          'crop_name':        _normalizeCropName(plantName),  // strict enum key
           'disease_result':   diseaseResult,
           'confidence_score': confidenceScore,
         }),
@@ -91,6 +94,29 @@ class ApiService {
       return false;
     }
   }
+
+  /// Maps raw ML label prefixes to canonical CropType enum values.
+  /// e.g. "Corn_Maize" → "Corn (Maize)", "Pepper_Bell" → "Pepper (Bell)"
+  static String _normalizeCropName(String raw) {
+    const map = <String, String>{
+      'Apple':        'Apple',
+      'Cherry':       'Cherry',
+      'Corn':         'Corn (Maize)',
+      'Corn_Maize':   'Corn (Maize)',
+      'Grape':        'Grape',
+      'Peach':        'Peach',
+      'Pepper':       'Pepper (Bell)',
+      'Pepper_Bell':  'Pepper (Bell)',
+      'Potato':       'Potato',
+      'Rice':         'Rice',
+      'Soybean':      'Soybean',
+      'Strawberry':   'Strawberry',
+      'Tomato':       'Tomato',
+      'Wheat':        'Wheat',
+    };
+    return map[raw] ?? raw;
+  }
+
   /// Fetches aggregated crop statistics for the authenticated user.
   /// Throws [Exception] on network or server failure.
   Future<CropSummary> fetchCropSummary(String userId) async {

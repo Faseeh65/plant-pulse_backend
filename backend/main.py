@@ -1,12 +1,13 @@
 from fastapi import FastAPI, HTTPException, Header, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, validator
 from supabase import create_client, Client
+from enum import Enum
 import os
 import random
 import uuid
 from dotenv import load_dotenv
-from typing import Optional
+from typing import Optional, Set
 
 # Load environment variables
 load_dotenv()
@@ -36,6 +37,45 @@ else:
     except Exception as e:
         print(f"Warning: Supabase Initialization Failed ({e}). Running in OFFLINE mode with local data.")
         supabase = None
+
+
+# ─── Agricultural Data Dictionary ────────────────────────────────────────────
+# Strict Enum + Mapping ensures only scientifically valid crop/disease pairs
+# reach the database. Garbage data is rejected at the API boundary (422).
+
+class CropType(str, Enum):
+    APPLE        = "Apple"
+    CHERRY       = "Cherry"
+    CORN         = "Corn (Maize)"
+    GRAPE        = "Grape"
+    PEACH        = "Peach"
+    PEPPER_BELL  = "Pepper (Bell)"
+    POTATO       = "Potato"
+    RICE         = "Rice"
+    SOYBEAN      = "Soybean"
+    STRAWBERRY   = "Strawberry"
+    TOMATO       = "Tomato"
+    WHEAT        = "Wheat"
+
+
+VALID_CROP_DISEASES: dict[CropType, Set[str]] = {
+    CropType.APPLE:       {"Apple Scab", "Black Rot", "Cedar Apple Rust", "Healthy"},
+    CropType.CHERRY:      {"Powdery Mildew", "Healthy"},
+    CropType.CORN:        {"Cercospora Leaf Spot", "Common Rust", "Northern Leaf Blight", "Healthy"},
+    CropType.GRAPE:       {"Black Rot", "Esca (Black Measles)", "Leaf Blight", "Healthy"},
+    CropType.PEACH:       {"Bacterial Spot", "Healthy"},
+    CropType.PEPPER_BELL: {"Bacterial Spot", "Healthy"},
+    CropType.POTATO:      {"Early Blight", "Late Blight", "Healthy"},
+    CropType.RICE:        {"Brown Spot", "Hispa", "Leaf Blast", "Healthy"},
+    CropType.SOYBEAN:     {"Caterpillar Damage", "Diabrotica Speciosa", "Healthy"},
+    CropType.STRAWBERRY:  {"Leaf Scorch", "Healthy"},
+    CropType.TOMATO: {
+        "Bacterial Spot", "Early Blight", "Late Blight", "Leaf Mold",
+        "Septoria Leaf Spot", "Spider Mites (Two-Spotted)", "Target Spot",
+        "Yellow Leaf Curl Virus", "Mosaic Virus", "Healthy",
+    },
+    CropType.WHEAT:       {"Brown Rust", "Yellow Rust", "Healthy"},
+}
 
 # --- BACKEND LOGIC: Treatment Mapping & PKR Calculation ---
 # Moving logic from Flutter (treatment_service.dart) to FastAPI
@@ -270,27 +310,49 @@ async def get_treatment_data(disease_id: str, acres: float = 1.0, lang: Optional
 
 # ─── Scan History ─────────────────────────────────────────────────────────────
 
-class ScanSaveRequest(BaseModel):
+class ScanResultCreate(BaseModel):
     """
-    Payload sent by the Flutter app after a successful /predict call.
-    user_id    – Supabase auth UID (from currentUser.id)
-    plant_name – e.g. "Tomato"
-    disease_result – full label e.g. "Tomato___Early_blight"
-    confidence_score – float 0-1
+    Strictly-validated payload for saving scan results.
+
+    - crop_name      : Must be a known CropType enum value (e.g. "Tomato").
+                       Unknown crops are rejected with HTTP 422 automatically.
+    - disease_result : Must exist in the valid disease set for that crop.
+                       Cross-contamination (e.g. Tomato + Cedar Apple Rust) is blocked.
+    - confidence_score: Clamped to [0.0, 1.0].
     """
-    user_id: str
-    plant_name: str
-    disease_result: str
+    user_id:         str
+    crop_name:       CropType        # enum — FastAPI validates automatically
+    disease_result:  str
     confidence_score: float
+
+    @validator("disease_result")
+    def validate_disease_for_crop(cls, v: str, values: dict) -> str:
+        crop: CropType | None = values.get("crop_name")
+        if crop is not None:
+            valid = VALID_CROP_DISEASES.get(crop, set())
+            if v not in valid:
+                raise ValueError(
+                    f"Disease '{v}' is not valid for crop '{crop.value}'. "
+                    f"Valid options: {sorted(valid)}"
+                )
+        return v
+
+    @validator("confidence_score")
+    def clamp_confidence(cls, v: float) -> float:
+        if not (0.0 <= v <= 1.0):
+            raise ValueError("confidence_score must be between 0.0 and 1.0")
+        return round(v, 6)
 
 
 @app.post("/api/v1/scans/save")
-async def save_scan(payload: ScanSaveRequest):
+async def save_scan(payload: ScanResultCreate):
     """
-    Securely persists a completed scan to the Supabase scan_history table.
+    Securely persists a validated scan into the Supabase scan_history table.
 
-    The Flutter app calls this immediately after a successful /predict response,
-    passing the authenticated user's UID so history is tied to the account.
+    Validation chain (all automatic before this function body runs):
+      1. crop_name must be a known CropType value → 422 if not
+      2. disease_result must belong to that crop's disease set → 422 if not
+      3. confidence_score must be in [0.0, 1.0] → 422 if not
 
     Returns the new record's UUID on success.
     Raises HTTP 503 if Supabase is not configured (offline mode).
@@ -301,12 +363,8 @@ async def save_scan(payload: ScanSaveRequest):
             detail="Database unavailable — running in offline mode."
         )
 
-    # Validate user_id is a non-empty string (basic guard)
     if not payload.user_id or not payload.user_id.strip():
         raise HTTPException(status_code=400, detail="user_id is required.")
-
-    # Clamp confidence to [0, 1]
-    confidence = max(0.0, min(1.0, payload.confidence_score))
 
     record_id = str(uuid.uuid4())
 
@@ -314,12 +372,11 @@ async def save_scan(payload: ScanSaveRequest):
         response = supabase.table("scan_history").insert({
             "id":               record_id,
             "user_id":          payload.user_id.strip(),
-            "plant_name":       payload.plant_name.strip(),
-            "disease_result":   payload.disease_result.strip(),
-            "confidence_score": confidence,
+            "plant_name":       payload.crop_name.value,   # canonical casing from Enum
+            "disease_result":   payload.disease_result,    # already validated
+            "confidence_score": payload.confidence_score,  # already clamped
         }).execute()
 
-        # supabase-py v2 raises on error; data is a list of inserted rows
         data = response.data
         if not data:
             raise HTTPException(status_code=500, detail="Insert returned no data.")
