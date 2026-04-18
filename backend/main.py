@@ -36,7 +36,7 @@ except Exception as e:
 # --- Configure CORS Middleware ---
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], 
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -44,8 +44,7 @@ app.add_middleware(
 
 # ─── Supabase Configuration ──────────────────────────────────────────────────
 
-# ADD YOUR SUPABASE KEYS HERE (reads from .env file or Railway Variables)
-SUPABASE_URL = os.getenv("SUPABASE_URL")        # e.g. https://xyz.supabase.co
+SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("SUPABASE_ANON_KEY")
 
 supabase: Optional[Client] = None
@@ -85,11 +84,6 @@ async def health_check():
 
 @app.post("/predict")
 async def predict_image(file: UploadFile = File(...)):
-    """
-    Live inference endpoint.
-    Accepts a multipart/form-data image upload, resizes to 224x224,
-    rescales by 1/255, and returns the disease prediction mapped from JSON labels.
-    """
     if model is None:
         raise HTTPException(status_code=503, detail="Model is not loaded on the server.")
 
@@ -102,20 +96,24 @@ async def predict_image(file: UploadFile = File(...)):
         if len(image_bytes) == 0:
             raise HTTPException(status_code=400, detail="Empty image received.")
 
-        # Preprocess the image
         img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
         img = img.resize((224, 224))
-        
-        # Rescale exactly as requested (1/255.0)
         img_array = np.array(img, dtype=np.float32) / 255.0
-        img_array = np.expand_dims(img_array, axis=0) # Add batch dimension
+        img_array = np.expand_dims(img_array, axis=0)
 
-        # Predict
         predictions = model.predict(img_array)
         predicted_class_index = str(np.argmax(predictions[0]))
         confidence = float(np.max(predictions[0]))
 
-        # Map to actual string name
+        # ─── Confidence Threshold ───────────────────────────────────────────
+        # If model is less than 60% confident, reject as non-plant image
+        if confidence < 0.60:
+            return {
+                "label": "Unknown - Please scan a clear plant leaf",
+                "confidence": confidence,
+            }
+        # ────────────────────────────────────────────────────────────────────
+
         disease_name = class_indices.get(predicted_class_index, "Unknown")
 
         return {
@@ -209,12 +207,12 @@ async def crop_summary(user_id: str):
 
         if total_scans == 0:
             return {
-                "total_scans":       0,
-                "healthy_count":     0,
-                "diseased_count":    0,
-                "healthy_pct":       0.0,
-                "diseased_pct":      0.0,
-                "top_diseases":      [],
+                "total_scans":    0,
+                "healthy_count":  0,
+                "diseased_count": 0,
+                "healthy_pct":    0.0,
+                "diseased_pct":   0.0,
+                "top_diseases":   [],
             }
 
         healthy_count = sum(1 for r in rows if "healthy" in r.get("disease_result", "").lower())
@@ -355,6 +353,7 @@ async def get_user_profile(user_id: str):
         return response.data[0]
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to fetch profile: {str(e)}")
+
 
 @app.post("/api/v1/profile/sync")
 async def sync_user_profile(payload: ProfileUpdate):
