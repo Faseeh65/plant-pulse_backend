@@ -74,6 +74,6 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Uncomment the line below to enable the auto-profile trigger
--- CREATE TRIGGER on_auth_user_created
---   AFTER INSERT ON auth.users
---   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+ CREATE TRIGGER on_auth_user_created
+   AFTER INSERT ON auth.users
+   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();

@@ -1,72 +1,222 @@
 {
   "Apple___Apple_scab": {
     "questions": [
-      { "en": "Has there been frequent rain or high humidity recently?", "ur": "کیا حال ہی میں بار بار بارش یا زیادہ نمی رہی ہے؟", "type": "environmental", "weight": 0.15 },
-      { "en": "Are the spots on the leaves olive-green or brown with a velvety texture?", "ur": "کیا پتوں پر دھبے زیتونی سبز یا بھورے اور مخملی ساخت کے ہیں؟", "type": "symptom", "weight": 0.15 },
-      { "en": "Are you seeing similar spots appearing on the fruit as well?", "ur": "کیا آپ کو پھلوں پر بھی اسی طرح کے دھبے نظر آرہے ہیں؟", "type": "symptom", "weight": 0.15 }
+      {
+        "en": "Has there been frequent rain or high humidity recently?",
+        "ur": "کیا حال ہی میں بار بار بارش یا زیادہ نمی رہی ہے؟",
+        "type": "environmental",
+        "weight": 0.15
+      },
+      {
+        "en": "Are the spots on the leaves olive-green or brown with a velvety texture?",
+        "ur": "کیا پتوں پر دھبے زیتونی سبز یا بھورے اور مخملی ساخت کے ہیں؟",
+        "type": "symptom",
+        "weight": 0.15
+      },
+      {
+        "en": "Are you seeing similar spots appearing on the fruit as well?",
+        "ur": "کیا آپ کو پھلوں پر بھی اسی طرح کے دھبے نظر آرہے ہیں؟",
+        "type": "symptom",
+        "weight": 0.15
+      }
     ]
   },
   "Apple___Black_rot": {
     "questions": [
-      { "en": "Is the temperature consistently between 20-30°C?", "ur": "کیا درجہ حرارت مستقل طور پر 20 سے 30 ڈگری کے درمیان ہے؟", "type": "weather", "weight": 0.15 },
-      { "en": "Do the leaf spots have a purple margin with a tan center (frog-eye spot)?", "ur": "کیا پتوں کے دھبوں کا کنارہ جامنی اور درمیان گندمی ہے؟", "type": "symptom", "weight": 0.15 },
-      { "en": "Is there any rot or blackening visible on the fruit or branches?", "ur": "کیا پھلوں یا شاخوں پر کوئی سڑن یا کالا پن نظر آرہا ہے؟", "type": "symptom", "weight": 0.15 }
+      {
+        "en": "Is the temperature consistently between 20-30°C?",
+        "ur": "کیا درجہ حرارت مستقل طور پر 20 سے 30 ڈگری کے درمیان ہے؟",
+        "type": "weather",
+        "weight": 0.15
+      },
+      {
+        "en": "Do the leaf spots have a purple margin with a tan center (frog-eye spot)?",
+        "ur": "کیا پتوں کے دھبوں کا کنارہ جامنی اور درمیان گندمی ہے؟",
+        "type": "symptom",
+        "weight": 0.15
+      },
+      {
+        "en": "Is there any rot or blackening visible on the fruit or branches?",
+        "ur": "کیا پھلوں یا شاخوں پر کوئی سڑن یا کالا پن نظر آرہا ہے؟",
+        "type": "symptom",
+        "weight": 0.15
+      }
     ]
   },
   "Corn_(maize)___Common_rust_": {
     "questions": [
-      { "en": "Is the weather currently cool and moist?", "ur": "کیا موسم فی الحال ٹھنڈا اور مرطوب ہے؟", "type": "weather", "weight": 0.15 },
-      { "en": "Are there raised, reddish-brown pustules on both sides of the leaf?", "ur": "کیا پتے کے دونوں طرف ابھرے ہوئے، سرخی مائل بھورے دانے ہیں؟", "type": "symptom", "weight": 0.15 },
-      { "en": "Do the pustules release a powdery orange-red dust when touched?", "ur": "کیا چھونے پر ان دانوں سے نارنجی سرخ پاؤڈر نکلتا ہے؟", "type": "symptom", "weight": 0.15 }
+      {
+        "en": "Is the weather currently cool and moist?",
+        "ur": "کیا موسم فی الحال ٹھنڈا اور مرطوب ہے؟",
+        "type": "weather",
+        "weight": 0.15
+      },
+      {
+        "en": "Are there raised, reddish-brown pustules on both sides of the leaf?",
+        "ur": "کیا پتے کے دونوں طرف ابھرے ہوئے، سرخی مائل بھورے دانے ہیں؟",
+        "type": "symptom",
+        "weight": 0.15
+      },
+      {
+        "en": "Do the pustules release a powdery orange-red dust when touched?",
+        "ur": "کیا چھونے پر ان دانوں سے نارنجی سرخ پاؤڈر نکلتا ہے؟",
+        "type": "symptom",
+        "weight": 0.15
+      }
     ]
   },
   "Potato___Early_blight": {
     "questions": [
-      { "en": "Have the older lower leaves been affected first?", "ur": "کیا پہلے پرانے نچلے پتے متاثر ہوئے ہیں؟", "type": "symptom", "weight": 0.15 },
-      { "en": "Do the brown spots have concentric rings (target-like appearance)?", "ur": "کیا بھورے دھبوں میں مرتکز حلقے (ٹارگیٹ کی طرح) نظر آرہے ہیں؟", "type": "symptom", "weight": 0.15 },
-      { "en": "Is the soil moisture fluctuating between dry and wet?", "ur": "کیا مٹی کی نمی خشک اور گیلی کے درمیان بدل رہی ہے؟", "type": "environmental", "weight": 0.15 }
+      {
+        "en": "Have the older lower leaves been affected first?",
+        "ur": "کیا پہلے پرانے نچلے پتے متاثر ہوئے ہیں؟",
+        "type": "symptom",
+        "weight": 0.15
+      },
+      {
+        "en": "Do the brown spots have concentric rings (target-like appearance)?",
+        "ur": "کیا بھورے دھبوں میں مرتکز حلقے (ٹارگیٹ کی طرح) نظر آرہے ہیں؟",
+        "type": "symptom",
+        "weight": 0.15
+      },
+      {
+        "en": "Is the soil moisture fluctuating between dry and wet?",
+        "ur": "کیا مٹی کی نمی خشک اور گیلی کے درمیان بدل رہی ہے؟",
+        "type": "environmental",
+        "weight": 0.15
+      }
     ]
   },
   "Potato___Late_blight": {
     "questions": [
-      { "en": "Is there high humidity and cool nights followed by warm days?", "ur": "کیا ہوا میں زیادہ نمی اور راتیں ٹھنڈی جبکہ دن گرم ہیں؟", "type": "weather", "weight": 0.15 },
-      { "en": "Are the dark green, water-soaked spots spreading rapidly?", "ur": "کیا گہرے سبز، پانی بھرے دھبے تیزی سے پھیل رہے ہیں؟", "type": "symptom", "weight": 0.15 },
-      { "en": "Is there white fungal growth visible on the leaf undersides in the morning?", "ur": "کیا صبح کے وقت پتوں کی نچلی طرف سفید رنگ کی پھپھوندی نظر آتی ہے؟", "type": "symptom", "weight": 0.15 }
+      {
+        "en": "Is there high humidity and cool nights followed by warm days?",
+        "ur": "کیا ہوا میں زیادہ نمی اور راتیں ٹھنڈی جبکہ دن گرم ہیں؟",
+        "type": "weather",
+        "weight": 0.15
+      },
+      {
+        "en": "Are the dark green, water-soaked spots spreading rapidly?",
+        "ur": "کیا گہرے سبز، پانی بھرے دھبے تیزی سے پھیل رہے ہیں؟",
+        "type": "symptom",
+        "weight": 0.15
+      },
+      {
+        "en": "Is there white fungal growth visible on the leaf undersides in the morning?",
+        "ur": "کیا صبح کے وقت پتوں کی نچلی طرف سفید رنگ کی پھپھوندی نظر آتی ہے؟",
+        "type": "symptom",
+        "weight": 0.15
+      }
     ]
   },
   "Tomato___Bacterial_spot": {
     "questions": [
-      { "en": "Is the weather warm and rainy?", "ur": "کیا موسم گرم اور برساتی ہے؟", "type": "weather", "weight": 0.15 },
-      { "en": "Are the leaf spots small, dark, and greasy in appearance?", "ur": "کیا پتوں کے دھبے چھوٹے، گہرے اور چکنے نظر آتے ہیں؟", "type": "symptom", "weight": 0.15 },
-      { "en": "Are you using overhead irrigation or sprinklers?", "ur": "کیا آپ فوارہ کے ذریعے آبپاشی کر رہے ہیں؟", "type": "environmental", "weight": 0.15 }
+      {
+        "en": "Is the weather warm and rainy?",
+        "ur": "کیا موسم گرم اور برساتی ہے؟",
+        "type": "weather",
+        "weight": 0.15
+      },
+      {
+        "en": "Are the leaf spots small, dark, and greasy in appearance?",
+        "ur": "کیا پتوں کے دھبے چھوٹے، گہرے اور چکنے نظر آتے ہیں؟",
+        "type": "symptom",
+        "weight": 0.15
+      },
+      {
+        "en": "Are you using overhead irrigation or sprinklers?",
+        "ur": "کیا آپ فوارہ کے ذریعے آبپاشی کر رہے ہیں؟",
+        "type": "environmental",
+        "weight": 0.15
+      }
     ]
   },
   "Tomato___Leaf_Miner": {
     "questions": [
-      { "en": "Do you see white, winding tunnels/trails inside the leaves?", "ur": "کیا آپ کو پتوں کے اندر سفید، بل کھاتی ہوئی سرنگیں یا لکیریں نظر آتی ہیں؟", "type": "symptom", "weight": 0.15 },
-      { "en": "Are the tunnels becoming wider as the insect grows?", "ur": "کیا کیڑے کے بڑھنے کے ساتھ ہی یہ سرنگیں چوڑی ہو رہی ہیں؟", "type": "symptom", "weight": 0.15 },
-      { "en": "Can you see small yellow larvae or black flies on the leaves?", "ur": "کیا آپ کو پتوں پر چھوٹی پیلی سنڈیاں یا کالی مکھیاں نظر آتی ہیں؟", "type": "pest", "weight": 0.15 }
+      {
+        "en": "Do you see white, winding tunnels/trails inside the leaves?",
+        "ur": "کیا آپ کو پتوں کے اندر سفید، بل کھاتی ہوئی سرنگیں یا لکیریں نظر آتی ہیں؟",
+        "type": "symptom",
+        "weight": 0.15
+      },
+      {
+        "en": "Are the tunnels becoming wider as the insect grows?",
+        "ur": "کیا کیڑے کے بڑھنے کے ساتھ ہی یہ سرنگیں چوڑی ہو رہی ہیں؟",
+        "type": "symptom",
+        "weight": 0.15
+      },
+      {
+        "en": "Can you see small yellow larvae or black flies on the leaves?",
+        "ur": "کیا آپ کو پتوں پر چھوٹی پیلی سنڈیاں یا کالی مکھیاں نظر آتی ہیں؟",
+        "type": "pest",
+        "weight": 0.15
+      }
     ]
   },
   "Tomato___Spider_mites Two-spotted_spider_mite": {
     "questions": [
-      { "en": "Is the weather very hot and dry?", "ur": "کیا موسم بہت گرم اور خشک ہے؟", "type": "weather", "weight": 0.15 },
-      { "en": "Do you see fine silky webbing on the undersides of the leaves?", "ur": "کیا آپ کو پتوں کی نچلی طرف باریک ریشمی جالا نظر آتا ہے؟", "type": "symptom", "weight": 0.15 },
-      { "en": "Are there tiny yellow or white stippling (dots) on the upper leaf surface?", "ur": "کیا پتے کی اوپری سطح پر چھوٹے زرد یا سفید نشانات (نقطے) ہیں؟", "type": "symptom", "weight": 0.15 }
+      {
+        "en": "Is the weather very hot and dry?",
+        "ur": "کیا موسم بہت گرم اور خشک ہے؟",
+        "type": "weather",
+        "weight": 0.15
+      },
+      {
+        "en": "Do you see fine silky webbing on the undersides of the leaves?",
+        "ur": "کیا آپ کو پتوں کی نچلی طرف باریک ریشمی جالا نظر آتا ہے؟",
+        "type": "symptom",
+        "weight": 0.15
+      },
+      {
+        "en": "Are there tiny yellow or white stippling (dots) on the upper leaf surface?",
+        "ur": "کیا پتے کی اوپری سطح پر چھوٹے زرد یا سفید نشانات (نقطے) ہیں؟",
+        "type": "symptom",
+        "weight": 0.15
+      }
     ]
   },
   "Tomato___Tomato_Yellow_Leaf_Curl_Virus": {
     "questions": [
-      { "en": "Are the younger leaves curling upward and turning yellow at the edges?", "ur": "کیا نئے پتے اوپر کی طرف مڑ رہے ہیں اور کناروں سے پیلے ہو رہے ہیں؟", "type": "symptom", "weight": 0.15 },
-      { "en": "Is the plant growth significantly stunted or bushy?", "ur": "کیا پودوں کی نشوونما نمایاں طور پر رک گئی ہے یا وہ جھاڑی دار ہو گئے ہیں؟", "type": "symptom", "weight": 0.15 },
-      { "en": "Have you noticed any whiteflies around the plants?", "ur": "کیا آپ نے پودوں کے گرد سفید مکھیاں دیکھی ہیں؟", "type": "pest", "weight": 0.15 }
+      {
+        "en": "Are the younger leaves curling upward and turning yellow at the edges?",
+        "ur": "کیا نئے پتے اوپر کی طرف مڑ رہے ہیں اور کناروں سے پیلے ہو رہے ہیں؟",
+        "type": "symptom",
+        "weight": 0.15
+      },
+      {
+        "en": "Is the plant growth significantly stunted or bushy?",
+        "ur": "کیا پودوں کی نشوونما نمایاں طور پر رک گئی ہے یا وہ جھاڑی دار ہو گئے ہیں؟",
+        "type": "symptom",
+        "weight": 0.15
+      },
+      {
+        "en": "Have you noticed any whiteflies around the plants?",
+        "ur": "کیا آپ نے پودوں کے گرد سفید مکھیاں دیکھی ہیں؟",
+        "type": "pest",
+        "weight": 0.15
+      }
     ]
   },
   "fallback": {
     "questions": [
-      { "en": "Have you noticed any change in the weather recently?", "ur": "کیا آپ نے حال ہی میں موسم میں کوئی تبدیلی محسوس کی ہے؟", "type": "weather", "weight": 0.15 },
-      { "en": "Are these symptoms spreading to nearby plants?", "ur": "کیا یہ علامات قریبی پودوں میں پھیل رہی ہیں؟", "type": "environmental", "weight": 0.15 },
-      { "en": "Was there any change in irrigation or fertilizer usage?", "ur": "کیا آبپاشی یا کھاد کے استعمال میں کوئی تبدیلی کی گئی تھی؟", "type": "environmental", "weight": 0.15 }
+      {
+        "en": "Have you noticed any change in the weather recently?",
+        "ur": "کیا آپ نے حال ہی میں موسم میں کوئی تبدیلی محسوس کی ہے؟",
+        "type": "weather",
+        "weight": 0.15
+      },
+      {
+        "en": "Are these symptoms spreading to nearby plants?",
+        "ur": "کیا یہ علامات قریبی پودوں میں پھیل رہی ہیں؟",
+        "type": "environmental",
+        "weight": 0.15
+      },
+      {
+        "en": "Was there any change in irrigation or fertilizer usage?",
+        "ur": "کیا آبپاشی یا کھاد کے استعمال میں کوئی تبدیلی کی گئی تھی؟",
+        "type": "environmental",
+        "weight": 0.15
+      }
     ]
   }
 }
