@@ -21,9 +21,3 @@ package-lock.json
 .DS_Store
 Thumbs.db
 
-# Trained model files (too large for git — deploy separately)
-*.h5
-*.pt
-*.pth
-*.onnx
-models/
