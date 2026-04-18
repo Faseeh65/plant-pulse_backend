@@ -44,6 +44,12 @@ app.add_middleware(
 
 # ─── Supabase Configuration ──────────────────────────────────────────────────
 
+# ADD YOUR SUPABASE KEYS HERE (reads from .env file or Railway Variables)
+SUPABASE_URL = os.getenv("SUPABASE_URL")        # e.g. https://xyz.supabase.co
+SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("SUPABASE_ANON_KEY")
+
+supabase: Optional[Client] = None
+
 if not SUPABASE_URL or not SUPABASE_KEY:
     print("Warning: Supabase credentials missing. Running in OFFLINE mode.")
 else:
@@ -53,7 +59,6 @@ else:
         print("Backend: Supabase Connected")
     except TypeError as e:
         if 'proxy' in str(e):
-            # Fix for older supabase client versions
             from supabase._sync.client import SyncClient
             supabase = SyncClient(SUPABASE_URL, SUPABASE_KEY)
             print("Backend: Supabase Connected (compat mode)")
