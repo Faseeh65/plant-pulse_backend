@@ -44,22 +44,25 @@ app.add_middleware(
 
 # ─── Supabase Configuration ──────────────────────────────────────────────────
 
-SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("SUPABASE_ANON_KEY")
-
-supabase: Optional[Client] = None
-
 if not SUPABASE_URL or not SUPABASE_KEY:
     print("Warning: Supabase credentials missing. Running in OFFLINE mode.")
 else:
     try:
-        # Use Service Role Key to bypass RLS in backend logic if required
+        import httpx
         supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
         print("Backend: Supabase Connected")
+    except TypeError as e:
+        if 'proxy' in str(e):
+            # Fix for older supabase client versions
+            from supabase._sync.client import SyncClient
+            supabase = SyncClient(SUPABASE_URL, SUPABASE_KEY)
+            print("Backend: Supabase Connected (compat mode)")
+        else:
+            print(f"Warning: Supabase Initialization Failed ({e}). Running in OFFLINE mode.")
+            supabase = None
     except Exception as e:
         print(f"Warning: Supabase Initialization Failed ({e}). Running in OFFLINE mode.")
         supabase = None
-
 
 # ─── System / Health ────────────────────────────────────────────────────────
 
