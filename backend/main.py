@@ -410,13 +410,18 @@ async def sync_user_profile(payload: ProfileUpdate):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to sync profile: {str(e)}")
 
+class ScanHistoryPayload(BaseModel):
+    user_id: str
+    crop_name: str
+    disease_result: str
+    confidence_score: float
 
 @app.post("/history/save")
-async def save_scan(scan_data: dict):
+async def save_scan(scan_data: ScanHistoryPayload):
     if supabase is None:
         raise HTTPException(status_code=503, detail="Database unavailable.")
     try:
-        response = supabase.table("scan_history").insert(scan_data).execute()
+        response = supabase.table("scan_history").insert(scan_data.model_dump()).execute()
         return {"status": "saved", "data": response.data}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
