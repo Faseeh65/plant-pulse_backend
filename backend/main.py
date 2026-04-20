@@ -94,22 +94,22 @@ async def get_stats():
         "top_diseases": []
     }
  
- @app.get("/reminders")
- async def get_reminders():
-     """Returns an empty list of reminders in the format expected by the app."""
-     return {"reminders": [], "count": 0}
- 
- @app.post("/reminders")
- async def post_reminder(payload: ReminderCreateRequest):
-     """Mock endpoint for creating a reminder."""
-     return {
-         "success": True,
-         "record_id": str(uuid.uuid4()),
-         "message": "Reminder scheduled (Mock)."
-     }
- 
- 
- # ─── Inference Endpoint ──────────────────────────────────────────────────────
+@app.get("/reminders")
+async def get_reminders():
+    """Returns an empty list of reminders in the format expected by the app."""
+    return {"reminders": [], "count": 0}
+
+@app.post("/reminders")
+async def post_reminder(payload: ReminderCreateRequest):
+    """Mock endpoint for creating a reminder."""
+    return {
+        "success": True,
+        "record_id": str(uuid.uuid4()),
+        "message": "Reminder scheduled (Mock)."
+    }
+
+
+# ─── Inference Endpoint ──────────────────────────────────────────────────────
 
 @app.post("/predict")
 async def predict_image(file: UploadFile = File(...)):
