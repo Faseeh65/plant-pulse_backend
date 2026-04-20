@@ -80,6 +80,24 @@ async def health_check():
     }
 
 
+# ─── Mock Endpoints for FYP Defense / Readiness ──────────────────────────────
+
+@app.get("/stats")
+async def get_stats():
+    """Returns basic mock stats if the main stats query fails or for testing."""
+    return {
+        "total_scans": 0,
+        "diseases_detected": 0,
+        "most_common_disease": "None yet",
+        "healthy_crops": 0
+    }
+
+@app.get("/reminders")
+async def get_reminders():
+    """Returns an empty list of reminders for testing."""
+    return []
+
+
 # ─── Inference Endpoint ──────────────────────────────────────────────────────
 
 @app.post("/predict")
