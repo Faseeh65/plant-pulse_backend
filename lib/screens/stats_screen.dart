@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/api_service.dart';
+import '../utils/string_extensions.dart';
 
 // ─── theme tokens ─────────────────────────────────────────────────────────────
 const _bg      = Color(0xFF0A1108);
@@ -48,18 +49,13 @@ class _StatsScreenState extends State<StatsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _bg,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: _bg,
-        elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white70, size: 20),
+          icon: Icon(Icons.arrow_back_ios_new, color: Theme.of(context).textTheme.bodyLarge?.color?.withOpacity(0.7), size: 20),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          'Crop Stats  •  فصل کا احوال',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 17),
-        ),
+        title: const Text('Crop Statistics & Health Trends'),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh_rounded, color: _green),
@@ -160,7 +156,7 @@ class _StatsScreenState extends State<StatsScreen> {
                           const SizedBox(height: 20),
                           Text('${data.totalScans} total scans',
                               style: TextStyle(
-                                  color: Colors.white.withOpacity(0.4),
+                                  color: Theme.of(context).textTheme.bodyLarge?.color?.withOpacity(0.4),
                                   fontSize: 11)),
                         ],
                       ),
@@ -202,7 +198,7 @@ class _StatsScreenState extends State<StatsScreen> {
         radius: touched0 ? 68 : 58,
         title: touched0 ? '${data.healthyPct.toStringAsFixed(1)}%' : '',
         titleStyle: const TextStyle(
-            color: Colors.black, fontWeight: FontWeight.bold, fontSize: 13),
+            color: Colors.black, fontWeight: FontWeight.w900, fontSize: 13),
       ),
       PieChartSectionData(
         value: data.diseasedPct,
@@ -210,7 +206,7 @@ class _StatsScreenState extends State<StatsScreen> {
         radius: touched1 ? 68 : 58,
         title: touched1 ? '${data.diseasedPct.toStringAsFixed(1)}%' : '',
         titleStyle: const TextStyle(
-            color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+            color: Colors.white, fontWeight: FontWeight.w900, fontSize: 13),
       ),
     ];
   }
@@ -232,15 +228,12 @@ class _StatsScreenState extends State<StatsScreen> {
                 tooltipRoundedRadius: 8,
                 getTooltipColor: (_) => const Color(0xFF1A2E18),
                 getTooltipItem: (group, gi, rod, ri) {
-                  final name = diseases[group.x].disease
-                      .split('___')
-                      .last
-                      .replaceAll('_', ' ');
+                  final name = diseases[group.x].disease.toDiseaseOnly();
                   return BarTooltipItem(
                     '$name\n${rod.toY.toInt()} scans',
                     const TextStyle(
                         color: _green,
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w900,
                         fontSize: 12),
                   );
                 },
@@ -267,11 +260,7 @@ class _StatsScreenState extends State<StatsScreen> {
                     final i = v.toInt();
                     if (i < 0 || i >= diseases.length) return const SizedBox();
                     // short crop name only
-                    final short = diseases[i]
-                        .disease
-                        .split('___')
-                        .first
-                        .replaceAll('_', ' ');
+                    final short = diseases[i].disease.toDisplayCrop();
                     return Padding(
                       padding: const EdgeInsets.only(top: 6),
                       child: Text(
@@ -327,17 +316,19 @@ class _StatsScreenState extends State<StatsScreen> {
   // ── ranked disease row ────────────────────────────────────────────────────
   Widget _diseaseRow(int index, TopDisease d, int total) {
     final color = _barColors[index % _barColors.length];
-    final cleanName = d.disease.split('___').last.replaceAll('_', ' ');
-    final crop = d.disease.split('___').first.replaceAll('_', ' ');
+    final cleanName = d.disease.toDisplayDisease();
+    final crop = d.disease.toDisplayCrop();
     final pct = d.count / total;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: _card,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: _border),
+        boxShadow: Theme.of(context).cardTheme.elevation != 0 
+            ? [BoxShadow(color: Theme.of(context).cardTheme.shadowColor ?? Colors.black12, blurRadius: 12, offset: const Offset(0, 4))] 
+            : null,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -353,15 +344,15 @@ class _StatsScreenState extends State<StatsScreen> {
               Expanded(
                 child: Text(
                   cleanName,
-                  style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
+                  style: TextStyle(
+                      color: Theme.of(context).textTheme.bodyLarge?.color,
+                      fontWeight: FontWeight.w900,
                       fontSize: 14),
                 ),
               ),
               Text(
                 '${d.count} scans',
-                style: const TextStyle(color: Colors.white54, fontSize: 12),
+                style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color?.withOpacity(0.54), fontSize: 12),
               ),
             ],
           ),
@@ -398,11 +389,13 @@ class _StatsScreenState extends State<StatsScreen> {
   Widget _kpiCard(String label, String value, IconData icon, Color color) {
     return Expanded(
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 12),
         decoration: BoxDecoration(
-          color: _card,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: _border),
+          color: Theme.of(context).cardColor,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: Theme.of(context).cardTheme.elevation != 0 
+            ? [BoxShadow(color: Theme.of(context).cardTheme.shadowColor ?? Colors.black12, blurRadius: 8, offset: const Offset(0, 4))] 
+            : null,
         ),
         child: Column(
           children: [
@@ -410,7 +403,7 @@ class _StatsScreenState extends State<StatsScreen> {
             const SizedBox(height: 8),
             Text(value,
                 style: TextStyle(
-                    color: color, fontWeight: FontWeight.bold, fontSize: 22)),
+                    color: color, fontWeight: FontWeight.w900, fontSize: 22)),
             const SizedBox(height: 4),
             Text(label,
                 textAlign: TextAlign.center,
@@ -428,18 +421,20 @@ class _StatsScreenState extends State<StatsScreen> {
           '$en  •  $ur',
           style: const TextStyle(
               color: _green,
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w900,
               fontSize: 13,
               letterSpacing: 0.4),
         ),
       );
 
   Widget _cardWrap({required Widget child}) => Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: _card,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: _border),
+          color: Theme.of(context).cardColor,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: Theme.of(context).cardTheme.elevation != 0 
+            ? [BoxShadow(color: Theme.of(context).cardTheme.shadowColor ?? Colors.black12, blurRadius: 12, offset: const Offset(0, 4))] 
+            : null,
         ),
         child: child,
       );
@@ -454,11 +449,11 @@ class _StatsScreenState extends State<StatsScreen> {
           const SizedBox(width: 8),
           Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(label,
-                style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color?.withOpacity(0.5), fontSize: 12)),
             Text(value,
                 style: TextStyle(
                     color: color,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w900,
                     fontSize: 16)),
           ]),
         ],
@@ -470,22 +465,22 @@ class _StatsScreenState extends State<StatsScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.cloud_off_outlined,
-                  color: Colors.white24, size: 64),
+              Icon(Icons.cloud_off_outlined,
+                  color: Theme.of(context).textTheme.bodyLarge?.color?.withOpacity(0.15), size: 64),
               const SizedBox(height: 16),
-              const Text('Could not load stats',
+              Text('System Sync Interrupted',
                   style: TextStyle(
-                      color: Colors.white,
+                      color: Theme.of(context).textTheme.bodyLarge?.color,
                       fontSize: 18,
-                      fontWeight: FontWeight.bold)),
+                      fontWeight: FontWeight.w900)),
               const SizedBox(height: 8),
               Text(
                 error.contains('STATS_ERROR_503') || error.contains('REMINDERS_ERROR_503')
-                    ? 'Database Offline: Please ensure SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are added to your Railway Variables.'
-                    : 'Check your internet connection or server status.',
+                    ? 'Database Sync offline. Please verify your connection or Railway config.'
+                    : 'Please verify your network status to sync crop data.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                    color: Colors.white.withOpacity(0.45), fontSize: 13, height: 1.4),
+                    color: Theme.of(context).textTheme.bodyLarge?.color?.withOpacity(0.5) ?? Colors.grey, fontSize: 13, height: 1.4),
               ),
               const SizedBox(height: 28),
               ElevatedButton.icon(
@@ -496,7 +491,7 @@ class _StatsScreenState extends State<StatsScreen> {
                         borderRadius: BorderRadius.circular(12))),
                 icon: const Icon(Icons.refresh),
                 label: const Text('Retry',
-                    style: TextStyle(fontWeight: FontWeight.bold)),
+                    style: TextStyle(fontWeight: FontWeight.w900)),
                 onPressed: _load,
               ),
             ],
@@ -516,15 +511,15 @@ class _StatsScreenState extends State<StatsScreen> {
                   color: _green, size: 64),
             ),
             const SizedBox(height: 20),
-            const Text('No scans yet',
+            Text('No scans yet',
                 style: TextStyle(
-                    color: Colors.white,
+                    color: Theme.of(context).textTheme.bodyLarge?.color,
                     fontSize: 22,
-                    fontWeight: FontWeight.bold)),
+                    fontWeight: FontWeight.w900)),
             const SizedBox(height: 8),
             Text('Scan your first plant to see stats here.',
                 style:
-                    TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 14)),
+                    TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color?.withOpacity(0.5), fontSize: 14)),
           ],
         ),
       );

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../utils/app_assets.dart';
 import 'package:provider/provider.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers/locale_provider.dart';
@@ -23,7 +24,7 @@ class HomeScreen extends StatelessWidget {
             children: [
               const Spacer(),
               Image.asset(
-                'assets/images/LOGO.png',
+                AppAssets.logo,
                 width: 220,
               ),
               const SizedBox(height: 48),

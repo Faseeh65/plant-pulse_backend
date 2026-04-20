@@ -13,7 +13,11 @@ import '../services/scan_guard.dart';
 import '../models/causal_logic.dart';
 import '../models/disease_result.dart';
 import 'results_screen.dart';
+import 'history_screen.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../widgets/questionnaire_overlay.dart';
+import '../utils/string_extensions.dart';
+import 'profile_screen.dart';
 
 class ScannerScreen extends StatefulWidget {
   const ScannerScreen({super.key});
@@ -22,24 +26,77 @@ class ScannerScreen extends StatefulWidget {
   State<ScannerScreen> createState() => _ScannerScreenState();
 }
 
-class _ScannerScreenState extends State<ScannerScreen> with SingleTickerProviderStateMixin {
+class _ScannerScreenState extends State<ScannerScreen> with TickerProviderStateMixin {
   CameraController? _controller;
   bool _isProcessing = false;
   final CausalService _causalService = CausalService();
   final ApiService _apiService = ApiService();
 
+  // Animations
+  late AnimationController _scanLineController;
+  late AnimationController _cornersController;
+  late AnimationController _flashController;
+  late AnimationController _leafRotationController;
+
+  late Animation<double> _scanLineAnimation;
+  late Animation<double> _cornersAnimation;
+  late Animation<double> _flashAnimation;
+
   @override
   void initState() {
     super.initState();
     _initializeCamera();
+
+    // 1. Scanning frame corners drawing
+    _cornersController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
+    _cornersAnimation = CurvedAnimation(parent: _cornersController, curve: Curves.easeOut);
+    _cornersController.forward();
+
+    // 2. Scanning line sweeping
+    _scanLineController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    );
+    _scanLineAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _scanLineController, curve: Curves.easeInOut),
+    );
+    _scanLineController.repeat();
+
+    // 3. Flash effect
+    _flashController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+    _flashAnimation = TweenSequence<double>([
+      TweenSequenceItem(tween: Tween<double>(begin: 0.0, end: 0.3), weight: 50),
+      TweenSequenceItem(tween: Tween<double>(begin: 0.3, end: 0.0), weight: 50),
+    ]).animate(_flashController);
+
+    // 4. Loading state rotating leaf
+    _leafRotationController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    );
+    _leafRotationController.repeat();
   }
 
-  // ── Gallery picker ──────────────────────────────────────────────────────
+  @override
+  void dispose() {
+    _controller?.dispose();
+    _scanLineController.dispose();
+    _cornersController.dispose();
+    _flashController.dispose();
+    _leafRotationController.dispose();
+    super.dispose();
+  }
+
+  // ... rest of methods remain same except _captureAndAnalyze which triggers flash
   Future<void> _pickFromGallery() async {
     if (_isProcessing) return;
 
-    // On Android 13+ (API 33+) we need READ_MEDIA_IMAGES.
-    // On older Android we need READ_EXTERNAL_STORAGE.
     final Permission storagePermission =
         (await Permission.photos.status).isGranted ||
                 (await Permission.photos.request()).isGranted
@@ -49,12 +106,11 @@ class _ScannerScreenState extends State<ScannerScreen> with SingleTickerProvider
     final PermissionStatus status = await storagePermission.status;
 
     if (status.isGranted) {
-      // ── Permission granted — open native gallery ──
       final ImagePicker picker = ImagePicker();
       final XFile? picked =
           await picker.pickImage(source: ImageSource.gallery, imageQuality: 90);
 
-      if (picked == null) return; // user cancelled
+      if (picked == null) return;
 
       final File imageFile = File(picked.path);
       setState(() => _isProcessing = true);
@@ -64,7 +120,6 @@ class _ScannerScreenState extends State<ScannerScreen> with SingleTickerProvider
         final String label      = rawResult['label'] as String;
         final double confidence = rawResult['confidence'] as double;
 
-        // ── Two-layer defence: background class + 85% confidence gate ──
         ScanGuard.instance.validate(label, confidence);
 
         if (!mounted) return;
@@ -72,7 +127,7 @@ class _ScannerScreenState extends State<ScannerScreen> with SingleTickerProvider
         final bool isHealthy = label.toLowerCase().contains('healthy');
         final rule = _causalService.getRuleForLabel(label);
 
-        if (isHealthy || rule == null) {
+        if (isHealthy || rule == null || !rule.questionsNeeded) {
           _navigateToResults(
             picked.path,
             RefinedResult(
@@ -91,7 +146,7 @@ class _ScannerScreenState extends State<ScannerScreen> with SingleTickerProvider
             pageBuilder: (ctx, anim1, anim2) {
               return QuestionnaireOverlay(
                 label: label,
-                questions: rule.questions,
+                questions: _causalService.staticQuestions,
                 onCompleted: (answers) {
                   final refined = _causalService.refineResult(
                     label: label,
@@ -136,13 +191,12 @@ class _ScannerScreenState extends State<ScannerScreen> with SingleTickerProvider
         }
       }
     } else if (status.isPermanentlyDenied) {
-      // ── Permanently denied — guide user to Settings ──
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Text(
             'Gallery permission denied. Enable it in Settings.',
-            style: TextStyle(fontWeight: FontWeight.bold),
+            style: TextStyle(fontWeight: FontWeight.w900),
           ),
           backgroundColor: Colors.redAccent,
           duration: const Duration(seconds: 4),
@@ -158,17 +212,16 @@ class _ScannerScreenState extends State<ScannerScreen> with SingleTickerProvider
         ),
       );
     } else {
-      // ── Denied (first time or temporary) — request permission ──
       final PermissionStatus newStatus = await storagePermission.request();
       if (newStatus.isGranted) {
-        _pickFromGallery(); // retry after grant
+        _pickFromGallery();
       } else {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: const Text(
               'گیلری تک رسائی کی اجازت درکار ہے۔',
-              style: TextStyle(fontWeight: FontWeight.bold),
+              style: TextStyle(fontWeight: FontWeight.w900),
               textDirection: TextDirection.rtl,
             ),
             backgroundColor: Colors.orange,
@@ -201,14 +254,6 @@ class _ScannerScreenState extends State<ScannerScreen> with SingleTickerProvider
     }
   }
 
-  @override
-  void dispose() {
-    _controller?.dispose();
-    super.dispose();
-  }
-
-  /// Sends the captured image to FastAPI /predict endpoint via HTTP POST multipart.
-  /// Returns {'label': String, 'confidence': double} or throws on failure.
   Future<Map<String, dynamic>> _predictViaApi(File imageFile) async {
     final uri = Uri.parse('${ApiService.baseUrl}/predict');
     final request = http.MultipartRequest('POST', uri);
@@ -226,7 +271,6 @@ class _ScannerScreenState extends State<ScannerScreen> with SingleTickerProvider
 
     if (streamedResponse.statusCode == 200) {
       final decoded = jsonDecode(responseBody) as Map<String, dynamic>;
-      // Expected response: {"label": "...", "confidence": 0.87}
       final label = decoded['label'] as String? ?? 'Unknown';
       final confidence = (decoded['confidence'] as num?)?.toDouble() ?? 0.0;
       return {'label': label, 'confidence': confidence};
@@ -239,27 +283,27 @@ class _ScannerScreenState extends State<ScannerScreen> with SingleTickerProvider
   void _captureAndAnalyze() async {
     if (_controller == null || !_controller!.value.isInitialized || _isProcessing) return;
 
+    // Trigger flash effect
+    _flashController.forward(from: 0.0);
+
     setState(() => _isProcessing = true);
 
     try {
       final XFile photo = await _controller!.takePicture();
       final File imageFile = File(photo.path);
 
-      // Send image to FastAPI backend
       final rawResult = await _predictViaApi(imageFile);
       final String label = rawResult['label'] as String;
       final double confidence = rawResult['confidence'] as double;
 
-      // ── Two-layer defence: background class + 85% confidence gate ──
       ScanGuard.instance.validate(label, confidence);
 
       if (!mounted) return;
 
-      // Check if we should show the questionnaire
       final bool isHealthy = label.toLowerCase().contains('healthy');
       final rule = _causalService.getRuleForLabel(label);
 
-      if (isHealthy || rule == null) {
+      if (isHealthy || rule == null || !rule.questionsNeeded) {
         _navigateToResults(
           photo.path,
           RefinedResult(
@@ -271,7 +315,6 @@ class _ScannerScreenState extends State<ScannerScreen> with SingleTickerProvider
           ),
         );
       } else {
-        // Show Questionnaire overlay
         if (!mounted) return;
         showGeneralDialog(
           context: context,
@@ -279,18 +322,18 @@ class _ScannerScreenState extends State<ScannerScreen> with SingleTickerProvider
           pageBuilder: (ctx, anim1, anim2) {
             return QuestionnaireOverlay(
               label: label,
-              questions: rule.questions,
+              questions: _causalService.staticQuestions,
               onCompleted: (answers) {
                 final refined = _causalService.refineResult(
                   label: label,
                   originalConfidence: confidence,
                   answers: answers,
                 );
-                Navigator.pop(ctx); // Close Overlay
+                Navigator.pop(ctx);
                 _navigateToResults(photo.path, refined);
               },
               onSkip: () {
-                Navigator.pop(ctx); // Close Overlay
+                Navigator.pop(ctx);
                 _navigateToResults(
                   photo.path,
                   RefinedResult(
@@ -312,7 +355,6 @@ class _ScannerScreenState extends State<ScannerScreen> with SingleTickerProvider
         setState(() => _isProcessing = false);
 
         if (e is UnrecognizedScanException) {
-          // Professional rejection sheet — never a raw SnackBar
           _showRejectionSheet(e);
           return;
         }
@@ -329,7 +371,7 @@ class _ScannerScreenState extends State<ScannerScreen> with SingleTickerProvider
             SnackBar(
               content: Text(
                 'Scan Error: $e\nسکین میں خرابی آ گئی۔ دوبارہ کوشش کریں۔',
-                style: const TextStyle(fontWeight: FontWeight.bold),
+                style: const TextStyle(fontWeight: FontWeight.w900),
               ),
               backgroundColor: Colors.redAccent,
               duration: const Duration(seconds: 3),
@@ -346,19 +388,15 @@ class _ScannerScreenState extends State<ScannerScreen> with SingleTickerProvider
     setState(() => _isProcessing = true);
 
     DiseaseResult? diseaseResult;
-    Map<String, dynamic>? diseaseDetails;
 
     try {
       final lang = Localizations.localeOf(context).languageCode;
-
-      // Fetch data from FastAPI
       diseaseResult = await _apiService.fetchDiagnosisDetails(
         result.label,
         lang: lang,
       );
     } catch (e) {
       debugPrint('FastAPI fetch failed (using fallback): $e');
-      // Create a fallback DiseaseResult so the user can still see results
       diseaseResult = DiseaseResult(
         disease: result.label,
         language: 'en',
@@ -369,24 +407,20 @@ class _ScannerScreenState extends State<ScannerScreen> with SingleTickerProvider
     }
 
     try {
-      final dbService = DatabaseService();
-      diseaseDetails = await dbService.getDiseaseWithCausalChain(result.label);
-
-      // Save to local history
-      await dbService.saveScan(
-        diseaseName: result.label,
-        confidence: result.refinedConfidence,
-        causalFactor: diseaseDetails != null ? 'Knowledge Base Sync' : 'Direct AI',
-        imagePath: imagePath,
-      );
+      final userId = Supabase.instance.client.auth.currentUser?.id ?? '';
+      if (userId.isNotEmpty) {
+        await _apiService.saveScanResult(
+          userId: userId,
+          plantName: result.label.toDisplayCrop(),
+          diseaseResult: result.label,
+          confidenceScore: result.refinedConfidence,
+        );
+      }
     } catch (e) {
-      debugPrint('DB save error (non-fatal): $e');
+      debugPrint('History save error (non-fatal): $e');
     }
 
-    // --- Critical: Guard against widget being unmounted during async gap ---
-    if (!mounted) {
-      return; // Cannot setState or navigate; widget is gone
-    }
+    if (!mounted) return;
 
     Navigator.push(
       context,
@@ -394,7 +428,7 @@ class _ScannerScreenState extends State<ScannerScreen> with SingleTickerProvider
         builder: (context) => ResultsScreen(
           imagePath: imagePath,
           diseaseNameEnglish: result.label,
-          diseaseNameUrdu: diseaseDetails?['name_ur'] ?? 'تشخیص شدہ بیماری',
+          diseaseNameUrdu: '',
           confidence: result.refinedConfidence,
           isRefined: result.answers.isNotEmpty,
           secondaryInspectionRequired: result.secondaryInspectionRequired,
@@ -402,15 +436,10 @@ class _ScannerScreenState extends State<ScannerScreen> with SingleTickerProvider
         ),
       ),
     ).then((_) {
-      // Always reset processing state when user returns from ResultsScreen
       if (mounted) setState(() => _isProcessing = false);
     });
   }
 
-  // ── Professional Rejection Sheet ────────────────────────────────────────
-  /// Shown whenever [ScanGuard] throws [UnrecognizedScanException].
-  /// Displays a clear, bilingual, actionable error so the user knows
-  /// exactly what went wrong and what to do next.
   void _showRejectionSheet(UnrecognizedScanException e) {
     if (!mounted) return;
     showModalBottomSheet(
@@ -421,14 +450,15 @@ class _ScannerScreenState extends State<ScannerScreen> with SingleTickerProvider
         margin: const EdgeInsets.all(16),
         padding: const EdgeInsets.fromLTRB(24, 28, 24, 32),
         decoration: BoxDecoration(
-          color: const Color(0xFF111F0F),
-          borderRadius: BorderRadius.circular(28),
-          border: Border.all(color: Colors.redAccent.withOpacity(0.35), width: 1.5),
+          color: Theme.of(context).cardColor,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: Theme.of(context).cardTheme.elevation != 0 
+            ? [BoxShadow(color: Theme.of(context).cardTheme.shadowColor ?? Colors.black12, blurRadius: 12, offset: const Offset(0, 4))] 
+            : null,
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // ── Icon ──
             Container(
               padding: const EdgeInsets.all(18),
               decoration: BoxDecoration(
@@ -442,14 +472,12 @@ class _ScannerScreenState extends State<ScannerScreen> with SingleTickerProvider
               ),
             ),
             const SizedBox(height: 18),
-
-            // ── Title ──
             const Text(
-              'Unrecognized Scan',
+              'Unable to Analyze Image',
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 20,
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w900,
                 letterSpacing: 0.3,
               ),
             ),
@@ -462,8 +490,6 @@ class _ScannerScreenState extends State<ScannerScreen> with SingleTickerProvider
               ),
             ),
             const SizedBox(height: 20),
-
-            // ── Confidence badge (only if below threshold) ──
             if (e.confidence > 0 && e.confidence < ScanGuard.kConfidenceThreshold)
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
@@ -478,10 +504,7 @@ class _ScannerScreenState extends State<ScannerScreen> with SingleTickerProvider
                   style: const TextStyle(color: Colors.redAccent, fontSize: 12, fontWeight: FontWeight.w600),
                 ),
               ),
-
             const SizedBox(height: 20),
-
-            // ── Instructions ──
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -510,10 +533,7 @@ class _ScannerScreenState extends State<ScannerScreen> with SingleTickerProvider
                 ],
               ),
             ),
-
             const SizedBox(height: 24),
-
-            // ── Retry button ──
             SizedBox(
               width: double.infinity,
               height: 50,
@@ -527,7 +547,7 @@ class _ScannerScreenState extends State<ScannerScreen> with SingleTickerProvider
                 icon: const Icon(Icons.camera_alt_outlined, size: 20),
                 label: const Text(
                   'Try Again  •  دوبارہ کوشش کریں',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14),
                 ),
                 onPressed: () => Navigator.pop(ctx),
               ),
@@ -567,18 +587,18 @@ class _ScannerScreenState extends State<ScannerScreen> with SingleTickerProvider
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: const [
-            Text('Cannot reach the PlantPulse server. Please ensure your laptop is running and connected to the same network.'),
+            Text('Please verify your network status to sync crop data.'),
             SizedBox(height: 15),
             Text(
-              'سرور سے رابطہ نہیں ہو سکا۔ براہ کرم یقینی بنائیں کہ آپ کا لیپ ٹاپ آن ہے اور اسی نیٹ ورک سے منسلک ہے۔',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+              'سرور سے رابطہ نہیں ہو سکا۔ براہ کرم یقینی بنائیں کہ آپ کا نیٹ ورک آن ہے۔',
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900),
             ),
           ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('OK / ٹھیک ہے', style: TextStyle(color: Color(0xFF2ECC71), fontWeight: FontWeight.bold)),
+            child: const Text('OK / ٹھیک ہے', style: TextStyle(color: Color(0xFF2ECC71), fontWeight: FontWeight.w900)),
           ),
         ],
       ),
@@ -589,7 +609,7 @@ class _ScannerScreenState extends State<ScannerScreen> with SingleTickerProvider
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('$feature — Feature Coming Soon\n$feature — جلد آ رہا ہے',
-          style: const TextStyle(fontWeight: FontWeight.bold)),
+          style: const TextStyle(fontWeight: FontWeight.w900)),
         backgroundColor: const Color(0xFF2ECC71),
         duration: const Duration(seconds: 2),
         behavior: SnackBarBehavior.floating,
@@ -607,15 +627,16 @@ class _ScannerScreenState extends State<ScannerScreen> with SingleTickerProvider
       );
     }
 
+    final disableAnimations = MediaQuery.of(context).disableAnimations;
+
     return Scaffold(
       backgroundColor: Colors.black,
       body: Stack(
         fit: StackFit.expand,
         children: [
-          // Camera Preview
           CameraPreview(_controller!),
 
-          // Glassmorphism Overlay (Clear & Interactive-Safe)
+          // Animated Scanning Frame and Sweeping Line
           IgnorePointer(
             child: LayoutBuilder(
               builder: (context, constraints) {
@@ -630,19 +651,25 @@ class _ScannerScreenState extends State<ScannerScreen> with SingleTickerProvider
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 24,
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w900,
                           letterSpacing: 1.2,
                         ),
                       ),
                       const Spacer(),
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(30),
-                        child: Container(
-                          width: frameW,
-                          height: frameH,
-                          decoration: BoxDecoration(
-                            border: Border.all(color: Colors.white.withOpacity(0.5), width: 2),
-                          ),
+                      SizedBox(
+                        width: frameW,
+                        height: frameH,
+                        child: AnimatedBuilder(
+                          animation: Listenable.merge([_scanLineController, _cornersController]),
+                          builder: (context, child) {
+                            return CustomPaint(
+                              painter: _ScannerFramePainter(
+                                scanLineProgress: disableAnimations ? 0.5 : _scanLineAnimation.value,
+                                cornersProgress: disableAnimations ? 1.0 : _cornersAnimation.value,
+                                color: const Color(0xFF6CFB7B),
+                              ),
+                            );
+                          },
                         ),
                       ),
                       const Spacer(flex: 2),
@@ -653,7 +680,16 @@ class _ScannerScreenState extends State<ScannerScreen> with SingleTickerProvider
             ),
           ),
 
-          // Bottom Navigation Style Bar
+          // 3. Flash Effect Overlay
+          AnimatedBuilder(
+            animation: _flashAnimation,
+            builder: (context, child) {
+              return Container(
+                color: Colors.white.withOpacity(disableAnimations ? 0.0 : _flashAnimation.value),
+              );
+            },
+          ),
+
           Align(
             alignment: Alignment.bottomCenter,
             child: _buildBottomBar(),
@@ -666,7 +702,17 @@ class _ScannerScreenState extends State<ScannerScreen> with SingleTickerProvider
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const CircularProgressIndicator(color: Color(0xFF6CFB7B)),
+                    // 4. Loading state: rotating leaf icon
+                    AnimatedBuilder(
+                      animation: _leafRotationController,
+                      builder: (context, child) {
+                        return Transform.rotate(
+                          angle: disableAnimations ? 0.0 : _leafRotationController.value * 2 * 3.14159,
+                          child: child,
+                        );
+                      },
+                      child: const Icon(Icons.eco, color: Color(0xFF6CFB7B), size: 48),
+                    ),
                     const SizedBox(height: 16),
                     Text(
                       'Analyzing leaf...\nپتے کا تجزیہ ہو رہا ہے...',
@@ -683,6 +729,8 @@ class _ScannerScreenState extends State<ScannerScreen> with SingleTickerProvider
   }
 
   Widget _buildBottomBar() {
+    final disableAnimations = MediaQuery.of(context).disableAnimations;
+
     return SafeArea(
       top: false,
       child: Container(
@@ -702,7 +750,6 @@ class _ScannerScreenState extends State<ScannerScreen> with SingleTickerProvider
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
-            // Home Button
             GestureDetector(
               behavior: HitTestBehavior.opaque,
               onTap: () => Navigator.pop(context),
@@ -712,7 +759,6 @@ class _ScannerScreenState extends State<ScannerScreen> with SingleTickerProvider
               ),
             ),
 
-            // Gallery — opens native image picker with permission handling
             GestureDetector(
               behavior: HitTestBehavior.opaque,
               onTap: _pickFromGallery,
@@ -722,7 +768,6 @@ class _ScannerScreenState extends State<ScannerScreen> with SingleTickerProvider
               ),
             ),
 
-            // Main Scan Button — always ready (no model init required)
             GestureDetector(
               behavior: HitTestBehavior.opaque,
               onTap: _isProcessing ? null : _captureAndAnalyze,
@@ -743,32 +788,32 @@ class _ScannerScreenState extends State<ScannerScreen> with SingleTickerProvider
                   ],
                 ),
                 child: _isProcessing
-                    ? const SizedBox(
-                        width: 24,
-                        height: 24,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2.5,
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                        ),
+                    ? AnimatedBuilder(
+                        animation: _leafRotationController,
+                        builder: (context, child) {
+                          return Transform.rotate(
+                            angle: disableAnimations ? 0.0 : _leafRotationController.value * 2 * 3.14159,
+                            child: child,
+                          );
+                        },
+                        child: const Icon(Icons.eco, color: Colors.black, size: 30),
                       )
                     : const Icon(Icons.add_a_photo, color: Colors.black, size: 30),
               ),
             ),
 
-            // History — wired with SnackBar
             GestureDetector(
               behavior: HitTestBehavior.opaque,
-              onTap: () => _showComingSoon('Scan History'),
+              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const HistoryScreen())),
               child: const Padding(
                 padding: EdgeInsets.all(8.0),
                 child: Icon(Icons.history, color: Colors.white60, size: 28),
               ),
             ),
 
-            // Profile — wired with SnackBar
             GestureDetector(
               behavior: HitTestBehavior.opaque,
-              onTap: () => _showComingSoon('Profile'),
+              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ProfileScreen())),
               child: const Padding(
                 padding: EdgeInsets.all(8.0),
                 child: Icon(Icons.person_outline, color: Colors.white60, size: 28),
@@ -780,3 +825,67 @@ class _ScannerScreenState extends State<ScannerScreen> with SingleTickerProvider
     );
   }
 }
+
+class _ScannerFramePainter extends CustomPainter {
+  final double scanLineProgress;
+  final double cornersProgress;
+  final Color color;
+
+  _ScannerFramePainter({
+    required this.scanLineProgress,
+    required this.cornersProgress,
+    required this.color,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 3
+      ..style = PaintingStyle.stroke;
+
+    final double cornerLen = 30 * cornersProgress;
+    final double pathGap = 0; // Padding from edge
+
+    // Top Left
+    canvas.drawLine(Offset(pathGap, pathGap), Offset(pathGap + cornerLen, pathGap), paint);
+    canvas.drawLine(Offset(pathGap, pathGap), Offset(pathGap, pathGap + cornerLen), paint);
+
+    // Top Right
+    canvas.drawLine(Offset(size.width - pathGap, pathGap), Offset(size.width - pathGap - cornerLen, pathGap), paint);
+    canvas.drawLine(Offset(size.width - pathGap, pathGap), Offset(size.width - pathGap, pathGap + cornerLen), paint);
+
+    // Bottom Left
+    canvas.drawLine(Offset(pathGap, size.height - pathGap), Offset(pathGap + cornerLen, size.height - pathGap), paint);
+    canvas.drawLine(Offset(pathGap, size.height - pathGap), Offset(pathGap, size.height - pathGap - cornerLen), paint);
+
+    // Bottom Right
+    canvas.drawLine(Offset(size.width - pathGap, size.height - pathGap), Offset(size.width - pathGap - cornerLen, size.height - pathGap), paint);
+    canvas.drawLine(Offset(size.width - pathGap, size.height - pathGap), Offset(size.width - pathGap, size.height - pathGap - cornerLen), paint);
+
+    // Horizontal Scanning Line
+    final linePaint = Paint()
+      ..color = color.withOpacity(0.8)
+      ..strokeWidth = 2
+      ..style = PaintingStyle.fill;
+    
+    final double y = size.height * scanLineProgress;
+    canvas.drawLine(Offset(0, y), Offset(size.width, y), linePaint);
+
+    // Sweep Glow Effect
+    final glowPaint = Paint()
+      ..shader = LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [color.withOpacity(0.0), color.withOpacity(0.3), color.withOpacity(0.0)],
+      ).createShader(Rect.fromLTWH(0, y - 20, size.width, 40));
+    
+    canvas.drawRect(Rect.fromLTWH(0, y - 20, size.width, 40), glowPaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _ScannerFramePainter oldDelegate) {
+    return oldDelegate.scanLineProgress != scanLineProgress || oldDelegate.cornersProgress != cornersProgress;
+  }
+}
+

@@ -26,14 +26,13 @@ class ApiService {
   }
 
   /// Fetches structured diagnosis data from FastAPI backend
-  /// Replaces direct Supabase/Local calls for Phase 8 Architecture
   Future<DiseaseResult> fetchDiagnosisDetails(String diseaseId, {double acres = 1.0, String lang = 'en'}) async {
     try {
       final response = await http.get(
         Uri.parse('$baseUrl/treatment/$diseaseId?acres=$acres'),
         headers: {
           'Content-Type': 'application/json',
-          'lang': lang, // Bilingual Middleware trigger
+          'lang': lang,
         },
       ).timeout(const Duration(seconds: 8));
 
@@ -50,56 +49,61 @@ class ApiService {
       }
     } catch (e) {
       debugPrint('FastAPI communication error: $e');
-      // Special flag for connection-level failures (timeouts, socket errors)
       if (e.toString().contains('Timeout') || e.toString().contains('SocketException')) {
         throw Exception('CONNECTION_FAILED');
       }
       rethrow;
     }
   }
+
   /// Silently saves a completed scan to the cloud via the FastAPI backend.
-  ///
-  /// [plantName] is the raw label prefix (e.g. "Tomato" or "Corn_Maize").
-  /// It is normalised to the canonical CropType string before sending.
-  ///
-  /// Returns [true] on success, [false] on any network or server error.
-  /// Never throws — caller shows a subtle SnackBar on false.
   Future<bool> saveScanResult({
     required String userId,
     required String plantName,
     required String diseaseResult,
     required double confidenceScore,
   }) async {
+    if (userId.isEmpty) return false;
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/api/v1/scans/save'),
+        Uri.parse('$baseUrl/history/save'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'user_id':          userId,
-          'crop_name':        _normalizeCropName(plantName),  // strict enum key
+          'crop_name':        _normalizeCropName(plantName),
           'disease_result':   diseaseResult,
           'confidence_score': confidenceScore,
         }),
       ).timeout(const Duration(seconds: 10));
 
-      if (response.statusCode == 200) {
-        debugPrint('✅ Scan saved to cloud history.');
-        return true;
-      } else {
-        debugPrint('⚠️ saveScanResult HTTP ${response.statusCode}: ${response.body}');
-        return false;
-      }
+      return response.statusCode == 200;
     } catch (e) {
-      debugPrint('⚠️ saveScanResult failed (network): $e');
+      debugPrint('saveScanResult failed: $e');
       return false;
     }
   }
 
-  /// Maps raw ML label prefixes to canonical CropType enum values.
-  /// e.g. "Corn_Maize" → "Corn (Maize)", "Pepper_Bell" → "Pepper (Bell)"
+  Future<List<dynamic>> getHistory(String userId) async {
+    if (userId.isEmpty) return [];
+    final uri = Uri.parse('$baseUrl/history/$userId');
+    try {
+      final response = await http.get(uri).timeout(const Duration(seconds: 10));
+      if (response.statusCode == 200) {
+        final decoded = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+        return decoded['scans'] ?? [];
+      }
+      return [];
+    } catch (e) {
+      debugPrint('getHistory failed: $e');
+      return [];
+    }
+  }
+
   static String _normalizeCropName(String raw) {
     const map = <String, String>{
       'Apple':        'Apple',
+      'Apricot':      'Apricot',
+      'Bean':         'Bean',
       'Cherry':       'Cherry',
       'Corn':         'Corn (Maize)',
       'Corn_Maize':   'Corn (Maize)',
@@ -118,42 +122,52 @@ class ApiService {
   }
 
   /// Fetches aggregated crop statistics for the authenticated user.
-  /// Throws [Exception] on network or server failure.
   Future<CropSummary> fetchCropSummary(String userId) async {
-    final uri = Uri.parse('$baseUrl/api/v1/stats/crop-summary')
+    if (userId.isEmpty) {
+      return const CropSummary(
+        totalScans: 0, healthyCount: 0, diseasedCount: 0,
+        healthyPct: 0.0, diseasedPct: 0.0, topDiseases: [],
+      );
+    }
+
+    final uri = Uri.parse('$baseUrl/stats') 
         .replace(queryParameters: {'user_id': userId});
     try {
       final response = await http.get(uri).timeout(const Duration(seconds: 12));
       if (response.statusCode == 200) {
         final decoded = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
         return CropSummary.fromJson(decoded);
-      } else {
-        throw Exception('STATS_ERROR_${response.statusCode}');
       }
+      return const CropSummary(
+        totalScans: 0, healthyCount: 0, diseasedCount: 0,
+        healthyPct: 0.0, diseasedPct: 0.0, topDiseases: [],
+      );
     } catch (e) {
       debugPrint('fetchCropSummary failed: $e');
-      rethrow;
+      return const CropSummary(
+        totalScans: 0, healthyCount: 0, diseasedCount: 0,
+        healthyPct: 0.0, diseasedPct: 0.0, topDiseases: [],
+      );
     }
   }
+
   /// Fetches all upcoming reminders for this user from the backend.
   Future<List<SprayReminder>> fetchActiveReminders(String userId) async {
-    final uri = Uri.parse('$baseUrl/api/v1/reminders/active')
+    if (userId.isEmpty) return [];
+
+    final uri = Uri.parse('$baseUrl/reminders') 
         .replace(queryParameters: {'user_id': userId});
     try {
-      final response =
-          await http.get(uri).timeout(const Duration(seconds: 10));
+      final response = await http.get(uri).timeout(const Duration(seconds: 10));
       if (response.statusCode == 200) {
-        final decoded =
-            jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+        final decoded = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
         final list = (decoded['reminders'] as List?) ?? [];
-        return list
-            .map((e) => SprayReminder.fromJson(e as Map<String, dynamic>))
-            .toList();
+        return list.map((e) => SprayReminder.fromJson(e as Map<String, dynamic>)).toList();
       }
-      throw Exception('REMINDERS_ERROR_${response.statusCode}');
+      return [];
     } catch (e) {
       debugPrint('fetchActiveReminders failed: $e');
-      rethrow;
+      return [];
     }
   }
 
@@ -165,26 +179,24 @@ class ApiService {
     required String treatmentType,
     required DateTime scheduledTime,
   }) async {
+    if (userId.isEmpty) return null;
     try {
-      final response = await http
-          .post(
-            Uri.parse('$baseUrl/api/v1/reminders/create'),
-            headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({
-              'user_id':        userId,
-              'plant_name':     plantName,
-              'disease_name':   diseaseName,
-              'treatment_type': treatmentType,
-              'scheduled_time': scheduledTime.toUtc().toIso8601String(),
-            }),
-          )
-          .timeout(const Duration(seconds: 10));
+      final response = await http.post(
+        Uri.parse('$baseUrl/reminders'), 
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'user_id':        userId,
+          'plant_name':     plantName,
+          'disease_name':   diseaseName,
+          'treatment_type': treatmentType,
+          'scheduled_time': scheduledTime.toUtc().toIso8601String(),
+        }),
+      ).timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
         final decoded = jsonDecode(response.body) as Map<String, dynamic>;
         return decoded['record_id'] as String?;
       }
-      debugPrint('createReminder HTTP ${response.statusCode}: ${response.body}');
       return null;
     } catch (e) {
       debugPrint('createReminder failed: $e');
@@ -192,15 +204,14 @@ class ApiService {
     }
   }
 
-  /// Marks a reminder as completed (updates DB, caller cancels OS notification).
+  /// Marks a reminder as completed.
   Future<bool> markReminderComplete(String reminderId, String userId) async {
+    if (userId.isEmpty) return false;
     try {
-      final response = await http
-          .patch(
-            Uri.parse('$baseUrl/api/v1/reminders/$reminderId/complete')
-                .replace(queryParameters: {'user_id': userId}),
-          )
-          .timeout(const Duration(seconds: 10));
+      final response = await http.patch(
+        Uri.parse('$baseUrl/reminders/$reminderId/complete')
+            .replace(queryParameters: {'user_id': userId}),
+      ).timeout(const Duration(seconds: 10));
       return response.statusCode == 200;
     } catch (e) {
       debugPrint('markReminderComplete failed: $e');
@@ -208,18 +219,14 @@ class ApiService {
     }
   }
 
-  // ─── Profile Integration ──────────────────────────────────────────────────
-
-  /// Fetches user profile from the backend.
-  /// Used by ProfileScreen to ensure cross-device consistency.
   Future<Map<String, dynamic>?> fetchUserProfile(String userId) async {
-    final uri = Uri.parse('$baseUrl/api/v1/profile/$userId');
+    if (userId.isEmpty) return null;
+    final uri = Uri.parse('$baseUrl/profile/$userId');
     try {
       final response = await http.get(uri).timeout(const Duration(seconds: 10));
       if (response.statusCode == 200) {
         return jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
       }
-      debugPrint('fetchUserProfile HTTP ${response.statusCode}: ${response.body}');
       return null;
     } catch (e) {
       debugPrint('fetchUserProfile failed: $e');
@@ -227,16 +234,16 @@ class ApiService {
     }
   }
 
-  /// Syncs local profile changes to the cloud.
   Future<bool> updateUserProfile({
     required String userId,
     String? fullName,
     String? phone,
     String? location,
   }) async {
+    if (userId.isEmpty) return false;
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/api/v1/profile/sync'),
+        Uri.parse('$baseUrl/profile/sync'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'user_id':   userId,
@@ -245,7 +252,6 @@ class ApiService {
           'location':  location ?? '',
         }),
       ).timeout(const Duration(seconds: 10));
-
       return response.statusCode == 200;
     } catch (e) {
       debugPrint('updateUserProfile failed: $e');
@@ -253,8 +259,6 @@ class ApiService {
     }
   }
 }
-
-// ─── Reminder Model ───────────────────────────────────────────────────────────
 
 class SprayReminder {
   final String id;
@@ -282,11 +286,8 @@ class SprayReminder {
         isCompleted:   j['is_completed'] as bool? ?? false,
       );
 
-  /// Stable integer ID for OS notification scheduling (based on UUID hash).
   int get notifId => id.hashCode.abs() % 2147483647;
 }
-
-// ─── Stats Data Models ────────────────────────────────────────────────────────
 
 class TopDisease {
   final String disease;
@@ -334,4 +335,3 @@ class CropSummary {
             .toList(),
       );
 }
-

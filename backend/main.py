@@ -126,33 +126,141 @@ async def health_check():
     }
 
 
-# ─── Mock Endpoints for FYP Defense / Readiness ──────────────────────────────
+# ─── Statistics API ─────────────────────────────────────────────────────────
 
 @app.get("/stats")
-async def get_stats():
-    """Returns basic mock stats in the format expected by CropSummary model."""
-    return {
-        "total_scans": 0,
-        "healthy_count": 0,
-        "diseased_count": 0,
-        "healthy_pct": 0.0,
-        "diseased_pct": 0.0,
-        "top_diseases": []
-    }
- 
+async def crop_summary(user_id: str):
+    if supabase is None:
+        raise HTTPException(status_code=503, detail="Database unavailable — running in offline mode.")
+
+    if not user_id or not user_id.strip():
+        raise HTTPException(status_code=400, detail="user_id is required.")
+
+    try:
+        response = supabase.table("scan_history") \
+            .select("disease_result, confidence_score") \
+            .eq("user_id", user_id.strip()) \
+            .execute()
+
+        rows = response.data or []
+        total_scans = len(rows)
+
+        if total_scans == 0:
+            return {
+                "total_scans":    0,
+                "healthy_count":  0,
+                "diseased_count": 0,
+                "healthy_pct":    0.0,
+                "diseased_pct":   0.0,
+                "top_diseases":   [],
+            }
+
+        healthy_count = sum(1 for r in rows if "healthy" in r.get("disease_result", "").lower())
+        diseased_count = total_scans - healthy_count
+
+        def pct(n): return round((n / total_scans) * 100, 1)
+
+        freq: dict[str, int] = {}
+        for r in rows:
+            label = r.get("disease_result", "Unknown")
+            if "healthy" not in label.lower():
+                freq[label] = freq.get(label, 0) + 1
+
+        top_diseases = sorted(
+            [{"disease": label, "count": count, "percentage": pct(count)} for label, count in freq.items()],
+            key=lambda x: x["count"],
+            reverse=True,
+        )[:10]
+
+        return {
+            "total_scans":    total_scans,
+            "healthy_count":  healthy_count,
+            "diseased_count": diseased_count,
+            "healthy_pct":    pct(healthy_count),
+            "diseased_pct":   pct(diseased_count),
+            "top_diseases":   top_diseases,
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Stats query failed: {str(e)}")
+
+
+# ─── Spray Reminders API ─────────────────────────────────────────────────────
+
 @app.get("/reminders")
-async def get_reminders():
-    """Returns an empty list of reminders in the format expected by the app."""
-    return {"reminders": [], "count": 0}
+async def get_active_reminders(user_id: str):
+    if supabase is None:
+        return {"reminders": [], "count": 0}
+
+    if not user_id or not user_id.strip():
+        raise HTTPException(status_code=400, detail="user_id is required.")
+
+    try:
+        from datetime import datetime, timezone
+        now_iso = datetime.now(timezone.utc).isoformat()
+
+        response = supabase.table("spray_reminders") \
+            .select("id, plant_name, disease_name, treatment_type, scheduled_time, is_completed") \
+            .eq("user_id", user_id.strip()) \
+            .eq("is_completed", False) \
+            .order("scheduled_time", desc=False) \
+            .execute()
+
+        return {
+            "reminders": response.data or [],
+            "count":     len(response.data or []),
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch reminders: {str(e)}")
+
 
 @app.post("/reminders")
-async def post_reminder(payload: ReminderCreateRequest):
-    """Mock endpoint for creating a reminder."""
-    return {
-        "success": True,
-        "record_id": str(uuid.uuid4()),
-        "message": "Reminder scheduled (Mock)."
-    }
+async def create_reminder(payload: ReminderCreateRequest):
+    if supabase is None:
+        return {"success": True, "record_id": str(uuid.uuid4()), "message": "Offline mode."}
+
+    if not payload.user_id.strip():
+        raise HTTPException(status_code=400, detail="user_id is required.")
+
+    record_id = str(uuid.uuid4())
+
+    try:
+        supabase.table("spray_reminders").insert({
+            "id":             record_id,
+            "user_id":        payload.user_id.strip(),
+            "plant_name":     payload.plant_name.strip(),
+            "disease_name":   payload.disease_name.strip(),
+            "treatment_type": payload.treatment_type.strip(),
+            "scheduled_time": payload.scheduled_time.strip(),
+            "is_completed":   False,
+        }).execute()
+
+        return {
+            "success":   True,
+            "record_id": record_id,
+            "message":   "Reminder scheduled.",
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to create reminder: {str(e)}")
+
+
+@app.patch("/reminders/{reminder_id}/complete")
+async def complete_reminder(reminder_id: str, user_id: str):
+    if supabase is None:
+        return {"success": True}
+
+    try:
+        response = supabase.table("spray_reminders") \
+            .update({"is_completed": True}) \
+            .eq("id", reminder_id) \
+            .eq("user_id", user_id) \
+            .execute()
+
+        if not response.data:
+            raise HTTPException(status_code=404, detail="Reminder not found.")
+
+        return {"success": True, "message": "Reminder marked as complete."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to complete reminder: {str(e)}")
 
 
 # ─── Treatment Database ──────────────────────────────────────────────────────
@@ -802,10 +910,12 @@ async def complete_reminder(reminder_id: str, user_id: str):
 
 # ─── Profile Management API ──────────────────────────────────────────────────
 
-@app.get("/api/v1/profile/{user_id}")
+# ─── Profile Management API ──────────────────────────────────────────────────
+
+@app.get("/profile/{user_id}")
 async def get_user_profile(user_id: str):
     if supabase is None:
-        raise HTTPException(status_code=503, detail="Database unavailable.")
+        return {"id": user_id, "full_name": "", "phone": "", "location": ""}
 
     try:
         response = supabase.table("profiles").select("*").eq("id", user_id).execute()
@@ -816,13 +926,10 @@ async def get_user_profile(user_id: str):
         raise HTTPException(status_code=500, detail=f"Failed to fetch profile: {str(e)}")
 
 
-@app.post("/api/v1/profile/sync")
+@app.post("/profile/sync")
 async def sync_user_profile(payload: ProfileUpdate):
     if supabase is None:
         raise HTTPException(status_code=503, detail="Database unavailable.")
-
-    if not payload.user_id:
-        raise HTTPException(status_code=400, detail="user_id is required.")
 
     try:
         data = {
@@ -833,11 +940,7 @@ async def sync_user_profile(payload: ProfileUpdate):
             "updated_at": "now()"
         }
 
-        response = supabase.table("profiles").upsert(data).execute()
-
-        if not response.data:
-            raise HTTPException(status_code=500, detail="Profile sync failed.")
-
+        supabase.table("profiles").upsert(data).execute()
         return {"success": True, "message": "Profile synced successfully."}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to sync profile: {str(e)}")
@@ -848,23 +951,47 @@ class ScanHistoryPayload(BaseModel):
     disease_result: str
     confidence_score: float
 
+# ─── Scan History API ────────────────────────────────────────────────────────
+
 @app.post("/history/save")
-async def save_scan(scan_data: ScanHistoryPayload):
+async def save_scan(payload: ScanHistoryPayload):
     if supabase is None:
         raise HTTPException(status_code=503, detail="Database unavailable.")
+
+    if not payload.user_id or not payload.user_id.strip():
+        raise HTTPException(status_code=400, detail="user_id is required.")
+
+    record_id = str(uuid.uuid4())
+
     try:
-        response = supabase.table("scan_history").insert(scan_data.model_dump()).execute()
-        return {"status": "saved", "data": response.data}
+        supabase.table("scan_history").insert({
+            "id":               record_id,
+            "user_id":          payload.user_id.strip(),
+            "plant_name":       payload.crop_name.strip(),
+            "disease_result":   payload.disease_result.strip(),
+            "confidence_score": payload.confidence_score,
+        }).execute()
+
+        return {
+            "success":   True,
+            "record_id": record_id,
+            "message":   "Scan saved to history.",
+        }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=f"Failed to save scan: {str(e)}")
+
 
 @app.get("/history/{user_id}")
 async def get_history(user_id: str):
     if supabase is None:
         return {"scans": []}
     try:
-        response = supabase.table("scan_history").select("*").eq("user_id", user_id).order("created_at", desc=True).execute()
-        return {"scans": response.data}
+        response = supabase.table("scan_history") \
+            .select("*") \
+            .eq("user_id", user_id) \
+            .order("created_at", desc=True) \
+            .execute()
+        return {"scans": response.data or []}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

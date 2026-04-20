@@ -2,11 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/api_service.dart';
 import '../services/notification_service.dart';
+import '../utils/string_extensions.dart';
 
 // ─── theme tokens ─────────────────────────────────────────────────────────────
-const _bg     = Color(0xFF0A1108);
-const _card   = Color(0xFF152213);
-const _border = Color(0xFF1E3A1A);
 const _green  = Color(0xFF6CFB7B);
 const _green2 = Color(0xFF2ECC71);
 const _amber  = Color(0xFFFFB300);
@@ -73,13 +71,15 @@ class _ReminderScreenState extends State<ReminderScreen> {
         return StatefulBuilder(builder: (ctx, setDlg) {
           return Center(
             child: SingleChildScrollView(
-              child: Container(
+              child: Material(
+                type: MaterialType.transparency,
+                child: Container(
                 margin: const EdgeInsets.symmetric(horizontal: 24),
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  color: _card,
+                  color: Theme.of(context).cardColor,
                   borderRadius: BorderRadius.circular(24),
-                  border: Border.all(color: _border),
+                  border: Border.all(color: Theme.of(context).dividerColor),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -88,19 +88,22 @@ class _ReminderScreenState extends State<ReminderScreen> {
                     // Header
                     Row(
                       children: [
-                        const Icon(Icons.add_alarm_rounded,
+                        Icon(Icons.add_alarm_rounded,
                             color: _green, size: 22),
                         const SizedBox(width: 10),
-                        const Text('New Reminder  •  نیا یاد دہانی',
-                            style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16)),
+                        Expanded(
+                          child: Text('New Reminder  •  نیا یاد دہانی',
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                  color: (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black),
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 16)),
+                        ),
                         const Spacer(),
                         GestureDetector(
                             onTap: () => Navigator.pop(ctx),
-                            child: const Icon(Icons.close,
-                                color: Colors.white38, size: 20)),
+                            child: Icon(Icons.close,
+                                color: (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black).withOpacity(0.38), size: 20)),
                       ],
                     ),
                     const SizedBox(height: 20),
@@ -125,9 +128,9 @@ class _ReminderScreenState extends State<ReminderScreen> {
                               .add(const Duration(days: 365)),
                           builder: (c, child) => Theme(
                             data: ThemeData.dark().copyWith(
-                              colorScheme: const ColorScheme.dark(
+                              colorScheme: ColorScheme.dark(
                                 primary: _green,
-                                surface: _card,
+                                surface: Theme.of(context).cardColor,
                               ),
                             ),
                             child: child!,
@@ -139,9 +142,9 @@ class _ReminderScreenState extends State<ReminderScreen> {
                           initialTime: TimeOfDay.now(),
                           builder: (c, child) => Theme(
                             data: ThemeData.dark().copyWith(
-                              colorScheme: const ColorScheme.dark(
+                              colorScheme: ColorScheme.dark(
                                 primary: _green,
-                                surface: _card,
+                                surface: Theme.of(context).cardColor,
                               ),
                             ),
                             child: child!,
@@ -155,26 +158,29 @@ class _ReminderScreenState extends State<ReminderScreen> {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 14, vertical: 14),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.04),
+                          color: (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black).withOpacity(0.04),
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: _border),
+                          border: Border.all(color: Theme.of(context).dividerColor),
                         ),
                         child: Row(
                           children: [
-                            const Icon(Icons.access_time_rounded,
+                            Icon(Icons.access_time_rounded,
                                 color: _green, size: 18),
-                            const SizedBox(width: 10),
-                            Text(
-                              picked == null
-                                  ? 'Select date & time  •  وقت منتخب کریں'
-                                  : _fmt(picked!),
-                              style: TextStyle(
-                                color: picked == null
-                                    ? Colors.white38
-                                    : Colors.white,
-                                fontSize: 14,
-                              ),
-                            ),
+                             const SizedBox(width: 10),
+                             Expanded(
+                               child: Text(
+                                 picked == null
+                                     ? 'Select date & time  •  وقت منتخب کریں'
+                                     : _fmt(picked!),
+                                 overflow: TextOverflow.ellipsis,
+                                 style: TextStyle(
+                                   color: picked == null
+                                       ? (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black).withOpacity(0.38)
+                                       : (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black),
+                                   fontSize: 14,
+                                 ),
+                               ),
+                             ),
                           ],
                         ),
                       ),
@@ -211,10 +217,10 @@ class _ReminderScreenState extends State<ReminderScreen> {
                             picked!,
                           );
                         },
-                        child: const Text(
+                        child: Text(
                           'Schedule Reminder  •  یاد دہانی طے کریں',
                           style: TextStyle(
-                              fontWeight: FontWeight.bold, fontSize: 13),
+                              fontWeight: FontWeight.w900, fontSize: 13),
                         ),
                       ),
                     ),
@@ -222,6 +228,7 @@ class _ReminderScreenState extends State<ReminderScreen> {
                 ),
               ),
             ),
+          ),
           );
         });
       },
@@ -279,7 +286,7 @@ class _ReminderScreenState extends State<ReminderScreen> {
   void _showSnack(String msg, {bool isSuccess = false}) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(msg, style: const TextStyle(fontWeight: FontWeight.bold)),
+      content: Text(msg, style: TextStyle(fontWeight: FontWeight.w900)),
       backgroundColor: isSuccess ? _green2 : _red,
       behavior: SnackBarBehavior.floating,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -290,24 +297,24 @@ class _ReminderScreenState extends State<ReminderScreen> {
   Widget _dlgField(TextEditingController ctrl, String label, IconData icon) =>
       TextField(
         controller: ctrl,
-        style: const TextStyle(color: Colors.white, fontSize: 14),
+        style: TextStyle(color: (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black), fontSize: 14),
         decoration: InputDecoration(
           prefixIcon: Icon(icon, color: _green, size: 18),
           hintText: label,
-          hintStyle: const TextStyle(color: Colors.white38, fontSize: 13),
+          hintStyle: TextStyle(color: (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black).withOpacity(0.38), fontSize: 13),
           filled: true,
-          fillColor: Colors.white.withOpacity(0.04),
+          fillColor: (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black).withOpacity(0.04),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: _border),
+            borderSide: BorderSide(color: Theme.of(context).dividerColor),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: _border),
+            borderSide: BorderSide(color: Theme.of(context).dividerColor),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: _green, width: 1.5),
+            borderSide: BorderSide(color: _green, width: 1.5),
           ),
           contentPadding:
               const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
@@ -318,23 +325,26 @@ class _ReminderScreenState extends State<ReminderScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _bg,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: _bg,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new,
-              color: Colors.white70, size: 20),
+          icon: Icon(Icons.arrow_back_ios_new,
+              color: (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black).withOpacity(0.7), size: 20),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
+        title: Text(
           'Spray Reminders  •  اسپرے کی یاد دہانی',
+          overflow: TextOverflow.ellipsis,
           style: TextStyle(
-              color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+              color: (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black), 
+              fontWeight: FontWeight.w900, 
+              fontSize: 16),
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh_rounded, color: _green),
+            icon: Icon(Icons.refresh_rounded, color: _green),
             onPressed: _load,
           ),
         ],
@@ -342,9 +352,9 @@ class _ReminderScreenState extends State<ReminderScreen> {
       floatingActionButton: FloatingActionButton.extended(
         backgroundColor: _green,
         foregroundColor: Colors.black,
-        icon: const Icon(Icons.add_alarm_rounded),
-        label: const Text('Add Reminder',
-            style: TextStyle(fontWeight: FontWeight.bold)),
+        icon: Icon(Icons.add_alarm_rounded),
+        label: Text('Add Reminder',
+            style: TextStyle(fontWeight: FontWeight.w900)),
         onPressed: _showAddDialog,
       ),
       body: FutureBuilder<List<SprayReminder>>(
@@ -367,7 +377,7 @@ class _ReminderScreenState extends State<ReminderScreen> {
   Widget _buildList(List<SprayReminder> reminders) {
     return RefreshIndicator(
       color: _green,
-      backgroundColor: _card,
+      backgroundColor: Theme.of(context).cardColor,
       onRefresh: () async => _load(),
       child: ListView.builder(
         physics: const BouncingScrollPhysics(
@@ -386,9 +396,9 @@ class _ReminderScreenState extends State<ReminderScreen> {
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
       decoration: BoxDecoration(
-        color: _card,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: _border),
+        border: Border.all(color: Theme.of(context).dividerColor),
         boxShadow: [
           BoxShadow(
             color: urgency.withOpacity(0.08),
@@ -411,22 +421,22 @@ class _ReminderScreenState extends State<ReminderScreen> {
                     color: _green.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: const Icon(Icons.eco_rounded, color: _green, size: 20),
+                  child: Icon(Icons.eco_rounded, color: _green, size: 20),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(r.plantName,
-                          style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
+                      Text(r.plantName.toDisplayDisease(),
+                          style: TextStyle(
+                              color: (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black),
+                              fontWeight: FontWeight.w900,
                               fontSize: 15)),
                       const SizedBox(height: 2),
-                      Text(r.diseaseName,
+                      Text(r.diseaseName.toDisplayDisease(),
                           style: TextStyle(
-                              color: Colors.white.withOpacity(0.5),
+                              color: (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black).withOpacity(0.5),
                               fontSize: 12)),
                     ],
                   ),
@@ -445,33 +455,33 @@ class _ReminderScreenState extends State<ReminderScreen> {
                     style: TextStyle(
                         color: urgency,
                         fontSize: 11,
-                        fontWeight: FontWeight.bold),
+                        fontWeight: FontWeight.w900),
                   ),
                 ),
               ],
             ),
 
             const SizedBox(height: 12),
-            const Divider(color: _border, height: 1),
+            Divider(color: Theme.of(context).dividerColor, height: 1),
             const SizedBox(height: 12),
 
             // Row 2: treatment + scheduled time
             Row(
               children: [
-                const Icon(Icons.medical_services_outlined,
+                Icon(Icons.medical_services_outlined,
                     color: _amber, size: 15),
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(r.treatmentType,
-                      style: const TextStyle(
-                          color: Colors.white70, fontSize: 13)),
+                      style: TextStyle(
+                          color: (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black).withOpacity(0.7), fontSize: 13)),
                 ),
-                const Icon(Icons.schedule_rounded,
-                    color: Colors.white24, size: 14),
+                Icon(Icons.schedule_rounded,
+                    color: (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black).withOpacity(0.24), size: 14),
                 const SizedBox(width: 4),
                 Text(_fmt(r.scheduledTime.toLocal()),
-                    style: const TextStyle(
-                        color: Colors.white38, fontSize: 11)),
+                    style: TextStyle(
+                        color: (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black).withOpacity(0.38), fontSize: 11)),
               ],
             ),
 
@@ -493,15 +503,15 @@ class _ReminderScreenState extends State<ReminderScreen> {
                   : OutlinedButton.icon(
                       style: OutlinedButton.styleFrom(
                         foregroundColor: _green,
-                        side: const BorderSide(color: _green, width: 1.2),
+                        side: BorderSide(color: _green, width: 1.2),
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12)),
                       ),
-                      icon: const Icon(Icons.check_circle_outline, size: 16),
-                      label: const Text(
+                      icon: Icon(Icons.check_circle_outline, size: 16),
+                      label: Text(
                         'Mark as Done  •  مکمل',
                         style: TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 13),
+                            fontWeight: FontWeight.w900, fontSize: 13),
                       ),
                       onPressed: () => _markDone(r),
                     ),
@@ -524,21 +534,21 @@ class _ReminderScreenState extends State<ReminderScreen> {
                 padding: const EdgeInsets.all(28),
                 decoration: BoxDecoration(
                     color: _green.withOpacity(0.07), shape: BoxShape.circle),
-                child: const Icon(Icons.notifications_none_rounded,
+                child: Icon(Icons.notifications_none_rounded,
                     color: _green, size: 64),
               ),
               const SizedBox(height: 20),
-              const Text('No upcoming reminders',
+              Text('No upcoming reminders',
                   style: TextStyle(
-                      color: Colors.white,
+                      color: (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black),
                       fontSize: 20,
-                      fontWeight: FontWeight.bold)),
+                      fontWeight: FontWeight.w900)),
               const SizedBox(height: 8),
               Text(
                 'Tap ＋ Add Reminder to schedule\nyour next spray treatment.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                    color: Colors.white.withOpacity(0.4), fontSize: 14),
+                    color: (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black).withOpacity(0.4), fontSize: 14),
               ),
             ],
           ),
@@ -551,14 +561,14 @@ class _ReminderScreenState extends State<ReminderScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.cloud_off_outlined,
-                  color: Colors.white24, size: 64),
+              Icon(Icons.cloud_off_outlined,
+                  color: (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black).withOpacity(0.24), size: 64),
               const SizedBox(height: 16),
-              const Text('Could not load reminders',
+              Text('Could not load reminders',
                   style: TextStyle(
-                      color: Colors.white,
+                      color: (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black),
                       fontSize: 18,
-                      fontWeight: FontWeight.bold)),
+                      fontWeight: FontWeight.w900)),
               const SizedBox(height: 8),
               Text(
                 error.contains('503')
@@ -566,7 +576,7 @@ class _ReminderScreenState extends State<ReminderScreen> {
                     : 'Check your internet connection.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                    color: Colors.white.withOpacity(0.45), fontSize: 13, height: 1.4),
+                    color: (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black).withOpacity(0.45), fontSize: 13, height: 1.4),
               ),
               const SizedBox(height: 24),
               ElevatedButton.icon(
@@ -575,9 +585,9 @@ class _ReminderScreenState extends State<ReminderScreen> {
                     foregroundColor: Colors.black,
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12))),
-                icon: const Icon(Icons.refresh),
-                label: const Text('Retry',
-                    style: TextStyle(fontWeight: FontWeight.bold)),
+                icon: Icon(Icons.refresh),
+                label: Text('Retry',
+                    style: TextStyle(fontWeight: FontWeight.w900)),
                 onPressed: _load,
               ),
             ],

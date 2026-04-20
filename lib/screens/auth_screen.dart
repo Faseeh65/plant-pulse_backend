@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../utils/app_assets.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AuthScreen extends StatefulWidget {
@@ -66,7 +67,7 @@ class _AuthScreenState extends State<AuthScreen> {
                   height: 300,
                   decoration: const BoxDecoration(
                     image: DecorationImage(
-                      image: AssetImage('assets/images/farm_bg.png'), // Using existing high-res farm/leaf image
+                      image: const AssetImage(AppAssets.farmBg), // Using existing high-res farm/leaf image
                       fit: BoxFit.cover,
                     ),
                   ),
@@ -93,7 +94,7 @@ class _AuthScreenState extends State<AuthScreen> {
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 40,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w900,
                     ),
                   ),
                 ),
@@ -137,7 +138,7 @@ class _AuthScreenState extends State<AuthScreen> {
                                 _isLogin ? 'Sign in' : 'Sign up',
                                 style: const TextStyle(
                                   fontSize: 18,
-                                  fontWeight: FontWeight.bold,
+                                  fontWeight: FontWeight.w900,
                                   color: Colors.black,
                                 ),
                               ),
@@ -162,7 +163,7 @@ class _AuthScreenState extends State<AuthScreen> {
                               text: _isLogin ? 'Sign up' : 'Sign in',
                               style: const TextStyle(
                                 color: Color(0xFF6CFB7B),
-                                fontWeight: FontWeight.bold,
+                                fontWeight: FontWeight.w900,
                               ),
                             ),
                           ],
