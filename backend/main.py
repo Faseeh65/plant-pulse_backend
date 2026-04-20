@@ -411,6 +411,26 @@ async def sync_user_profile(payload: ProfileUpdate):
         raise HTTPException(status_code=500, detail=f"Failed to sync profile: {str(e)}")
 
 
+@app.post("/history/save")
+async def save_scan(scan_data: dict):
+    if supabase is None:
+        raise HTTPException(status_code=503, detail="Database unavailable.")
+    try:
+        response = supabase.table("scan_history").insert(scan_data).execute()
+        return {"status": "saved", "data": response.data}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/history/{user_id}")
+async def get_history(user_id: str):
+    if supabase is None:
+        return {"scans": []}
+    try:
+        response = supabase.table("scan_history").select("*").eq("user_id", user_id).order("created_at", desc=True).execute()
+        return {"scans": response.data}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
