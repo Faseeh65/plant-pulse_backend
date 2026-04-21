@@ -70,7 +70,7 @@ class ApiService {
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'user_id':          userId,
-          'crop_name':        _normalizeCropName(plantName),
+          'crop_name':        plantName,
           'disease_result':   diseaseResult,
           'confidence_score': confidenceScore,
         }),
@@ -99,27 +99,6 @@ class ApiService {
     }
   }
 
-  static String _normalizeCropName(String raw) {
-    const map = <String, String>{
-      'Apple':        'Apple',
-      'Apricot':      'Apricot',
-      'Bean':         'Bean',
-      'Cherry':       'Cherry',
-      'Corn':         'Corn (Maize)',
-      'Corn_Maize':   'Corn (Maize)',
-      'Grape':        'Grape',
-      'Peach':        'Peach',
-      'Pepper':       'Pepper (Bell)',
-      'Pepper_Bell':  'Pepper (Bell)',
-      'Potato':       'Potato',
-      'Rice':         'Rice',
-      'Soybean':      'Soybean',
-      'Strawberry':   'Strawberry',
-      'Tomato':       'Tomato',
-      'Wheat':        'Wheat',
-    };
-    return map[raw] ?? raw;
-  }
 
   /// Fetches aggregated crop statistics for the authenticated user.
   Future<CropSummary> fetchCropSummary(String userId) async {
