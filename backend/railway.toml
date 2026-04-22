@@ -5,7 +5,7 @@ builder = "nixpacks"
 NIXPACKS_NO_CACHE = "1"
 PIP_NO_CACHE_DIR = "1"
 PYTHON_VERSION = "3.10"
-RANDOM_BUILD_SEED = "RICE_PROD_REVISION_6"
+RANDOM_BUILD_SEED = "RICE_TFLITE_REVISION_9"
 
 [deploy]
 startCommand = "uvicorn main:app --host 0.0.0.0 --port $PORT"

@@ -62,6 +62,7 @@ async def predict(file: UploadFile = File(...)):
         # Standardize response for Flutter client
         return {
             "class_name": result['class_name'],
+            "label": result['class_name'],
             "confidence": result['confidence'],
             "crop": "Rice",
             "disease": result['class_name']
