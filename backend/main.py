@@ -37,8 +37,10 @@ try:
     engine = RiceInferenceEngine(MODEL_PATH, LABELS_PATH)
     print("✅ RiceInferenceEngine status: READY")
 except Exception as e:
-    print(f"❌ RiceInferenceEngine status: FAILED | Error: {e}")
-    engine = None
+    print(f"❌ FATAL ERROR: RiceInferenceEngine failed to initialize: {e}")
+    # Force exit so Railway doesn't mark this as a "healthy" but broken deploy
+    import sys
+    sys.exit(1)
 
 # Load Expert System rules
 CAUSAL_RULES_PATH = os.path.join(os.path.dirname(__file__), "AI_Model", "causal_rules.json")
