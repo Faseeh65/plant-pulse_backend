@@ -123,7 +123,7 @@ async def health():
         "mode": "STRICT_RICE"
     }
 
-@app.post("/predict")
+@app.post("/v3/predict")
 async def predict_image(file: UploadFile = File(...)):
     if interpreter is None: raise HTTPException(status_code=503)
 
