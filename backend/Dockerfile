@@ -18,5 +18,5 @@ COPY . .
 RUN ls -la
 
 
-# We use the shell form without brackets to ensure Railway's $PORT is injected correctly
+# This syntax ensures the shell expands $PORT into a number
 CMD uvicorn main:app --host 0.0.0.0 --port $PORT
