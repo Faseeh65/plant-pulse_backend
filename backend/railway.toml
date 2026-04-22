@@ -1,12 +1,13 @@
 [build]
-# Switch to Dockerfile builder for better cache control
 builder = "dockerfile"
 dockerfilePath = "Dockerfile"
 
 [build.env]
-# This argument changes with every push to force a fresh copy of model files
-CACHEBUST = "REVISION_$(Get-Date -UFormat %Y%m%d_%H%M%S)"
-NIXPACKS_NO_CACHE = "1"
+# FORCED CACHE INVALIDATION
+# Each push generates a unique seed to bypass Docker's 'COPY' cache
+CACHEBUST = "RICE_V2_SYNC_$(Get-Date -UFormat %Y%m%d_%H%M%S)"
+# Additional build argument for Railway's builder
+RAILWAY_DOCKER_BUILD_ARGS = "CACHEBUST=RICE_V2_SYNC_$(Get-Date -UFormat %Y%m%d_%H%M%S)"
 
 [deploy]
 startCommand = "uvicorn main:app --host 0.0.0.0 --port $PORT"

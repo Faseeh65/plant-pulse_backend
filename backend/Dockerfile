@@ -14,7 +14,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # --- CACHE BUSTING FOR MODELS ---
 ARG CACHEBUST=1
-RUN echo "Syncing models... Revision: $CACHEBUST"
+RUN echo "Syncing Rice-Fusion Model... Revision: $CACHEBUST"
+COPY AI_Model ./AI_Model
+RUN ls -R AI_Model/
 
 # Copy the rest of the application
 COPY . .
