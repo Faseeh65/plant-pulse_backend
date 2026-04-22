@@ -41,12 +41,13 @@ class ScanGuard {
   /// Higher threshold ensures only confident rice disease detections reach the user.
   static const double kConfidenceThreshold = 0.90;
 
-  /// Labels that represent the OOD / Background class from Phase 2 training.
-  /// The model assigns one of these when it sees a non-plant image.
+  /// Labels that represent the OOD / Background class or backend rejection.
+  /// The backend returns 'NoRiceLeafDetected' when entropy is too low or confidence < 95%.
   static const Set<String> _backgroundLabels = {
     '0_background',
     'background',
     'not_a_leaf',
+    'noriceleafdetected',
     'unknown',
     'other',
   };

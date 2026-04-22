@@ -41,14 +41,14 @@ CLASS_NAMES = [
     "NarrowBrownSpot",
 ]
 
-# ─── Load TFLite Model ──────────────────────────────────────────────────────
-import tflite_runtime.interpreter as tflite
+# ─── Load TFLite Model (via tensorflow.lite — Railway compatible) ────────────
+import tensorflow as tf
 
 MODEL_PATH = os.path.join(os.path.dirname(__file__), "AI_Model", "rice_model_97_final.tflite")
 interpreter = None
 
 try:
-    interpreter = tflite.Interpreter(model_path=MODEL_PATH)
+    interpreter = tf.lite.Interpreter(model_path=MODEL_PATH)
     interpreter.allocate_tensors()
     input_details = interpreter.get_input_details()
     output_details = interpreter.get_output_details()
@@ -110,34 +110,47 @@ else:
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-#  ENTROPY PIPELINE — 4-Channel Image Processing
+#  ENTROPY PIPELINE — 4-Channel Image Processing + Leaf Validation
 # ══════════════════════════════════════════════════════════════════════════════
 
-def build_entropy_channel(image_rgb: np.ndarray) -> np.ndarray:
+# Minimum mean entropy for a valid leaf image.
+# Diseased rice leaves typically have mean entropy > 4.0.
+# Flat objects (laptops, bottles, walls) have mean entropy < 3.0.
+# Threshold set at 3.5 to reject non-leaf inputs.
+MIN_LEAF_ENTROPY = 3.5
+
+# Server-side confidence gate. Predictions below this are rejected.
+SERVER_CONFIDENCE_THRESHOLD = 0.95
+
+
+def build_entropy_channel(image_rgb: np.ndarray) -> tuple[np.ndarray, float]:
     """
     Generate a local entropy mask from the RGB image.
     1. Convert to grayscale (uint8)
     2. Compute local entropy using skimage disk(5)
     3. Normalize to 0-255 range (uint8)
-    Returns a (H, W) uint8 array.
+    Returns: (entropy_channel_uint8, raw_mean_entropy)
     """
     gray = cv2.cvtColor(image_rgb, cv2.COLOR_RGB2GRAY)
     ent = entropy(gray, disk(5))
+    raw_mean_entropy = float(ent.mean())
+
     # Normalize entropy to 0–255 range
     ent_min, ent_max = ent.min(), ent.max()
     if ent_max - ent_min > 0:
         ent_normalized = ((ent - ent_min) / (ent_max - ent_min) * 255).astype(np.uint8)
     else:
         ent_normalized = np.zeros_like(gray, dtype=np.uint8)
-    return ent_normalized
+    return ent_normalized, raw_mean_entropy
 
 
-def preprocess_image(image_bytes: bytes) -> np.ndarray:
+def preprocess_image(image_bytes: bytes) -> tuple[np.ndarray, float]:
     """
     Full preprocessing pipeline:
     1. Decode image → RGB (224×224)
-    2. Generate entropy channel
+    2. Generate entropy channel + measure raw mean entropy
     3. Stack RGB + Entropy → (1, 224, 224, 4) float32 normalized /255.0
+    Returns: (tensor, raw_mean_entropy)
     """
     # Decode image
     nparr = np.frombuffer(image_bytes, np.uint8)
@@ -149,8 +162,8 @@ def preprocess_image(image_bytes: bytes) -> np.ndarray:
     img_bgr = cv2.resize(img_bgr, (224, 224), interpolation=cv2.INTER_AREA)
     img_rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
 
-    # Generate entropy channel
-    entropy_channel = build_entropy_channel(img_rgb)
+    # Generate entropy channel + raw mean for leaf validation
+    entropy_channel, raw_mean_entropy = build_entropy_channel(img_rgb)
 
     # Stack RGB + Entropy → (224, 224, 4)
     four_channel = np.dstack([img_rgb, entropy_channel])
@@ -159,7 +172,7 @@ def preprocess_image(image_bytes: bytes) -> np.ndarray:
     tensor = four_channel.astype(np.float32) / 255.0
     tensor = np.expand_dims(tensor, axis=0)  # (1, 224, 224, 4)
 
-    return tensor
+    return tensor, raw_mean_entropy
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -187,8 +200,11 @@ async def health_check():
 async def predict_image(file: UploadFile = File(...)):
     """
     Rice disease inference endpoint.
-    Accepts a raw image, builds the 4-channel (RGB + Entropy) tensor,
-    and returns the predicted class with confidence.
+    1. Accepts a raw image
+    2. Builds the 4-channel (RGB + Entropy) tensor
+    3. Validates entropy signature (rejects non-leaf / flat objects)
+    4. Runs TFLite inference
+    5. Rejects if confidence < 95%
     """
     if interpreter is None:
         raise HTTPException(
@@ -202,10 +218,24 @@ async def predict_image(file: UploadFile = File(...)):
         if not image_bytes:
             raise HTTPException(status_code=400, detail="Empty file uploaded.")
 
-        # Build 4-channel tensor
-        tensor = preprocess_image(image_bytes)
+        # Build 4-channel tensor + get raw entropy for leaf validation
+        tensor, raw_mean_entropy = preprocess_image(image_bytes)
 
-        # Run TFLite inference
+        print(f"📊 Entropy check: mean={raw_mean_entropy:.2f} (min={MIN_LEAF_ENTROPY})")
+
+        # ── ENTROPY-BASED LEAF VALIDATION ────────────────────────────────
+        # Flat objects (laptops, bottles, walls) produce very low entropy.
+        # Real rice leaves have complex texture → high entropy.
+        if raw_mean_entropy < MIN_LEAF_ENTROPY:
+            return {
+                "label": "NoRiceLeafDetected",
+                "confidence": 0.0,
+                "rejected": True,
+                "reason": f"No Rice Leaf Detected. Entropy too low ({raw_mean_entropy:.2f} < {MIN_LEAF_ENTROPY}). Please scan a real rice leaf.",
+                "all_predictions": {},
+            }
+
+        # ── RUN TFLite INFERENCE ─────────────────────────────────────────
         interpreter.set_tensor(input_details[0]['index'], tensor)
         interpreter.invoke()
         predictions = interpreter.get_tensor(output_details[0]['index'])[0]
@@ -215,9 +245,27 @@ async def predict_image(file: UploadFile = File(...)):
         confidence = float(predictions[predicted_index])
         label = CLASS_NAMES[predicted_index]
 
+        print(f"🔬 Prediction: {label} @ {confidence*100:.1f}%")
+
+        # ── SERVER-SIDE CONFIDENCE GATE (95%) ────────────────────────────
+        # If the model isn't confident, it's likely a non-rice image that
+        # passed the entropy check but doesn't match any disease pattern.
+        if confidence < SERVER_CONFIDENCE_THRESHOLD:
+            return {
+                "label": "NoRiceLeafDetected",
+                "confidence": round(confidence, 6),
+                "rejected": True,
+                "reason": f"No Rice Leaf Detected. Confidence too low ({confidence*100:.1f}% < {SERVER_CONFIDENCE_THRESHOLD*100:.0f}%). Please scan a clear rice leaf.",
+                "all_predictions": {
+                    CLASS_NAMES[i]: round(float(predictions[i]), 6)
+                    for i in range(len(CLASS_NAMES))
+                },
+            }
+
         return {
             "label": label,
             "confidence": round(confidence, 6),
+            "rejected": False,
             "all_predictions": {
                 CLASS_NAMES[i]: round(float(predictions[i]), 6)
                 for i in range(len(CLASS_NAMES))

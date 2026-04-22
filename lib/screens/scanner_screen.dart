@@ -5,7 +5,6 @@ import 'package:camera/camera.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:permission_handler/permission_handler.dart';
 import '../services/api_service.dart';
 import '../services/causal_service.dart';
 import '../services/database_service.dart';
@@ -93,142 +92,156 @@ class _ScannerScreenState extends State<ScannerScreen> with TickerProviderStateM
     super.dispose();
   }
 
-  // ... rest of methods remain same except _captureAndAnalyze which triggers flash
+  // Gallery → Auto-Predict Flow
+  // Picks image, validates format, immediately triggers the entropy-fusion pipeline.
   Future<void> _pickFromGallery() async {
     if (_isProcessing) return;
 
-    final Permission storagePermission =
-        (await Permission.photos.status).isGranted ||
-                (await Permission.photos.request()).isGranted
-            ? Permission.photos
-            : Permission.storage;
-
-    final PermissionStatus status = await storagePermission.status;
-
-    if (status.isGranted) {
+    try {
       final ImagePicker picker = ImagePicker();
-      final XFile? picked =
-          await picker.pickImage(source: ImageSource.gallery, imageQuality: 90);
+      final XFile? picked = await picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 90,
+      );
 
-      if (picked == null) return;
+      if (picked == null) return; // User cancelled
+
+      // ── Format & Quality Validation ──────────────────────────────────────
+      final String ext = picked.path.split('.').last.toLowerCase();
+      const Set<String> supportedFormats = {'jpg', 'jpeg', 'png', 'webp', 'bmp'};
+
+      if (!supportedFormats.contains(ext)) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text(
+                'Unsupported image format or quality.\nغیر معاون تصویر فارمیٹ۔',
+                style: TextStyle(fontWeight: FontWeight.w900),
+              ),
+              backgroundColor: Colors.redAccent,
+              duration: const Duration(seconds: 3),
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              margin: const EdgeInsets.all(16),
+            ),
+          );
+        }
+        return;
+      }
 
       final File imageFile = File(picked.path);
+      final int fileSize = await imageFile.length();
+
+      // Reject tiny thumbnails (< 5KB) or corrupt files (0 bytes)
+      if (fileSize < 5120) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text(
+                'Unsupported image format or quality. Image is too small.\nتصویر بہت چھوٹی ہے۔',
+                style: TextStyle(fontWeight: FontWeight.w900),
+              ),
+              backgroundColor: Colors.redAccent,
+              duration: const Duration(seconds: 3),
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              margin: const EdgeInsets.all(16),
+            ),
+          );
+        }
+        return;
+      }
+
+      // ── Immediately enter loading state & predict ──────────────────────
       setState(() => _isProcessing = true);
 
-      try {
-        final rawResult = await _predictViaApi(imageFile);
-        final String label      = rawResult['label'] as String;
-        final double confidence = rawResult['confidence'] as double;
+      final rawResult = await _predictViaApi(imageFile);
+      final String label      = rawResult['label'] as String;
+      final double confidence = rawResult['confidence'] as double;
 
-        ScanGuard.instance.validate(label, confidence);
+      ScanGuard.instance.validate(label, confidence);
 
-        if (!mounted) return;
-
-        final bool isHealthy = label.toLowerCase().contains('healthy');
-        final rule = _causalService.getRuleForLabel(label);
-
-        if (isHealthy || rule == null || !rule.questionsNeeded) {
-          _navigateToResults(
-            picked.path,
-            RefinedResult(
-              label: label,
-              originalConfidence: confidence,
-              refinedConfidence: confidence,
-              secondaryInspectionRequired: false,
-              answers: [],
-            ),
-          );
-        } else {
-          if (!mounted) return;
-          showGeneralDialog(
-            context: context,
-            barrierDismissible: false,
-            pageBuilder: (ctx, anim1, anim2) {
-              return QuestionnaireOverlay(
-                label: label,
-                questions: _causalService.staticQuestions,
-                onCompleted: (answers) {
-                  final refined = _causalService.refineResult(
-                    label: label,
-                    originalConfidence: confidence,
-                    answers: answers,
-                  );
-                  Navigator.pop(ctx);
-                  _navigateToResults(picked.path, refined);
-                },
-                onSkip: () {
-                  Navigator.pop(ctx);
-                  _navigateToResults(
-                    picked.path,
-                    RefinedResult(
-                      label: label,
-                      originalConfidence: confidence,
-                      refinedConfidence: confidence,
-                      secondaryInspectionRequired: false,
-                      answers: [],
-                    ),
-                  );
-                },
-              );
-            },
-          );
-        }
-      } catch (e) {
-        debugPrint('GALLERY SCAN ERROR: $e');
-        if (mounted) {
-          setState(() => _isProcessing = false);
-          if (e is UnrecognizedScanException) {
-            _showRejectionSheet(e);
-          } else {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Scan Error: $e'),
-                backgroundColor: Colors.redAccent,
-                duration: const Duration(seconds: 3),
-              ),
-            );
-          }
-        }
-      }
-    } else if (status.isPermanentlyDenied) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text(
-            'Gallery permission denied. Enable it in Settings.',
-            style: TextStyle(fontWeight: FontWeight.w900),
+
+      final bool isHealthy = label.toLowerCase().contains('healthy');
+      final rule = _causalService.getRuleForLabel(label);
+
+      if (isHealthy || rule == null || !rule.questionsNeeded) {
+        _navigateToResults(
+          picked.path,
+          RefinedResult(
+            label: label,
+            originalConfidence: confidence,
+            refinedConfidence: confidence,
+            secondaryInspectionRequired: false,
+            answers: [],
           ),
-          backgroundColor: Colors.redAccent,
-          duration: const Duration(seconds: 4),
-          behavior: SnackBarBehavior.floating,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          margin: const EdgeInsets.all(16),
-          action: SnackBarAction(
-            label: 'Settings',
-            textColor: Colors.white,
-            onPressed: () => openAppSettings(),
-          ),
-        ),
-      );
-    } else {
-      final PermissionStatus newStatus = await storagePermission.request();
-      if (newStatus.isGranted) {
-        _pickFromGallery();
+        );
       } else {
         if (!mounted) return;
+        showGeneralDialog(
+          context: context,
+          barrierDismissible: false,
+          pageBuilder: (ctx, anim1, anim2) {
+            return QuestionnaireOverlay(
+              label: label,
+              questions: _causalService.staticQuestions,
+              onCompleted: (answers) {
+                final refined = _causalService.refineResult(
+                  label: label,
+                  originalConfidence: confidence,
+                  answers: answers,
+                );
+                Navigator.pop(ctx);
+                _navigateToResults(picked.path, refined);
+              },
+              onSkip: () {
+                Navigator.pop(ctx);
+                _navigateToResults(
+                  picked.path,
+                  RefinedResult(
+                    label: label,
+                    originalConfidence: confidence,
+                    refinedConfidence: confidence,
+                    secondaryInspectionRequired: false,
+                    answers: [],
+                  ),
+                );
+              },
+            );
+          },
+        );
+      }
+    } on UnrecognizedScanException catch (e) {
+      debugPrint('GALLERY SCAN REJECTED: $e');
+      if (mounted) {
+        setState(() => _isProcessing = false);
+        _showRejectionSheet(e);
+      }
+    } catch (e) {
+      debugPrint('GALLERY SCAN ERROR: $e');
+      if (mounted) {
+        setState(() => _isProcessing = false);
+
+        // Detect image decode / format errors from the backend
+        final String errStr = e.toString().toLowerCase();
+        final bool isFormatError = errStr.contains('decode') ||
+            errStr.contains('format') ||
+            errStr.contains('400') ||
+            errStr.contains('could not decode');
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text(
-              'گیلری تک رسائی کی اجازت درکار ہے۔',
-              style: TextStyle(fontWeight: FontWeight.w900),
-              textDirection: TextDirection.rtl,
+            content: Text(
+              isFormatError
+                  ? 'Unsupported image format or quality.\nغیر معاون تصویر فارمیٹ یا کوالٹی۔'
+                  : 'Scan Error: $e\nسکین میں خرابی آ گئی۔ دوبارہ کوشش کریں۔',
+              style: const TextStyle(fontWeight: FontWeight.w900),
             ),
-            backgroundColor: Colors.orange,
+            backgroundColor: Colors.redAccent,
             duration: const Duration(seconds: 3),
             behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             margin: const EdgeInsets.all(16),
           ),
         );
