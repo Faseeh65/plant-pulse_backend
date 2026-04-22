@@ -21,20 +21,25 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# --- 1. MODEL PATHS ---
+# --- 1. MODEL CONFIGURATION ---
+CATEGORIES = [
+    'BacterialLeafBlight', 
+    'BrownSpot', 
+    'Healthy', 
+    'LeafBlast', 
+    'LeafScald', 
+    'NarrowBrownSpot'
+]
+
 MODEL_PATH = os.path.join(
     os.path.dirname(__file__),
     'AI_Model', 'rice_fusion_v2.tflite'
 )
-LABELS_PATH = os.path.join(
-    os.path.dirname(__file__),
-    'AI_Model', 'class_indices.json'
-)
 
-# Initialize Engine with Logging
-print("Initializing RiceInferenceEngine...")
+# Initialize Engine with Hardcoded Categories
+print("Initializing RiceInferenceEngine with manual categories...")
 try:
-    engine = RiceInferenceEngine(MODEL_PATH, LABELS_PATH)
+    engine = RiceInferenceEngine(MODEL_PATH, categories=CATEGORIES)
     print("SUCCESS: RiceInferenceEngine status: READY")
 except Exception as e:
     print(f"FATAL ERROR: RiceInferenceEngine failed to initialize: {e}")

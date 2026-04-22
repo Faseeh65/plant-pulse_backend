@@ -6,20 +6,15 @@ import io
 import os
 
 class RiceInferenceEngine:
-    def __init__(self, model_path, labels_path):
+    def __init__(self, model_path, labels_path=None, categories=None):
         print("--- RICE INFERENCE ENGINE INITIALIZATION ---")
         
         # 1. Existence Checks
         if not os.path.exists(model_path):
             print(f"ERROR: Model file NOT FOUND at: {model_path}")
             raise FileNotFoundError(f"Model file missing: {model_path}")
-            
-        if not os.path.exists(labels_path):
-            print(f"ERROR: Labels file NOT FOUND at: {labels_path}")
-            raise FileNotFoundError(f"Labels file missing: {labels_path}")
 
         print(f"INFO: Found model file: {model_path}")
-        print(f"INFO: Found labels file: {labels_path}")
 
         try:
             # 2. Load TFLite Model
@@ -35,15 +30,22 @@ class RiceInferenceEngine:
             print(f"Input Shape: {self.input_details[0]['shape']}")
             print(f"Output Shape: {self.output_details[0]['shape']}")
 
-            # 4. Load Labels
-            print("INFO: Reading class indices...")
-            with open(labels_path, 'r') as f:
-                self.class_indices = json.load(f)
-            
-            self.idx_to_class = {
-                int(k): v 
-                for k, v in self.class_indices.items()
-            }
+            # 4. Load Labels (Prioritize passed categories list)
+            if categories:
+                print("INFO: Using hardcoded categories list.")
+                self.idx_to_class = {i: cat for i, cat in enumerate(categories)}
+            elif labels_path and os.path.exists(labels_path):
+                print(f"INFO: Reading class indices from {labels_path}...")
+                with open(labels_path, 'r') as f:
+                    self.class_indices = json.load(f)
+                self.idx_to_class = {
+                    int(k): v 
+                    for k, v in self.class_indices.items()
+                }
+            else:
+                print("WARNING: No labels provided. Using generic indices.")
+                num_classes = self.output_details[0]['shape'][-1]
+                self.idx_to_class = {i: f"Class_{i}" for i in range(num_classes)}
             
             print(f"SUCCESS: Loaded {len(self.idx_to_class)} classes.")
             print(f"Classes: {list(self.idx_to_class.values())}")
