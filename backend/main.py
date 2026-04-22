@@ -100,10 +100,31 @@ async def predict(file: UploadFile = File(...)):
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
+from fastapi import Header
+
 @app.get("/treatment/{disease_id}")
-async def get_treatment(disease_id: str):
+async def get_treatment(disease_id: str, acres: float = 1.0, lang: str = Header("en")):
+    """
+    Returns treatment data formatted for the Flutter DiseaseResult model.
+    Syncs with causal_rules.json keys.
+    """
     if disease_id in causal_rules:
-        return causal_rules[disease_id]
+        rule = causal_rules[disease_id]
+        
+        # Map rules to Flutter-expected keys
+        # We prioritize the requested language (en/ur)
+        instruction = rule.get(f'treatment_{lang}', rule.get('treatment_en', 'Treatment info unavailable.'))
+        display_name = rule.get(f'name_{lang}', rule.get('name_en', disease_id))
+        
+        return {
+            "disease": display_name,
+            "language": lang,
+            "instruction": instruction,
+            "dosage_per_acre": "Standard per acre dose recommended.",
+            "market_recommendations": [] # Model expects a list
+        }
+    
+    print(f"DEBUG: Treatment requested for unknown ID: {disease_id}")
     raise HTTPException(status_code=404, detail="Treatment data unavailable")
 
 @app.post("/history/save")
