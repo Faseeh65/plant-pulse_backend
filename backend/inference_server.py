@@ -61,11 +61,23 @@ class RiceInferenceEngine:
     def preprocess(self, image_bytes):
         try:
             img = Image.open(io.BytesIO(image_bytes))
-            img = img.convert('RGB')
+            
+            # Check model expected channels
+            expected_shape = self.input_details[0]['shape']
+            expected_channels = expected_shape[-1]
+            
+            if expected_channels == 4:
+                # If model expects 4 channels, use RGBA
+                img = img.convert('RGBA')
+            else:
+                img = img.convert('RGB')
+                
             img = img.resize((224, 224))
             img_array = np.array(img, dtype=np.float32)
             img_array = img_array / 255.0
             img_array = np.expand_dims(img_array, axis=0)
+            
+            print(f"DEBUG: Final preprocessed shape: {img_array.shape}")
             return img_array
         except Exception as e:
             print(f"ERROR: Preprocessing Error: {e}")
@@ -74,6 +86,7 @@ class RiceInferenceEngine:
     def predict(self, image_bytes):
         input_data = self.preprocess(image_bytes)
         
+        print(f"DEBUG: Setting tensor with shape {input_data.shape} to index {self.input_details[0]['index']}")
         self.interpreter.set_tensor(
             self.input_details[0]['index'],
             input_data
