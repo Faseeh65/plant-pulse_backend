@@ -67,10 +67,8 @@ LOAD_TIME = datetime.now().isoformat()
 async def health():
     return {
         "status": "online",
-        "engine_status": "READY" if engine else "FAILED",
-        "expert_system": "READY" if causal_rules else "FAILED",
-        "deployment": "Rice-Fusion-V2-FINALLY-FIXED-V3",
-        "hardcoded_categories": CATEGORIES
+        "SYNC_CHECK_ID": "RICE_NODE_999",
+        "deployment": "Rice-Fusion-V3"
     }
 
 @app.get("/model-info")
