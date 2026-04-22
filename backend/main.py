@@ -13,6 +13,13 @@ import json
 #  RICE-ENTROPY-FUSION V2 — PRODUCTION CONFIG (STRICTLY RICE ONLY)
 # ══════════════════════════════════════════════════════════════════════════════
 
+# Load Build Version
+try:
+    with open("VERSION", "r") as f:
+        VERSION = f.read().strip()
+except:
+    VERSION = "DEV_UNKNOWN"
+
 # DEPLOY_ID: 2026_04_22_TOTAL_WIPE_RICE_V2
 # This build COMPLETELY REMOVES legacy PlantDoc/Tomato data.
 
@@ -112,6 +119,7 @@ async def health():
     return {
         "status": "online",
         "deploy_id": "2026_04_22_TOTAL_WIPE_RICE_V2",
+        "version": VERSION,
         "model_version": "Rice-Entropy-Fusion (4-Channel)",
         "accuracy": "97.9%",
         "classes": CLASS_NAMES,
