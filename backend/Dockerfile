@@ -17,6 +17,4 @@ COPY . .
 # Check if main.py exists during build
 RUN ls -la
 
-
-# This syntax ensures the shell expands $PORT into a number
-CMD uvicorn main:app --host 0.0.0.0 --port $PORT
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
