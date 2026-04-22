@@ -6,6 +6,7 @@ import io
 
 class RiceInferenceEngine:
     def __init__(self, model_path, labels_path):
+        print("Loading model: rice_fusion_v2.tflite")
         self.interpreter = tf.lite.Interpreter(
             model_path=model_path)
         self.interpreter.allocate_tensors()
