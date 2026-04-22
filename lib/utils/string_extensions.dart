@@ -20,10 +20,17 @@ extension StringFormatting on String {
     }).join(' ');
   }
 
-  /// Returns "Rice" — this system is rice-only (Rice-Entropy-Fusion model).
+  /// Dynamically maps disease classes to their respective crops.
   String toDisplayCrop() {
-    if (isEmpty) return 'Rice';
-    return 'Rice';
+    Map<String, String> cropFromClass = {
+      'BacterialLeafBlight': 'Rice',
+      'BrownSpot': 'Rice',
+      'Healthy': 'Rice',
+      'LeafBlast': 'Rice',
+      'LeafScald': 'Rice',
+      'NarrowBrownSpot': 'Rice',
+    };
+    return cropFromClass[this] ?? 'Rice';
   }
 
   /// Extracts the disease name from a CamelCase label.
