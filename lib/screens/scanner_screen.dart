@@ -601,18 +601,20 @@ class _ScannerScreenState extends State<ScannerScreen> with TickerProviderStateM
           children: const [
             Icon(Icons.wifi_off_rounded, color: Colors.redAccent),
             SizedBox(width: 10),
-            Text('Connection Error'),
+            Expanded(child: Text('Connection Error')),
           ],
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: const [
-            Text('Please verify your network status to sync crop data.'),
+            Flexible(child: Text('Please verify your network status to sync crop data.')),
             SizedBox(height: 15),
-            Text(
-              'سرور سے رابطہ نہیں ہو سکا۔ براہ کرم یقینی بنائیں کہ آپ کا نیٹ ورک آن ہے۔',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900),
+            Flexible(
+              child: Text(
+                'سرور سے رابطہ نہیں ہو سکا۔ براہ کرم یقینی بنائیں کہ آپ کا نیٹ ورک آن ہے۔',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900),
+              ),
             ),
           ],
         ),

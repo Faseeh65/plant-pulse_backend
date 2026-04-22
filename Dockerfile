@@ -23,5 +23,5 @@ COPY backend/ .
 RUN ls -R /app/AI_Model/
 
 # Expose port and start
-# Note: we are now in /app where main.py was copied from backend/
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080"]
+# Note: we use sh -c to expand the $PORT environment variable provided by Railway
+CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${PORT:-8080}"]
