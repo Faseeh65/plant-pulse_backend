@@ -7,3 +7,4 @@ opencv-python-headless==4.9.0.80
 scikit-image==0.22.0
 python-dotenv==1.0.1
 Pillow==10.2.0
+# Forced Clean Build for Rice Model v2.0
