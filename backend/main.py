@@ -69,7 +69,8 @@ async def health():
         "status": "online",
         "engine_status": "READY" if engine else "FAILED",
         "expert_system": "READY" if causal_rules else "FAILED",
-        "deployment": "Rice-Fusion-V2-Production"
+        "deployment": "Rice-Fusion-V2-FINALLY-FIXED-V3",
+        "hardcoded_categories": CATEGORIES
     }
 
 @app.get("/model-info")
