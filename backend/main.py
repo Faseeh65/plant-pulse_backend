@@ -1,38 +1,34 @@
-from fastapi import FastAPI, HTTPException, UploadFile, File
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, field_validator
-
-class ReminderCreateRequest(BaseModel):
-    user_id: str
-    plant_name: str
-    disease_name: str
-    treatment_type: str
-    scheduled_time: str
-
-class ProfileUpdate(BaseModel):
-    user_id: str
-    full_name: str
-    phone: str
-    location: str
-from supabase import create_client, Client
 import os
-import uuid
-from dotenv import load_dotenv
-from typing import Optional
-from PIL import Image
-import io
-import json
-import numpy as np
 import cv2
+import numpy as np
+import tensorflow as tf
+from fastapi import FastAPI, File, UploadFile, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from skimage.filters.rank import entropy
 from skimage.morphology import disk
+from dotenv import load_dotenv
+import json
 
-# Load environment variables
+# ══════════════════════════════════════════════════════════════════════════════
+#  RICE-ENTROPY-FUSION V2 — PRODUCTION CONFIG (STRICTLY RICE ONLY)
+# ══════════════════════════════════════════════════════════════════════════════
+
+# DEPLOY_ID: 2026_04_22_TOTAL_WIPE_RICE_V2
+# This build COMPLETELY REMOVES legacy PlantDoc/Tomato data.
+
 load_dotenv()
 
-# ─── Rice-Entropy-Fusion Model Configuration ────────────────────────────────
-# BUILD_ID: RICE_FUSION_V2_4CH_$(Get-Date -Format "yyyyMMdd_HHmm")
-# 6-class, 4-channel (RGB + Entropy) model — 97.9% accuracy
+app = FastAPI(title="Plant Pulse AI - Rice Entropy-Fusion")
+
+# Enable CORS for Mobile App
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# ─── STRICT RICE CLASSES (ANYTHING ELSE REJECTED) ──────────────────────────
 CLASS_NAMES = [
     "BacterialLeafBlight",
     "BrownSpot",
@@ -42,10 +38,8 @@ CLASS_NAMES = [
     "NarrowBrownSpot",
 ]
 
-# ─── Load TFLite Model (via tensorflow.lite — Railway compatible) ────────────
-import tensorflow as tf
-
-MODEL_PATH = os.path.join(os.path.dirname(__file__), "AI_Model", "rice_model_97_final.tflite")
+# ─── LOAD 4-CHANNEL MODEL (STRICTLY RICE) ──────────────────────────────────
+MODEL_PATH = os.path.join(os.path.dirname(__file__), "AI_Model", "rice_fusion_v2.tflite")
 interpreter = None
 
 try:
@@ -53,90 +47,40 @@ try:
     interpreter.allocate_tensors()
     input_details = interpreter.get_input_details()
     output_details = interpreter.get_output_details()
-    print(f"✅ Rice-Entropy-Fusion TFLite model loaded: {MODEL_PATH}")
-    print(f"   Input shape:  {input_details[0]['shape']}")
-    print(f"   Output shape: {output_details[0]['shape']}")
+    
+    # CRITICAL CHECK: ENSURE 4-CHANNEL INPUT (RGB + ENTROPY)
+    shape = input_details[0]['shape']
+    if shape[-1] != 4:
+         print(f"❌ ERROR: Model input shape {shape} is NOT 4-channel. Build sequence failed.")
+         interpreter = None
+    else:
+        print(f"✅ Rice-Entropy-Fusion (4-CH) loaded successfully: {MODEL_PATH}")
 except Exception as e:
-    print(f"❌ Failed to load TFLite model: {e}")
+    print(f"❌ CRITICAL LOAD FAILURE: {e}")
     interpreter = None
 
-# ─── Load Causal Rules (Bilingual Expert System) ────────────────────────────
+# ─── LOAD EXPERT SYSTEM DATA ──────────────────────────────────────────────
 CAUSAL_RULES_PATH = os.path.join(os.path.dirname(__file__), "AI_Model", "causal_rules.json")
 causal_rules: dict = {}
-
 try:
-    with open(CAUSAL_RULES_PATH, "r", encoding="utf-8") as f:
+    with open(CAUSAL_RULES_PATH, "r", encoding='utf-8') as f:
         causal_rules = json.load(f)
-    print(f"✅ Causal rules loaded: {len(causal_rules)} entries")
+    print(f"✅ Rice causal rules loaded. ({len(causal_rules)} classes)")
 except Exception as e:
-    print(f"⚠️ Could not load causal_rules.json: {e}")
-
-# --- Initialize the FastAPI App ---
-app = FastAPI(title="Plant Pulse API — Rice-Entropy-Fusion v2.0")
-
-# --- Configure CORS Middleware ---
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-# ─── Supabase Configuration ──────────────────────────────────────────────────
-
-SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("SUPABASE_ANON_KEY")
-
-supabase: Optional[Client] = None
-
-if not SUPABASE_URL or not SUPABASE_KEY:
-    print("Warning: Supabase credentials missing. Running in OFFLINE mode.")
-else:
-    try:
-        import httpx
-        supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
-        print("Backend: Supabase Connected")
-    except TypeError as e:
-        if 'proxy' in str(e):
-            from supabase._sync.client import SyncClient
-            supabase = SyncClient(SUPABASE_URL, SUPABASE_KEY)
-            print("Backend: Supabase Connected (compat mode)")
-        else:
-            print(f"Warning: Supabase Initialization Failed ({e}). Running in OFFLINE mode.")
-            supabase = None
-    except Exception as e:
-        print(f"Warning: Supabase Initialization Failed ({e}). Running in OFFLINE mode.")
-        supabase = None
-
+    print(f"❌ Failed to load causal rules: {e}")
 
 # ══════════════════════════════════════════════════════════════════════════════
-#  ENTROPY PIPELINE — 4-Channel Image Processing + Leaf Validation
+#  STRICT 4-CHANNEL ENTROPY PIPELINE
 # ══════════════════════════════════════════════════════════════════════════════
 
-# Minimum mean entropy for a valid leaf image.
-# Diseased rice leaves typically have mean entropy > 4.0.
-# Flat objects (laptops, bottles, walls) have mean entropy < 3.0.
-# Threshold set at 3.5 to reject non-leaf inputs.
-MIN_LEAF_ENTROPY = 3.5
-
-# Server-side confidence gate. Predictions below this are rejected.
+MIN_LEAF_ENTROPY = 3.8 # Slightly stricter to reject high-gloss objects like laptops
 SERVER_CONFIDENCE_THRESHOLD = 0.95
 
-
-def build_entropy_channel(image_rgb: np.ndarray) -> tuple[np.ndarray, float]:
-    """
-    Generate a local entropy mask from the RGB image.
-    1. Convert to grayscale (uint8)
-    2. Compute local entropy using skimage disk(5)
-    3. Normalize to 0-255 range (uint8)
-    Returns: (entropy_channel_uint8, raw_mean_entropy)
-    """
+def build_entropy_channel(image_rgb: np.ndarray):
     gray = cv2.cvtColor(image_rgb, cv2.COLOR_RGB2GRAY)
     ent = entropy(gray, disk(5))
     raw_mean_entropy = float(ent.mean())
-
-    # Normalize entropy to 0–255 range
+    
     ent_min, ent_max = ent.min(), ent.max()
     if ent_max - ent_min > 0:
         ent_normalized = ((ent - ent_min) / (ent_max - ent_min) * 255).astype(np.uint8)
@@ -144,621 +88,102 @@ def build_entropy_channel(image_rgb: np.ndarray) -> tuple[np.ndarray, float]:
         ent_normalized = np.zeros_like(gray, dtype=np.uint8)
     return ent_normalized, raw_mean_entropy
 
-
-def preprocess_image(image_bytes: bytes) -> tuple[np.ndarray, float]:
-    """
-    Full preprocessing pipeline:
-    1. Decode image → RGB (224×224)
-    2. Generate entropy channel + measure raw mean entropy
-    3. Stack RGB + Entropy → (1, 224, 224, 4) float32 normalized /255.0
-    Returns: (tensor, raw_mean_entropy)
-    """
-    # Decode image
+def preprocess_image(image_bytes: bytes):
     nparr = np.frombuffer(image_bytes, np.uint8)
     img_bgr = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-    if img_bgr is None:
-        raise ValueError("Could not decode image")
-
-    # Resize to model input size
+    if img_bgr is None: raise ValueError("Invalid Image Buffer")
+    
     img_bgr = cv2.resize(img_bgr, (224, 224), interpolation=cv2.INTER_AREA)
     img_rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
-
-    # Generate entropy channel + raw mean for leaf validation
+    
     entropy_channel, raw_mean_entropy = build_entropy_channel(img_rgb)
-
-    # Stack RGB + Entropy → (224, 224, 4)
     four_channel = np.dstack([img_rgb, entropy_channel])
-
-    # Normalize to [0, 1] and add batch dimension
+    
     tensor = four_channel.astype(np.float32) / 255.0
-    tensor = np.expand_dims(tensor, axis=0)  # (1, 224, 224, 4)
-
+    tensor = np.expand_dims(tensor, axis=0) # (1, 224, 224, 4)
     return tensor, raw_mean_entropy
 
-
 # ══════════════════════════════════════════════════════════════════════════════
-#  API ENDPOINTS
+#  ENDPOINTS
 # ══════════════════════════════════════════════════════════════════════════════
 
-# ─── System / Health ────────────────────────────────────────────────────────
-
-@app.get("/")
 @app.get("/health")
-async def health_check():
+async def health():
     return {
         "status": "online",
-        "model": "Rice-Entropy-Fusion v2.0 (97.9%)",
-        "build_id": "fe1c590_forced_redeploy",
-        "model_loaded": interpreter is not None,
-        "db_connected": supabase is not None,
-        "mode": "production" if os.getenv("RAILWAY_ENVIRONMENT") else "development",
+        "deploy_id": "2026_04_22_TOTAL_WIPE_RICE_V2",
+        "model_version": "Rice-Entropy-Fusion (4-Channel)",
+        "accuracy": "97.9%",
         "classes": CLASS_NAMES,
+        "is_strict_rice": True
     }
-
-
-# ─── Inference Endpoint (4-Channel Entropy Pipeline) ────────────────────────
 
 @app.post("/predict")
 async def predict_image(file: UploadFile = File(...)):
-    """
-    Rice disease inference endpoint.
-    1. Accepts a raw image
-    2. Builds the 4-channel (RGB + Entropy) tensor
-    3. Validates entropy signature (rejects non-leaf / flat objects)
-    4. Runs TFLite inference
-    5. Rejects if confidence < 95%
-    """
     if interpreter is None:
-        raise HTTPException(
-            status_code=503,
-            detail="Rice-Entropy-Fusion model is not loaded. Check server logs."
-        )
+        raise HTTPException(status_code=503, detail="Model Unavailable")
 
     try:
-        # Read uploaded image
         image_bytes = await file.read()
-        if not image_bytes:
-            raise HTTPException(status_code=400, detail="Empty file uploaded.")
-
-        # Build 4-channel tensor + get raw entropy for leaf validation
         tensor, raw_mean_entropy = preprocess_image(image_bytes)
 
-        print(f"📊 Entropy check: mean={raw_mean_entropy:.2f} (min={MIN_LEAF_ENTROPY})")
-
-        # ── ENTROPY-BASED LEAF VALIDATION ────────────────────────────────
-        # Flat objects (laptops, bottles, walls) produce very low entropy.
-        # Real rice leaves have complex texture → high entropy.
+        # 1. Texture Check (Rejects Laptops/Bottles)
         if raw_mean_entropy < MIN_LEAF_ENTROPY:
             return {
                 "label": "NoRiceLeafDetected",
                 "confidence": 0.0,
                 "rejected": True,
-                "reason": f"No Rice Leaf Detected. Entropy too low ({raw_mean_entropy:.2f} < {MIN_LEAF_ENTROPY}). Please scan a real rice leaf.",
-                "all_predictions": {},
+                "reason": "Not a leaf (Flat Entropy)"
             }
 
-        # ── RUN TFLite INFERENCE ─────────────────────────────────────────
+        # 2. Model Inference
         interpreter.set_tensor(input_details[0]['index'], tensor)
         interpreter.invoke()
         predictions = interpreter.get_tensor(output_details[0]['index'])[0]
 
-        # Get top prediction
+        # 3. Strict Probability Check
         predicted_index = int(np.argmax(predictions))
         confidence = float(predictions[predicted_index])
+        
+        # 4. Out-of-Vocabulary Safety (CRASH PREVENTION)
+        if predicted_index >= len(CLASS_NAMES):
+            return {
+                "label": "NoRiceLeafDetected",
+                "confidence": confidence,
+                "rejected": True,
+                "reason": "System mismatch (OOD prediction)"
+            }
+
         label = CLASS_NAMES[predicted_index]
 
-        print(f"🔬 Prediction: {label} @ {confidence*100:.1f}%")
-
-        # ── SERVER-SIDE CONFIDENCE GATE (95%) ────────────────────────────
-        # If the model isn't confident, it's likely a non-rice image that
-        # passed the entropy check but doesn't match any disease pattern.
+        # 5. Confidence Gate (95% for Rice)
         if confidence < SERVER_CONFIDENCE_THRESHOLD:
             return {
                 "label": "NoRiceLeafDetected",
-                "confidence": round(confidence, 6),
+                "confidence": round(confidence, 4),
                 "rejected": True,
-                "reason": f"No Rice Leaf Detected. Confidence too low ({confidence*100:.1f}% < {SERVER_CONFIDENCE_THRESHOLD*100:.0f}%). Please scan a clear rice leaf.",
-                "all_predictions": {
-                    CLASS_NAMES[i]: round(float(predictions[i]), 6)
-                    for i in range(len(CLASS_NAMES))
-                },
+                "reason": "Uncertain Prediction"
             }
 
         return {
             "label": label,
-            "confidence": round(confidence, 6),
-            "rejected": False,
-            "all_predictions": {
-                CLASS_NAMES[i]: round(float(predictions[i]), 6)
-                for i in range(len(CLASS_NAMES))
-            },
+            "confidence": round(confidence, 4),
+            "rejected": False
         }
 
-    except HTTPException:
-        raise
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Inference failed: {str(e)}")
-
-
-# ─── Treatment / Expert System Endpoint ──────────────────────────────────────
+        raise HTTPException(status_code=400, detail=f"Inference Error: {str(e)}")
 
 @app.get("/treatment/{disease_id}")
-async def get_treatment(disease_id: str, acres: float = 1.0):
-    """
-    Returns bilingual (EN/UR) causal + treatment data for a given disease label.
-    Reads from causal_rules.json which contains the 6-class expert system data.
-    """
-    rule = causal_rules.get(disease_id)
-
-    if not rule:
-        return {
-            "disease": disease_id,
-            "language": "en",
-            "instruction": "Treatment data not found for this label. Please consult a local agricultural expert.\nاس بیماری کے لیے علاج کی معلومات دستیاب نہیں۔ مقامی زرعی ماہر سے مشورہ کریں۔",
-            "dosage_per_acre": "N/A",
-            "market_recommendations": [],
-        }
-
-    # Build unified treatment instruction from causal_rules
-    treatment_en = rule.get("treatment_en", "No treatment data available.")
-    treatment_ur = rule.get("treatment_ur", "علاج کی معلومات دستیاب نہیں۔")
-    symptoms = rule.get("symptoms", "")
-    cause = rule.get("cause", "")
-    prevention = rule.get("prevention", "")
-    severity = rule.get("severity_level", "Unknown")
-
-    instruction = (
-        f"Severity: {severity}\n"
-        f"Symptoms: {symptoms}\n"
-        f"Cause: {cause}\n\n"
-        f"Treatment:\n{treatment_en}\n\n"
-        f"Prevention:\n{prevention}\n\n"
-        f"--- اردو ---\n"
-        f"علاج:\n{treatment_ur}"
-    )
-
-    return {
-        "disease": rule.get("name_en", disease_id),
-        "language": "en",
-        "instruction": instruction,
-        "dosage_per_acre": "Standard",
-        "market_recommendations": [],
-    }
-
-
-# ─── Statistics API ─────────────────────────────────────────────────────────
-
-@app.get("/stats")
-async def crop_summary_short(user_id: str):
-    if supabase is None:
-        raise HTTPException(status_code=503, detail="Database unavailable — running in offline mode.")
-
-    if not user_id or not user_id.strip():
-        raise HTTPException(status_code=400, detail="user_id is required.")
-
-    try:
-        response = supabase.table("scan_history") \
-            .select("disease_result, confidence_score") \
-            .eq("user_id", user_id.strip()) \
-            .execute()
-
-        rows = response.data or []
-        total_scans = len(rows)
-
-        if total_scans == 0:
-            return {
-                "total_scans":    0,
-                "healthy_count":  0,
-                "diseased_count": 0,
-                "healthy_pct":    0.0,
-                "diseased_pct":   0.0,
-                "top_diseases":   [],
-            }
-
-        healthy_count = sum(1 for r in rows if "healthy" in r.get("disease_result", "").lower())
-        diseased_count = total_scans - healthy_count
-
-        def pct(n): return round((n / total_scans) * 100, 1)
-
-        freq: dict[str, int] = {}
-        for r in rows:
-            label = r.get("disease_result", "Unknown")
-            if "healthy" not in label.lower():
-                freq[label] = freq.get(label, 0) + 1
-
-        top_diseases = sorted(
-            [{"disease": label, "count": count, "percentage": pct(count)} for label, count in freq.items()],
-            key=lambda x: x["count"],
-            reverse=True,
-        )[:10]
-
-        return {
-            "total_scans":    total_scans,
-            "healthy_count":  healthy_count,
-            "diseased_count": diseased_count,
-            "healthy_pct":    pct(healthy_count),
-            "diseased_pct":   pct(diseased_count),
-            "top_diseases":   top_diseases,
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Stats query failed: {str(e)}")
-
-
-# ─── Spray Reminders API ─────────────────────────────────────────────────────
-
-@app.get("/reminders")
-async def get_reminders_short(user_id: str):
-    if supabase is None:
-        return {"reminders": [], "count": 0}
-
-    if not user_id or not user_id.strip():
-        raise HTTPException(status_code=400, detail="user_id is required.")
-
-    try:
-        from datetime import datetime, timezone
-        now_iso = datetime.now(timezone.utc).isoformat()
-
-        response = supabase.table("spray_reminders") \
-            .select("id, plant_name, disease_name, treatment_type, scheduled_time, is_completed") \
-            .eq("user_id", user_id.strip()) \
-            .eq("is_completed", False) \
-            .order("scheduled_time", desc=False) \
-            .execute()
-
-        return {
-            "reminders": response.data or [],
-            "count":     len(response.data or []),
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to fetch reminders: {str(e)}")
-
-
-@app.post("/reminders")
-async def create_reminder_short(payload: ReminderCreateRequest):
-    if supabase is None:
-        return {"success": True, "record_id": str(uuid.uuid4()), "message": "Offline mode."}
-
-    if not payload.user_id.strip():
-        raise HTTPException(status_code=400, detail="user_id is required.")
-
-    record_id = str(uuid.uuid4())
-
-    try:
-        supabase.table("spray_reminders").insert({
-            "id":             record_id,
-            "user_id":        payload.user_id.strip(),
-            "plant_name":     payload.plant_name.strip(),
-            "disease_name":   payload.disease_name.strip(),
-            "treatment_type": payload.treatment_type.strip(),
-            "scheduled_time": payload.scheduled_time.strip(),
-            "is_completed":   False,
-        }).execute()
-
-        return {
-            "success":   True,
-            "record_id": record_id,
-            "message":   "Reminder scheduled.",
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to create reminder: {str(e)}")
-
-
-@app.patch("/reminders/{reminder_id}/complete")
-async def complete_reminder_short(reminder_id: str, user_id: str):
-    if supabase is None:
-        return {"success": True}
-
-    try:
-        response = supabase.table("spray_reminders") \
-            .update({"is_completed": True}) \
-            .eq("id", reminder_id) \
-            .eq("user_id", user_id) \
-            .execute()
-
-        if not response.data:
-            raise HTTPException(status_code=404, detail="Reminder not found.")
-
-        return {"success": True, "message": "Reminder marked as complete."}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to complete reminder: {str(e)}")
-
-
-# ─── Core Models ─────────────────────────────────────────────────────────────
-
-class ScanResultCreate(BaseModel):
-    user_id:         str
-    crop_name:       str
-    disease_result:  str
-    confidence_score: float
-
-    @field_validator("confidence_score")
-    @classmethod
-    def clamp_confidence(cls, v: float) -> float:
-        if not (0.0 <= v <= 1.0):
-            raise ValueError("confidence_score must be between 0.0 and 1.0")
-        return round(v, 6)
-
-class ReminderCreateRequest(BaseModel):
-    user_id:        str
-    plant_name:     str
-    disease_name:   str
-    treatment_type: str
-    scheduled_time: str
-
-
-# ─── Scan History API ────────────────────────────────────────────────────────
-
-@app.post("/api/v1/scans/save")
-async def save_scan_v1(payload: ScanResultCreate):
-    if supabase is None:
-        raise HTTPException(status_code=503, detail="Database unavailable — running in offline mode.")
-
-    if not payload.user_id or not payload.user_id.strip():
-        raise HTTPException(status_code=400, detail="user_id is required.")
-
-    record_id = str(uuid.uuid4())
-
-    try:
-        response = supabase.table("scan_history").insert({
-            "id":               record_id,
-            "user_id":          payload.user_id.strip(),
-            "plant_name":       payload.crop_name.strip(),
-            "disease_result":   payload.disease_result.strip(),
-            "confidence_score": payload.confidence_score,
-        }).execute()
-
-        if not response.data:
-            raise HTTPException(status_code=500, detail="Insert returned no data.")
-
-        return {
-            "success":   True,
-            "record_id": record_id,
-            "message":   "Scan saved to history.",
-        }
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to save scan: {str(e)}")
-
-
-@app.get("/api/v1/stats/crop-summary")
-async def crop_summary_v1(user_id: str):
-    if supabase is None:
-        raise HTTPException(status_code=503, detail="Database unavailable — running in offline mode.")
-
-    if not user_id or not user_id.strip():
-        raise HTTPException(status_code=400, detail="user_id is required.")
-
-    try:
-        response = supabase.table("scan_history") \
-            .select("disease_result, confidence_score") \
-            .eq("user_id", user_id.strip()) \
-            .execute()
-
-        rows = response.data or []
-        total_scans = len(rows)
-
-        if total_scans == 0:
-            return {
-                "total_scans":    0,
-                "healthy_count":  0,
-                "diseased_count": 0,
-                "healthy_pct":    0.0,
-                "diseased_pct":   0.0,
-                "top_diseases":   [],
-            }
-
-        healthy_count = sum(1 for r in rows if "healthy" in r.get("disease_result", "").lower())
-        diseased_count = total_scans - healthy_count
-
-        def pct(n): return round((n / total_scans) * 100, 1)
-
-        freq: dict[str, int] = {}
-        for r in rows:
-            label = r.get("disease_result", "Unknown")
-            if "healthy" not in label.lower():
-                freq[label] = freq.get(label, 0) + 1
-
-        top_diseases = sorted(
-            [{"disease": label, "count": count, "percentage": pct(count)} for label, count in freq.items()],
-            key=lambda x: x["count"],
-            reverse=True,
-        )[:10]
-
-        return {
-            "total_scans":    total_scans,
-            "healthy_count":  healthy_count,
-            "diseased_count": diseased_count,
-            "healthy_pct":    pct(healthy_count),
-            "diseased_pct":   pct(diseased_count),
-            "top_diseases":   top_diseases,
-        }
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Stats query failed: {str(e)}")
-
-
-# ─── Spray Reminders API (v1) ───────────────────────────────────────────────
-
-@app.post("/api/v1/reminders/create")
-async def create_reminder_v1(payload: ReminderCreateRequest):
-    if supabase is None:
-        raise HTTPException(status_code=503, detail="Database unavailable.")
-
-    if not payload.user_id.strip():
-        raise HTTPException(status_code=400, detail="user_id is required.")
-    if not payload.scheduled_time.strip():
-        raise HTTPException(status_code=400, detail="scheduled_time is required.")
-
-    record_id = str(uuid.uuid4())
-
-    try:
-        response = supabase.table("spray_reminders").insert({
-            "id":             record_id,
-            "user_id":        payload.user_id.strip(),
-            "plant_name":     payload.plant_name.strip(),
-            "disease_name":   payload.disease_name.strip(),
-            "treatment_type": payload.treatment_type.strip(),
-            "scheduled_time": payload.scheduled_time.strip(),
-            "is_completed":   False,
-        }).execute()
-
-        if not response.data:
-            raise HTTPException(status_code=500, detail="Insert returned no data.")
-
-        return {
-            "success":   True,
-            "record_id": record_id,
-            "message":   "Reminder scheduled.",
-        }
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to create reminder: {str(e)}")
-
-
-@app.get("/api/v1/reminders/active")
-async def get_active_reminders_v1(user_id: str):
-    if supabase is None:
-        raise HTTPException(status_code=503, detail="Database unavailable.")
-
-    if not user_id.strip():
-        raise HTTPException(status_code=400, detail="user_id is required.")
-
-    try:
-        from datetime import datetime, timezone
-        now_iso = datetime.now(timezone.utc).isoformat()
-
-        response = supabase.table("spray_reminders") \
-            .select("id, plant_name, disease_name, treatment_type, scheduled_time, is_completed") \
-            .eq("user_id", user_id.strip()) \
-            .eq("is_completed", False) \
-            .gte("scheduled_time", now_iso) \
-            .order("scheduled_time", desc=False) \
-            .execute()
-
-        return {
-            "reminders": response.data or [],
-            "count":     len(response.data or []),
-        }
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to fetch reminders: {str(e)}")
-
-
-@app.patch("/api/v1/reminders/{reminder_id}/complete")
-async def complete_reminder_v1(reminder_id: str, user_id: str):
-    if supabase is None:
-        raise HTTPException(status_code=503, detail="Database unavailable.")
-
-    try:
-        response = supabase.table("spray_reminders") \
-            .update({"is_completed": True}) \
-            .eq("id", reminder_id) \
-            .eq("user_id", user_id) \
-            .execute()
-
-        if not response.data:
-            raise HTTPException(status_code=404, detail="Reminder not found or not owned by user.")
-
-        return {"success": True, "message": "Reminder marked as complete."}
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to complete reminder: {str(e)}")
-
-
-# ─── Profile Management API ──────────────────────────────────────────────────
-
-@app.get("/profile/{user_id}")
-async def get_user_profile(user_id: str):
-    if supabase is None:
-        return {"id": user_id, "full_name": "", "phone": "", "location": ""}
-
-    try:
-        response = supabase.table("profiles").select("*").eq("id", user_id).execute()
-        if not response.data:
-            return {"id": user_id, "full_name": "", "phone": "", "location": ""}
-        return response.data[0]
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to fetch profile: {str(e)}")
-
-
-@app.post("/profile/sync")
-async def sync_user_profile(payload: ProfileUpdate):
-    if supabase is None:
-        raise HTTPException(status_code=503, detail="Database unavailable.")
-
-    try:
-        data = {
-            "id": payload.user_id,
-            "full_name": payload.full_name,
-            "phone": payload.phone,
-            "location": payload.location,
-            "updated_at": "now()"
-        }
-
-        supabase.table("profiles").upsert(data).execute()
-        return {"success": True, "message": "Profile synced successfully."}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to sync profile: {str(e)}")
-
-class ScanHistoryPayload(BaseModel):
-    user_id: str
-    crop_name: str
-    disease_result: str
-    confidence_score: float
-
-# ─── Scan History API ────────────────────────────────────────────────────────
-
-@app.post("/history/save")
-async def save_scan_history(payload: ScanHistoryPayload):
-    if supabase is None:
-        raise HTTPException(status_code=503, detail="Database unavailable.")
-
-    if not payload.user_id or not payload.user_id.strip():
-        raise HTTPException(status_code=400, detail="user_id is required.")
-
-    record_id = str(uuid.uuid4())
-
-    try:
-        supabase.table("scan_history").insert({
-            "id":               record_id,
-            "user_id":          payload.user_id.strip(),
-            "plant_name":       payload.crop_name.strip(),
-            "disease_result":   payload.disease_result.strip(),
-            "confidence_score": payload.confidence_score,
-        }).execute()
-
-        return {
-            "success":   True,
-            "record_id": record_id,
-            "message":   "Scan saved to history.",
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to save scan: {str(e)}")
-
-
-@app.get("/history/{user_id}")
-async def get_history(user_id: str):
-    if supabase is None:
-        return {"scans": []}
-    try:
-        response = supabase.table("scan_history") \
-            .select("*") \
-            .eq("user_id", user_id) \
-            .order("created_at", desc=True) \
-            .execute()
-        return {"scans": response.data or []}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+async def get_treatment(disease_id: str):
+    # Strictly check if disease exists in Rice rules
+    if disease_id in causal_rules:
+        return causal_rules[disease_id]
+    
+    raise HTTPException(status_code=404, detail="Disease not in Rice database")
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    # Use PORT env variable for Railway compatibility
+    port = int(os.getenv("PORT", 8000))
+    uvicorn.run(app, host="0.0.0.0", port=port)
