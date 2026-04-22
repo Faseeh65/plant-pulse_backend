@@ -17,4 +17,5 @@ COPY . .
 # Check if main.py exists during build
 RUN ls -la
 
-CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${PORT:-8080}"]
+
+CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port $PORT"]
