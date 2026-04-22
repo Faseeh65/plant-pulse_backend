@@ -18,4 +18,5 @@ COPY . .
 RUN ls -la
 
 
-CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port $PORT"]
+# We use the shell form without brackets to ensure Railway's $PORT is injected correctly
+CMD uvicorn main:app --host 0.0.0.0 --port $PORT
