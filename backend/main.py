@@ -75,6 +75,19 @@ async def get_treatment(disease_id: str):
         return causal_rules[disease_id]
     raise HTTPException(status_code=404, detail="Treatment data unavailable")
 
+@app.post("/history/save")
+async def save_history(scan_data: dict):
+    try:
+        return {
+            "status": "saved",
+            "data": scan_data
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=400, 
+            detail=str(e)
+        )
+
 if __name__ == "__main__":
     import uvicorn
     port = int(os.getenv("PORT", 8000))

@@ -284,7 +284,7 @@ class _ScannerScreenState extends State<ScannerScreen> with TickerProviderStateM
 
     if (streamedResponse.statusCode == 200) {
       final decoded = jsonDecode(responseBody) as Map<String, dynamic>;
-      final label = decoded['label'] as String? ?? 'Unknown';
+      final label = decoded['class_name'] as String? ?? decoded['disease'] as String? ?? 'Unknown';
       final confidence = (decoded['confidence'] as num?)?.toDouble() ?? 0.0;
       return {'label': label, 'confidence': confidence};
     } else {
