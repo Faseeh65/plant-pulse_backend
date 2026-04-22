@@ -1,6 +1,7 @@
 [build]
 builder = "dockerfile"
-dockerfilePath = "Dockerfile"
+dockerfilePath = "backend/Dockerfile"
+rootDirectory = "backend"
 
 [build.env]
 # FORCED ROOT SYNC
