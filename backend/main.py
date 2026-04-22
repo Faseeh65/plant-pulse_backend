@@ -31,8 +31,14 @@ LABELS_PATH = os.path.join(
     'AI_Model', 'class_indices.json'
 )
 
-# Initialize Engine
-engine = RiceInferenceEngine(MODEL_PATH, LABELS_PATH)
+# Initialize Engine with Logging
+print("Initializing RiceInferenceEngine...")
+try:
+    engine = RiceInferenceEngine(MODEL_PATH, LABELS_PATH)
+    print("✅ RiceInferenceEngine status: READY")
+except Exception as e:
+    print(f"❌ RiceInferenceEngine status: FAILED | Error: {e}")
+    engine = None
 
 # Load Expert System rules
 CAUSAL_RULES_PATH = os.path.join(os.path.dirname(__file__), "AI_Model", "causal_rules.json")
@@ -41,7 +47,9 @@ try:
     if os.path.exists(CAUSAL_RULES_PATH):
         with open(CAUSAL_RULES_PATH, "r", encoding='utf-8') as f:
             causal_rules = json.load(f)
-except: pass
+        print("✅ Expert System rules: READY")
+except Exception as e:
+    print(f"❌ Expert System rules: FAILED | Error: {e}")
 
 # --- 2. ENDPOINTS ---
 
@@ -49,8 +57,10 @@ except: pass
 async def health():
     return {
         "status": "online",
-        "engine": "RiceInferenceEngine (TFLite)",
-        "classes": list(engine.idx_to_class.values())
+        "engine_status": "READY" if engine else "FAILED",
+        "expert_system": "READY" if causal_rules else "FAILED",
+        "classes": list(engine.idx_to_class.values()) if engine else [],
+        "deployment": "Rice-Fusion-V2-Production"
     }
 
 @app.post("/predict")
