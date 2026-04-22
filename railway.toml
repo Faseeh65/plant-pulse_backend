@@ -1,0 +1,15 @@
+[build]
+builder = "dockerfile"
+dockerfilePath = "Dockerfile"
+
+[build.env]
+# FORCED ROOT SYNC
+CACHEBUST = "ROOT_REVISION_$(Get-Date -UFormat %Y%m%d_%H%M%S)"
+RAILWAY_DOCKER_BUILD_ARGS = "CACHEBUST=ROOT_REVISION_$(Get-Date -UFormat %Y%m%d_%H%M%S)"
+
+[deploy]
+# CMD is in Dockerfile, but we can override/reinforce here
+startCommand = "uvicorn main:app --host 0.0.0.0 --port $PORT"
+healthCheckPath = "/health"
+healthCheckTimeout = 120
+restartPolicyType = "ON_FAILURE"
