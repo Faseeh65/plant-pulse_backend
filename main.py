@@ -12,7 +12,7 @@ from inference_server import RiceInferenceEngine
 
 load_dotenv()
 
-app = FastAPI(title="Plant Pulse AI - Rice TFLite")
+app = FastAPI(title="CONNECTION_TEST_NODE_MASTER_V1")
 
 app.add_middleware(
     CORSMiddleware,
