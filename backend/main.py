@@ -53,6 +53,9 @@ try:
 except Exception as e:
     print(f"❌ Expert System rules: FAILED | Error: {e}")
 
+from datetime import datetime
+LOAD_TIME = datetime.now().isoformat()
+
 # --- 2. ENDPOINTS ---
 
 @app.get("/health")
@@ -61,8 +64,17 @@ async def health():
         "status": "online",
         "engine_status": "READY" if engine else "FAILED",
         "expert_system": "READY" if causal_rules else "FAILED",
-        "classes": list(engine.idx_to_class.values()) if engine else [],
         "deployment": "Rice-Fusion-V2-Production"
+    }
+
+@app.get("/model-info")
+async def model_info():
+    return {
+        "model_filename": os.path.basename(MODEL_PATH),
+        "num_classes": len(engine.idx_to_class) if engine else 0,
+        "classes": list(engine.idx_to_class.values()) if engine else [],
+        "load_timestamp": LOAD_TIME,
+        "input_shape": engine.input_details[0]['shape'].tolist() if engine else None
     }
 
 @app.post("/predict")
