@@ -1,24 +1,20 @@
 FROM python:3.10-slim
 
-# 1. Set the working directory inside the container
 WORKDIR /app
 
-# 2. Install system dependencies for OpenCV and image processing
+# Updated system dependencies for newer Debian versions
 RUN apt-get update && apt-get install -y \
-    libgl1-mesa-glx \
+    libgl1 \
     libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
-# 3. Copy requirements and install (Railway is already looking at /backend)
+# Copy local files (everything in /backend) into /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# 4. Copy all files from your local /backend folder into the container /app
 COPY . .
 
-# 5. Diagnostic: List files during build to verify main.py and AI_Model are there
-RUN ls -R .
+# Check if main.py exists during build
+RUN ls -la
 
-# 6. Start the server
-# We use 'main:app' because main.py is in the same folder as this Dockerfile
 CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${PORT:-8080}"]
