@@ -31,6 +31,7 @@ from skimage.morphology import disk
 load_dotenv()
 
 # ─── Rice-Entropy-Fusion Model Configuration ────────────────────────────────
+# BUILD_ID: RICE_FUSION_V2_4CH_$(Get-Date -Format "yyyyMMdd_HHmm")
 # 6-class, 4-channel (RGB + Entropy) model — 97.9% accuracy
 CLASS_NAMES = [
     "BacterialLeafBlight",
@@ -187,6 +188,7 @@ async def health_check():
     return {
         "status": "online",
         "model": "Rice-Entropy-Fusion v2.0 (97.9%)",
+        "build_id": "fe1c590_forced_redeploy",
         "model_loaded": interpreter is not None,
         "db_connected": supabase is not None,
         "mode": "production" if os.getenv("RAILWAY_ENVIRONMENT") else "development",
