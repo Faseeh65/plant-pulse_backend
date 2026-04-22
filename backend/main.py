@@ -23,20 +23,55 @@ from PIL import Image
 import io
 import json
 import numpy as np
+import cv2
+from skimage.filters.rank import entropy
+from skimage.morphology import disk
 
 # Load environment variables
 load_dotenv()
 
-# --- Initialize the FastAPI App ---
-app = FastAPI(title="Plant Pulse API")
+# ─── Rice-Entropy-Fusion Model Configuration ────────────────────────────────
+# 6-class, 4-channel (RGB + Entropy) model — 97.9% accuracy
+CLASS_NAMES = [
+    "BacterialLeafBlight",
+    "BrownSpot",
+    "Healthy",
+    "LeafBlast",
+    "LeafScald",
+    "NarrowBrownSpot",
+]
 
-# ── Model State ──────────────────────────────────────────────────────────────
-# The previous 25-class model has been retired. A new model will be integrated
-# in the next development cycle. The inference endpoint is intentionally
-# disabled until a replacement model is approved and plugged in.
-model = None
-class_indices: dict = {}
-print("INFO: Inference model not loaded — awaiting new model integration.") 
+# ─── Load TFLite Model ──────────────────────────────────────────────────────
+import tflite_runtime.interpreter as tflite
+
+MODEL_PATH = os.path.join(os.path.dirname(__file__), "AI_Model", "rice_model_97_final.tflite")
+interpreter = None
+
+try:
+    interpreter = tflite.Interpreter(model_path=MODEL_PATH)
+    interpreter.allocate_tensors()
+    input_details = interpreter.get_input_details()
+    output_details = interpreter.get_output_details()
+    print(f"✅ Rice-Entropy-Fusion TFLite model loaded: {MODEL_PATH}")
+    print(f"   Input shape:  {input_details[0]['shape']}")
+    print(f"   Output shape: {output_details[0]['shape']}")
+except Exception as e:
+    print(f"❌ Failed to load TFLite model: {e}")
+    interpreter = None
+
+# ─── Load Causal Rules (Bilingual Expert System) ────────────────────────────
+CAUSAL_RULES_PATH = os.path.join(os.path.dirname(__file__), "AI_Model", "causal_rules.json")
+causal_rules: dict = {}
+
+try:
+    with open(CAUSAL_RULES_PATH, "r", encoding="utf-8") as f:
+        causal_rules = json.load(f)
+    print(f"✅ Causal rules loaded: {len(causal_rules)} entries")
+except Exception as e:
+    print(f"⚠️ Could not load causal_rules.json: {e}")
+
+# --- Initialize the FastAPI App ---
+app = FastAPI(title="Plant Pulse API — Rice-Entropy-Fusion v2.0")
 
 # --- Configure CORS Middleware ---
 app.add_middleware(
@@ -73,6 +108,64 @@ else:
         print(f"Warning: Supabase Initialization Failed ({e}). Running in OFFLINE mode.")
         supabase = None
 
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  ENTROPY PIPELINE — 4-Channel Image Processing
+# ══════════════════════════════════════════════════════════════════════════════
+
+def build_entropy_channel(image_rgb: np.ndarray) -> np.ndarray:
+    """
+    Generate a local entropy mask from the RGB image.
+    1. Convert to grayscale (uint8)
+    2. Compute local entropy using skimage disk(5)
+    3. Normalize to 0-255 range (uint8)
+    Returns a (H, W) uint8 array.
+    """
+    gray = cv2.cvtColor(image_rgb, cv2.COLOR_RGB2GRAY)
+    ent = entropy(gray, disk(5))
+    # Normalize entropy to 0–255 range
+    ent_min, ent_max = ent.min(), ent.max()
+    if ent_max - ent_min > 0:
+        ent_normalized = ((ent - ent_min) / (ent_max - ent_min) * 255).astype(np.uint8)
+    else:
+        ent_normalized = np.zeros_like(gray, dtype=np.uint8)
+    return ent_normalized
+
+
+def preprocess_image(image_bytes: bytes) -> np.ndarray:
+    """
+    Full preprocessing pipeline:
+    1. Decode image → RGB (224×224)
+    2. Generate entropy channel
+    3. Stack RGB + Entropy → (1, 224, 224, 4) float32 normalized /255.0
+    """
+    # Decode image
+    nparr = np.frombuffer(image_bytes, np.uint8)
+    img_bgr = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+    if img_bgr is None:
+        raise ValueError("Could not decode image")
+
+    # Resize to model input size
+    img_bgr = cv2.resize(img_bgr, (224, 224), interpolation=cv2.INTER_AREA)
+    img_rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
+
+    # Generate entropy channel
+    entropy_channel = build_entropy_channel(img_rgb)
+
+    # Stack RGB + Entropy → (224, 224, 4)
+    four_channel = np.dstack([img_rgb, entropy_channel])
+
+    # Normalize to [0, 1] and add batch dimension
+    tensor = four_channel.astype(np.float32) / 255.0
+    tensor = np.expand_dims(tensor, axis=0)  # (1, 224, 224, 4)
+
+    return tensor
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  API ENDPOINTS
+# ══════════════════════════════════════════════════════════════════════════════
+
 # ─── System / Health ────────────────────────────────────────────────────────
 
 @app.get("/")
@@ -80,15 +173,115 @@ else:
 async def health_check():
     return {
         "status": "online",
+        "model": "Rice-Entropy-Fusion v2.0 (97.9%)",
+        "model_loaded": interpreter is not None,
         "db_connected": supabase is not None,
-        "mode": "production" if os.getenv("RAILWAY_ENVIRONMENT") else "development"
+        "mode": "production" if os.getenv("RAILWAY_ENVIRONMENT") else "development",
+        "classes": CLASS_NAMES,
+    }
+
+
+# ─── Inference Endpoint (4-Channel Entropy Pipeline) ────────────────────────
+
+@app.post("/predict")
+async def predict_image(file: UploadFile = File(...)):
+    """
+    Rice disease inference endpoint.
+    Accepts a raw image, builds the 4-channel (RGB + Entropy) tensor,
+    and returns the predicted class with confidence.
+    """
+    if interpreter is None:
+        raise HTTPException(
+            status_code=503,
+            detail="Rice-Entropy-Fusion model is not loaded. Check server logs."
+        )
+
+    try:
+        # Read uploaded image
+        image_bytes = await file.read()
+        if not image_bytes:
+            raise HTTPException(status_code=400, detail="Empty file uploaded.")
+
+        # Build 4-channel tensor
+        tensor = preprocess_image(image_bytes)
+
+        # Run TFLite inference
+        interpreter.set_tensor(input_details[0]['index'], tensor)
+        interpreter.invoke()
+        predictions = interpreter.get_tensor(output_details[0]['index'])[0]
+
+        # Get top prediction
+        predicted_index = int(np.argmax(predictions))
+        confidence = float(predictions[predicted_index])
+        label = CLASS_NAMES[predicted_index]
+
+        return {
+            "label": label,
+            "confidence": round(confidence, 6),
+            "all_predictions": {
+                CLASS_NAMES[i]: round(float(predictions[i]), 6)
+                for i in range(len(CLASS_NAMES))
+            },
+        }
+
+    except HTTPException:
+        raise
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Inference failed: {str(e)}")
+
+
+# ─── Treatment / Expert System Endpoint ──────────────────────────────────────
+
+@app.get("/treatment/{disease_id}")
+async def get_treatment(disease_id: str, acres: float = 1.0):
+    """
+    Returns bilingual (EN/UR) causal + treatment data for a given disease label.
+    Reads from causal_rules.json which contains the 6-class expert system data.
+    """
+    rule = causal_rules.get(disease_id)
+
+    if not rule:
+        return {
+            "disease": disease_id,
+            "language": "en",
+            "instruction": "Treatment data not found for this label. Please consult a local agricultural expert.\nاس بیماری کے لیے علاج کی معلومات دستیاب نہیں۔ مقامی زرعی ماہر سے مشورہ کریں۔",
+            "dosage_per_acre": "N/A",
+            "market_recommendations": [],
+        }
+
+    # Build unified treatment instruction from causal_rules
+    treatment_en = rule.get("treatment_en", "No treatment data available.")
+    treatment_ur = rule.get("treatment_ur", "علاج کی معلومات دستیاب نہیں۔")
+    symptoms = rule.get("symptoms", "")
+    cause = rule.get("cause", "")
+    prevention = rule.get("prevention", "")
+    severity = rule.get("severity_level", "Unknown")
+
+    instruction = (
+        f"Severity: {severity}\n"
+        f"Symptoms: {symptoms}\n"
+        f"Cause: {cause}\n\n"
+        f"Treatment:\n{treatment_en}\n\n"
+        f"Prevention:\n{prevention}\n\n"
+        f"--- اردو ---\n"
+        f"علاج:\n{treatment_ur}"
+    )
+
+    return {
+        "disease": rule.get("name_en", disease_id),
+        "language": "en",
+        "instruction": instruction,
+        "dosage_per_acre": "Standard",
+        "market_recommendations": [],
     }
 
 
 # ─── Statistics API ─────────────────────────────────────────────────────────
 
 @app.get("/stats")
-async def crop_summary(user_id: str):
+async def crop_summary_short(user_id: str):
     if supabase is None:
         raise HTTPException(status_code=503, detail="Database unavailable — running in offline mode.")
 
@@ -146,7 +339,7 @@ async def crop_summary(user_id: str):
 # ─── Spray Reminders API ─────────────────────────────────────────────────────
 
 @app.get("/reminders")
-async def get_active_reminders(user_id: str):
+async def get_reminders_short(user_id: str):
     if supabase is None:
         return {"reminders": [], "count": 0}
 
@@ -173,7 +366,7 @@ async def get_active_reminders(user_id: str):
 
 
 @app.post("/reminders")
-async def create_reminder(payload: ReminderCreateRequest):
+async def create_reminder_short(payload: ReminderCreateRequest):
     if supabase is None:
         return {"success": True, "record_id": str(uuid.uuid4()), "message": "Offline mode."}
 
@@ -203,7 +396,7 @@ async def create_reminder(payload: ReminderCreateRequest):
 
 
 @app.patch("/reminders/{reminder_id}/complete")
-async def complete_reminder(reminder_id: str, user_id: str):
+async def complete_reminder_short(reminder_id: str, user_id: str):
     if supabase is None:
         return {"success": True}
 
@@ -220,67 +413,6 @@ async def complete_reminder(reminder_id: str, user_id: str):
         return {"success": True, "message": "Reminder marked as complete."}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to complete reminder: {str(e)}")
-
-
-# ─── Treatment Database ──────────────────────────────────────────────────────
-
-# ── Treatment Database ───────────────────────────────────────────────────────
-# Cleared: all entries tied to the retired 25-class dataset have been removed.
-# Populate this dict when the new model and its class labels are confirmed.
-TREATMENT_DB: dict = {
-    # Example entry structure (fill in once new classes are defined):
-    # "<PlantName> <Disease>": {
-    #     "disease": "<PlantName> <Disease>",
-    #     "instruction": "<treatment instructions>",
-    #     "dosage_per_acre": "Standard",
-    #     "market_recommendations": [
-    #         {"local_brand": "...", "company": "Local",
-    #          "size": "Pack", "pkr_price": 0, "required_packs": 1}
-    #     ]
-    # },
-    # TODO: Add new model class entries here once approved.
-}
-
-
-
-@app.get("/treatment/{disease_id}")
-async def get_treatment(disease_id: str, acres: float = 1.0):
-    """
-    Treatment lookup endpoint.
-    The old 25-class database has been cleared. Populate TREATMENT_DB
-    once the new model's class labels are confirmed.
-    """
-    treatment = TREATMENT_DB.get(disease_id)
-
-    if not treatment:
-        return {
-            "disease": disease_id,
-            "language": "en",
-            "instruction": "Treatment data is not yet available. The system is awaiting integration of the new plant disease model.",
-            "dosage_per_acre": "N/A",
-            "market_recommendations": []
-        }
-
-    resp = json.loads(json.dumps(treatment))
-    for rec in resp.get("market_recommendations", []):
-        rec["required_packs"] = int(np.ceil(rec["required_packs"] * acres))
-    return resp
-
-
-# ─── Inference Endpoint ──────────────────────────────────────────────────────
-
-@app.post("/predict")
-async def predict_image(file: UploadFile = File(...)):
-    """
-    Inference endpoint.
-    The previous 25-class model has been retired and removed.
-    This endpoint will return 503 until a new approved model is integrated.
-    To re-enable: load the new model into `model` and populate `class_indices`.
-    """
-    raise HTTPException(
-        status_code=503,
-        detail="Inference model is not available. A new model is pending integration."
-    )
 
 
 # ─── Core Models ─────────────────────────────────────────────────────────────
@@ -309,7 +441,7 @@ class ReminderCreateRequest(BaseModel):
 # ─── Scan History API ────────────────────────────────────────────────────────
 
 @app.post("/api/v1/scans/save")
-async def save_scan(payload: ScanResultCreate):
+async def save_scan_v1(payload: ScanResultCreate):
     if supabase is None:
         raise HTTPException(status_code=503, detail="Database unavailable — running in offline mode.")
 
@@ -342,7 +474,7 @@ async def save_scan(payload: ScanResultCreate):
 
 
 @app.get("/api/v1/stats/crop-summary")
-async def crop_summary(user_id: str):
+async def crop_summary_v1(user_id: str):
     if supabase is None:
         raise HTTPException(status_code=503, detail="Database unavailable — running in offline mode.")
 
@@ -399,10 +531,10 @@ async def crop_summary(user_id: str):
         raise HTTPException(status_code=500, detail=f"Stats query failed: {str(e)}")
 
 
-# ─── Spray Reminders API ─────────────────────────────────────────────────────
+# ─── Spray Reminders API (v1) ───────────────────────────────────────────────
 
 @app.post("/api/v1/reminders/create")
-async def create_reminder(payload: ReminderCreateRequest):
+async def create_reminder_v1(payload: ReminderCreateRequest):
     if supabase is None:
         raise HTTPException(status_code=503, detail="Database unavailable.")
 
@@ -439,7 +571,7 @@ async def create_reminder(payload: ReminderCreateRequest):
 
 
 @app.get("/api/v1/reminders/active")
-async def get_active_reminders(user_id: str):
+async def get_active_reminders_v1(user_id: str):
     if supabase is None:
         raise HTTPException(status_code=503, detail="Database unavailable.")
 
@@ -470,7 +602,7 @@ async def get_active_reminders(user_id: str):
 
 
 @app.patch("/api/v1/reminders/{reminder_id}/complete")
-async def complete_reminder(reminder_id: str, user_id: str):
+async def complete_reminder_v1(reminder_id: str, user_id: str):
     if supabase is None:
         raise HTTPException(status_code=503, detail="Database unavailable.")
 
@@ -491,8 +623,6 @@ async def complete_reminder(reminder_id: str, user_id: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to complete reminder: {str(e)}")
 
-
-# ─── Profile Management API ──────────────────────────────────────────────────
 
 # ─── Profile Management API ──────────────────────────────────────────────────
 
@@ -538,7 +668,7 @@ class ScanHistoryPayload(BaseModel):
 # ─── Scan History API ────────────────────────────────────────────────────────
 
 @app.post("/history/save")
-async def save_scan(payload: ScanHistoryPayload):
+async def save_scan_history(payload: ScanHistoryPayload):
     if supabase is None:
         raise HTTPException(status_code=503, detail="Database unavailable.")
 

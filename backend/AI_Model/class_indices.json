@@ -1,7 +1,0 @@
-[
-  {
-    "_comment": "class_indices.json cleared. The original 25-class dataset has been retired.",
-    "_note": "Replace this file with the new model's class label mapping when a new model is approved.",
-    "_schema": "Each entry should be: { \"id\": \"<index>\", \"disease_name\": \"<label>\" }"
-  }
-]

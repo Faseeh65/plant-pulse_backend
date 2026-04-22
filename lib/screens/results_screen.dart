@@ -324,49 +324,52 @@ class _ResultsScreenState extends State<ResultsScreen> with TickerProviderStateM
               child: Column(
                 children: [
                   if (_rule != null) ...[
-                    _buildAnimatedSection(0, _buildDualReportBox(
+                    // Scientific Name
+                    if (_rule!.scientificName.isNotEmpty && _rule!.scientificName != 'N/A')
+                      _buildAnimatedSection(0, _buildSimpleInfoBox(
+                        'Scientific Name',
+                        _rule!.scientificName,
+                        icon: Icons.biotech_outlined,
+                        color: Colors.tealAccent,
+                      )),
+                    // Symptoms
+                    if (_rule!.symptoms.isNotEmpty)
+                      _buildAnimatedSection(1, _buildSimpleInfoBox(
+                        'Symptoms / علامات',
+                        _rule!.symptoms,
+                        icon: Icons.visibility_outlined,
+                        color: Colors.amberAccent,
+                      )),
+                    // Cause
+                    _buildAnimatedSection(2, _buildSimpleInfoBox(
                       'Cause / وجہ',
                       _rule!.cause,
-                      _rule!.urduCause,
-                      Icons.info_outline,
-                      Colors.blueAccent,
+                      icon: Icons.info_outline,
+                      color: Colors.blueAccent,
                     )),
-                    _buildAnimatedSection(1, _buildDualReportBox(
-                      'Organic Treatment / قدرتی علاج',
-                      _rule!.organicTreatment,
-                      _rule!.urduOrganic,
-                      Icons.eco_outlined,
-                      const Color(0xFF2ECC71),
-                    )),
-                    _buildAnimatedSection(2, _buildDualReportBox(
-                      'Chemical Treatment / کیمیائی علاج',
-                      _rule!.chemicalTreatment,
-                      _rule!.urduChemical,
-                      Icons.science_outlined,
-                      Colors.orangeAccent,
-                    )),
-                    if (_rule!.pesticideBrand.isNotEmpty && _rule!.pesticideBrand != 'None required')
+                    // Favorable Conditions
+                    if (_rule!.favorableConditions.isNotEmpty)
                       _buildAnimatedSection(3, _buildSimpleInfoBox(
-                        'Pesticide Recommendation',
-                        'Brand: ${_rule!.pesticideBrand}\nPrice: ${_rule!.pricePkr}\nAvailability: ${_rule!.availability}',
-                        urduText: 'دستیابی: ${_rule!.urduAvailability}',
-                        icon: Icons.shopping_bag_outlined,
-                        color: Colors.purpleAccent,
+                        'Favorable Conditions',
+                        _rule!.favorableConditions,
+                        icon: Icons.thermostat_outlined,
+                        color: Colors.deepOrangeAccent,
                       )),
+                    // Treatment (Bilingual)
                     _buildAnimatedSection(4, _buildDualReportBox(
-                      'Prevention / احتیاط',
-                      _rule!.prevention,
-                      _rule!.urduPrevention,
-                      Icons.shield_outlined,
+                      'Treatment / علاج',
+                      _rule!.treatmentEn,
+                      _rule!.treatmentUr,
+                      Icons.medical_services_outlined,
                       const Color(0xFF2ECC71),
                     )),
-                    if (_rule!.harvestWarning.isNotEmpty && _rule!.harvestWarning != 'No restrictions')
+                    // Prevention
+                    if (_rule!.prevention.isNotEmpty)
                       _buildAnimatedSection(5, _buildSimpleInfoBox(
-                        'Harvest Warning',
-                        _rule!.harvestWarning,
-                        urduText: _rule!.urduWarning,
-                        icon: Icons.timer_outlined,
-                        color: Colors.redAccent,
+                        'Prevention / احتیاط',
+                        _rule!.prevention,
+                        icon: Icons.shield_outlined,
+                        color: const Color(0xFF2ECC71),
                       )),
                   ] else ...[
                     _buildReportRow('Status', 'Analysis Complete'),

@@ -37,9 +37,9 @@ class ScanGuard {
   /// Minimum acceptable model confidence.
   /// Any prediction below this threshold is rejected as unrecognized.
   ///
-  /// Set to 0.85 (85%) — validated against the Plant Village dataset.
-  /// Adjust downward only after measuring precision/recall on your test set.
-  static const double kConfidenceThreshold = 0.85;
+  /// Set to 0.90 (90%) — calibrated for the 97.9% Rice-Entropy-Fusion model.
+  /// Higher threshold ensures only confident rice disease detections reach the user.
+  static const double kConfidenceThreshold = 0.90;
 
   /// Labels that represent the OOD / Background class from Phase 2 training.
   /// The model assigns one of these when it sees a non-plant image.
