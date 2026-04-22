@@ -268,7 +268,7 @@ class _ScannerScreenState extends State<ScannerScreen> with TickerProviderStateM
   }
 
   Future<Map<String, dynamic>> _predictViaApi(File imageFile) async {
-    final uri = Uri.parse('${ApiService.baseUrl}/v3/predict');
+    final uri = Uri.parse('${ApiService.baseUrl}/predict');
     final request = http.MultipartRequest('POST', uri);
     request.files.add(
       await http.MultipartFile.fromPath(
