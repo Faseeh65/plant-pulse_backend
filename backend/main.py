@@ -35,9 +35,9 @@ LABELS_PATH = os.path.join(
 print("Initializing RiceInferenceEngine...")
 try:
     engine = RiceInferenceEngine(MODEL_PATH, LABELS_PATH)
-    print("✅ RiceInferenceEngine status: READY")
+    print("SUCCESS: RiceInferenceEngine status: READY")
 except Exception as e:
-    print(f"❌ FATAL ERROR: RiceInferenceEngine failed to initialize: {e}")
+    print(f"FATAL ERROR: RiceInferenceEngine failed to initialize: {e}")
     # Force exit so Railway doesn't mark this as a "healthy" but broken deploy
     import sys
     sys.exit(1)
@@ -49,9 +49,9 @@ try:
     if os.path.exists(CAUSAL_RULES_PATH):
         with open(CAUSAL_RULES_PATH, "r", encoding='utf-8') as f:
             causal_rules = json.load(f)
-        print("✅ Expert System rules: READY")
+        print("SUCCESS: Expert System rules: READY")
 except Exception as e:
-    print(f"❌ Expert System rules: FAILED | Error: {e}")
+    print(f"FAILED: Expert System rules: FAILED | Error: {e}")
 
 from datetime import datetime
 LOAD_TIME = datetime.now().isoformat()
