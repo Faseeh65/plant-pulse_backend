@@ -5,11 +5,10 @@ builder = "nixpacks"
 NIXPACKS_NO_CACHE = "1"
 PIP_NO_CACHE_DIR = "1"
 PYTHON_VERSION = "3.10"
-# Forces Nixpacks to treat every build as a new environment
-RANDOM_BUILD_SEED = "64c8a2b1-90e6-47b6-8fc0-14cab38e2f14"
+RANDOM_BUILD_SEED = "RICE_FUSION_V3_FINAL_2026_04_22"
 
 [deploy]
-startCommand = "uvicorn main:app --host 0.0.0.0 --port $PORT"
+startCommand = "uvicorn inference_server:app --host 0.0.0.0 --port $PORT"
 healthCheckPath = "/health"
 healthCheckTimeout = 120
 restartPolicyType = "ON_FAILURE"
