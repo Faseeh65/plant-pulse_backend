@@ -1,3 +1,4 @@
 {
-    "python.defaultInterpreterPath": "d:\\Plant Pulse FYP\\backend\\.venv\\Scripts\\python.exe"
+    "python.defaultInterpreterPath": "d:\\Plant Pulse FYP\\backend\\.venv\\Scripts\\python.exe",
+    "java.configuration.updateBuildConfiguration": "interactive"
 }

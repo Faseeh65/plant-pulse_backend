@@ -488,30 +488,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ),
                         ]),
 
-                        const SizedBox(height: 32),
-
-                        // ── Section: Account ──────────────────────────
-                        _sectionLabel('Account', 'اکاؤنٹ'),
-                        const SizedBox(height: 12),
-                        _profileCard([
-                          _navTile(
-                            icon: Icons.person_outline,
-                            label: 'My Profile',
-                            labelUrdu: 'میری پروفائل',
-                            onTap: () {
-                              // Already on profile — scroll to top
-                              _showSnack('You are viewing your profile', isSuccess: true);
-                            },
-                          ),
-                          _divider(),
-                          _navTile(
-                            icon: Icons.settings_outlined,
-                            label: 'App Settings',
-                            labelUrdu: 'ایپ کی ترتیبات',
-                            onTap: () => _showSnack('Advanced settings — جلد آ رہا ہے', isSuccess: true),
-                          ),
-                        ]),
-
                         const SizedBox(height: 16),
 
                         // ── Log Out ───────────────────────────────────

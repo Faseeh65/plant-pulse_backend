@@ -37,9 +37,9 @@ class ScanGuard {
   /// Minimum acceptable model confidence.
   /// Any prediction below this threshold is rejected as unrecognized.
   ///
-  /// Set to 0.90 (90%) — calibrated for the 97.9% Rice-Entropy-Fusion model.
-  /// Higher threshold ensures only confident rice disease detections reach the user.
-  static const double kConfidenceThreshold = 0.90;
+  /// Set to 0.70 (70%) — calibrated for the Rice-Entropy-Fusion model.
+  /// Lowering this slightly from 0.90 to allow for more robust field scanning.
+  static const double kConfidenceThreshold = 0.70;
 
   /// Labels that represent the OOD / Background class or backend rejection.
   /// The backend returns 'NoRiceLeafDetected' when entropy is too low or confidence < 95%.

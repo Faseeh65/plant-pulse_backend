@@ -27,8 +27,9 @@ class NotificationService {
     _channelId,
     _channelName,
     channelDescription: _channelDesc,
-    importance: Importance.high,
-    priority: Priority.high,
+    importance: Importance.max,
+    priority: Priority.max,
+    fullScreenIntent: true,
     icon: '@mipmap/ic_launcher',
     color: Color(0xFF6CFB7B),
     enableVibration: true,
@@ -67,7 +68,7 @@ class NotificationService {
             _channelId,
             _channelName,
             description: _channelDesc,
-            importance: Importance.high,
+            importance: Importance.max,
           ),
         );
 

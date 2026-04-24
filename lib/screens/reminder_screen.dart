@@ -97,6 +97,7 @@ class _ReminderScreenState extends State<ReminderScreen> {
                               style: TextStyle(
                                   color: (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black),
                                   fontWeight: FontWeight.w900,
+                                  height: 1.3,
                                   fontSize: 16)),
                         ),
                         const Spacer(),
@@ -177,6 +178,7 @@ class _ReminderScreenState extends State<ReminderScreen> {
                                    color: picked == null
                                        ? (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black).withOpacity(0.38)
                                        : (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black),
+                                   height: 1.3,
                                    fontSize: 14,
                                  ),
                                ),
@@ -220,7 +222,7 @@ class _ReminderScreenState extends State<ReminderScreen> {
                         child: Text(
                           'Schedule Reminder  •  یاد دہانی طے کریں',
                           style: TextStyle(
-                              fontWeight: FontWeight.w900, fontSize: 13),
+                              fontWeight: FontWeight.w900, fontSize: 13, height: 1.3),
                         ),
                       ),
                     ),
@@ -297,11 +299,19 @@ class _ReminderScreenState extends State<ReminderScreen> {
   Widget _dlgField(TextEditingController ctrl, String label, IconData icon) =>
       TextField(
         controller: ctrl,
-        style: TextStyle(color: (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black), fontSize: 14),
+        style: TextStyle(
+          color: (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black), 
+          fontSize: 14,
+          height: 1.3,
+        ),
         decoration: InputDecoration(
           prefixIcon: Icon(icon, color: _green, size: 18),
           hintText: label,
-          hintStyle: TextStyle(color: (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black).withOpacity(0.38), fontSize: 13),
+          hintStyle: TextStyle(
+            color: (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black).withOpacity(0.38), 
+            fontSize: 13,
+            height: 1.3,
+          ),
           filled: true,
           fillColor: (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black).withOpacity(0.04),
           border: OutlineInputBorder(
@@ -340,6 +350,7 @@ class _ReminderScreenState extends State<ReminderScreen> {
           style: TextStyle(
               color: (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black), 
               fontWeight: FontWeight.w900, 
+              height: 1.3,
               fontSize: 16),
         ),
         actions: [
@@ -511,7 +522,7 @@ class _ReminderScreenState extends State<ReminderScreen> {
                       label: Text(
                         'Mark as Done  •  مکمل',
                         style: TextStyle(
-                            fontWeight: FontWeight.w900, fontSize: 13),
+                            fontWeight: FontWeight.w900, fontSize: 13, height: 1.3),
                       ),
                       onPressed: () => _markDone(r),
                     ),

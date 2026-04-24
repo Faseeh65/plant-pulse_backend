@@ -1,11 +1,12 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../models/disease_result.dart';
 
 class ApiService {
-  // Use public IPv4 for global accessibility (Delivery Mode)
-  static const String baseUrl = "https://plant-pulsebackend-production.up.railway.app";
+  // Use backend URL from .env or fallback to localhost (works with adb reverse)
+  static String get baseUrl => dotenv.env['BACKEND_URL'] ?? "http://localhost:8000";
   bool _hasLoggedSuccess = false;
 
   /// Singleton pattern

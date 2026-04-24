@@ -44,26 +44,20 @@ class ThemeProvider extends ChangeNotifier {
   static ThemeData get darkTheme {
     final base = ThemeData(brightness: Brightness.dark);
     return base.copyWith(
-      primaryColor: const Color(0xFF81C784),
-      scaffoldBackgroundColor: const Color(0xFF121212),
+      primaryColor: const Color(0xFF6CFB7B), // Neon Lime
+      scaffoldBackgroundColor: const Color(0xFF0A0E0A), // Rich Black
       colorScheme: const ColorScheme.dark(
-        primary: Color(0xFF81C784),
-        secondary: Color(0xFF81C784),
-        surface: Color(0xFF1E1E1E),
+        primary: Color(0xFF6CFB7B),
+        secondary: Color(0xFF6CFB7B),
+        surface: Color(0xFF121A12), // Charcoal Forest
         onPrimary: Colors.black,
         onSurface: Color(0xFFE0E0E0),
       ),
-      cardColor: const Color(0xFF1E1E1E),
+      cardColor: const Color(0xFF121A12),
       cardTheme: _cardTheme,
       elevatedButtonTheme: _buttonTheme,
       dividerColor: Colors.white.withOpacity(0.08),
-      appBarTheme: const AppBarTheme(
-        backgroundColor: Color(0xFF121212),
-        elevation: 0,
-        centerTitle: true,
-        titleTextStyle: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: 1.2, color: Color(0xFFE0E0E0)),
-      ),
-      textTheme: GoogleFonts.poppinsTextTheme(base.textTheme).apply(
+      textTheme: GoogleFonts.interTextTheme(base.textTheme).apply(
         bodyColor: const Color(0xFFE0E0E0),
         displayColor: const Color(0xFFE0E0E0),
       ),
@@ -74,30 +68,24 @@ class ThemeProvider extends ChangeNotifier {
     final base = ThemeData(brightness: Brightness.light);
     return base.copyWith(
       primaryColor: const Color(0xFF1B5E20),
-      scaffoldBackgroundColor: const Color(0xFFFAFAFA),
+      scaffoldBackgroundColor: const Color(0xFFF4FAF4), // Morning Mist
       colorScheme: const ColorScheme.light(
         primary: Color(0xFF1B5E20),
-        secondary: Color(0xFF1B5E20),
+        secondary: Color(0xFF2E7D32),
         surface: Color(0xFFFFFFFF),
         onPrimary: Colors.white,
-        onSurface: Color(0xFF212121),
+        onSurface: Color(0xFF1A1A1A),
       ),
       cardColor: const Color(0xFFFFFFFF),
       cardTheme: _cardTheme.copyWith(
-        elevation: 12,
-        shadowColor: Colors.black.withOpacity(0.06),
+        elevation: 20,
+        shadowColor: const Color(0xFF1B5E20).withOpacity(0.08),
       ),
       elevatedButtonTheme: _buttonTheme,
       dividerColor: Colors.black.withOpacity(0.06),
-      appBarTheme: const AppBarTheme(
-        backgroundColor: Color(0xFFFAFAFA),
-        elevation: 0,
-        centerTitle: true,
-        titleTextStyle: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: 1.2, color: Color(0xFF212121)),
-      ),
-      textTheme: GoogleFonts.poppinsTextTheme(base.textTheme).apply(
-        bodyColor: const Color(0xFF212121),
-        displayColor: const Color(0xFF212121),
+      textTheme: GoogleFonts.interTextTheme(base.textTheme).apply(
+        bodyColor: const Color(0xFF1A1A1A),
+        displayColor: const Color(0xFF1A1A1A),
       ),
     );
   }

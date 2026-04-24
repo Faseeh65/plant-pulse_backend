@@ -6,7 +6,12 @@ import '../models/disease_result.dart';
 import '../services/api_service.dart';
 import '../services/causal_service.dart';
 import '../utils/string_extensions.dart';
+import '../utils/rice_health_logic.dart';
+import '../providers/weather_provider.dart';
+import '../models/weather_data.dart';
 import 'treatment_detail_screen.dart';
+import 'package:provider/provider.dart';
+import 'dart:ui';
 
 class ResultsScreen extends StatefulWidget {
   final String imagePath;
@@ -33,17 +38,16 @@ class ResultsScreen extends StatefulWidget {
 }
 
 class _ResultsScreenState extends State<ResultsScreen> with TickerProviderStateMixin {
-  late final CausalRule? _rule;
-
-  // Animations
+  CausalRule? _rule;
+  late AnimationController _scanningController;
+  late Animation<double> _scanLineAnimation;
   late AnimationController _typewriterController;
-  late AnimationController _countUpController;
-  late AnimationController _badgeController;
-  late AnimationController _sectionsController;
-
   late Animation<int> _typewriterAnimation;
+  late AnimationController _countUpController;
   late Animation<double> _countUpAnimation;
+  late AnimationController _badgeController;
   late Animation<double> _badgeScaleAnimation;
+  late AnimationController _sectionsController;
 
   @override
   void initState() {
@@ -53,6 +57,14 @@ class _ResultsScreenState extends State<ResultsScreen> with TickerProviderStateM
 
     final String cleanName = widget.diseaseNameEnglish.toDiseaseOnly();
     
+    _scanningController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 3),
+    )..repeat(reverse: true);
+    _scanLineAnimation = Tween<double>(begin: 0.05, end: 0.95).animate(
+      CurvedAnimation(parent: _scanningController, curve: Curves.easeInOut),
+    );
+
     _typewriterController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 800),
@@ -88,30 +100,9 @@ class _ResultsScreenState extends State<ResultsScreen> with TickerProviderStateM
     _sectionsController.forward();
   }
 
-  Animation<Offset> _getSectionSlide(int index) {
-    double start = index * 0.15;
-    double end = (start + 0.4).clamp(0.0, 1.0);
-    return Tween<Offset>(begin: const Offset(0, 0.3), end: Offset.zero).animate(
-      CurvedAnimation(
-        parent: _sectionsController,
-        curve: Interval(start, end, curve: Curves.easeOutCubic),
-      ),
-    );
-  }
-
-  Animation<double> _getSectionFade(int index) {
-    double start = index * 0.15;
-    double end = (start + 0.4).clamp(0.0, 1.0);
-    return Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _sectionsController,
-        curve: Interval(start, end, curve: Curves.easeIn),
-      ),
-    );
-  }
-
   @override
   void dispose() {
+    _scanningController.dispose();
     _typewriterController.dispose();
     _countUpController.dispose();
     _badgeController.dispose();
@@ -154,261 +145,403 @@ class _ResultsScreenState extends State<ResultsScreen> with TickerProviderStateM
 
   @override
   Widget build(BuildContext context) {
-    final bool isHealthy = widget.diseaseNameEnglish.toLowerCase().contains('healthy') || (_rule?.severity == 'none');
     final String cleanName = widget.diseaseNameEnglish.toDiseaseOnly();
     final String plantType = widget.diseaseNameEnglish.toDisplayCrop();
     final disableAnimations = MediaQuery.of(context).disableAnimations;
+    final weather = context.watch<WeatherProvider>().currentWeather;
 
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            ClipRRect(
-              borderRadius: const BorderRadius.only(
-                bottomLeft: Radius.circular(30),
-                bottomRight: Radius.circular(30),
-              ),
-              child: Stack(
-                children: [
-                  Image.file(
-                    File(widget.imagePath),
-                    height: 350,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                  ),
-                  Positioned(
-                    top: 50,
-                    left: 20,
-                    child: IconButton(
-                      icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                  ),
-                  if (_rule != null)
-                    Positioned(
-                      top: 60,
-                      right: 20,
-                      child: ScaleTransition(
-                        scale: disableAnimations ? const AlwaysStoppedAnimation(1.0) : _badgeScaleAnimation,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: _getSeverityColor(_rule!.severity),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Text(
-                            _getSeverityLabel(_rule!.severity),
-                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 12),
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
+      body: Stack(
+        children: [
+          // ── Background Layer ───────────────────────────────────────────────────
+          Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Color(0xFFE0F7FA), Color(0xFFF1F8E9)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
             ),
-            
-            const SizedBox(height: 24),
+          ),
+          // Watermark leaf texture (faint)
+          Opacity(
+            opacity: 0.1,
+            child: Icon(Icons.eco, size: 400, color: Colors.green.withOpacity(0.2)),
+          ),
 
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          // ── Main Content ───────────────────────────────────────────────────────
+          SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const SizedBox(height: 50),
+                
+                // 1. Header with Weather Badge
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Expanded(
-                        child: Text(
-                          plantType,
-                          style: TextStyle(
-                            color: Theme.of(context).textTheme.bodyLarge?.color,
-                            fontSize: 28,
-                            fontWeight: FontWeight.w900,
-                          ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              plantType,
+                              style: const TextStyle(fontSize: 48, fontWeight: FontWeight.w900, color: Color(0xFF1B5E20), letterSpacing: -1.5),
+                            ),
+                            Text(
+                              _rule?.urduName ?? '', 
+                              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF2E7D32)),
+                            ),
+                            Text(
+                              cleanName,
+                              style: TextStyle(fontSize: 18, color: Colors.black.withOpacity(0.5), fontWeight: FontWeight.w600),
+                            ),
+                          ],
                         ),
                       ),
-                      if (_rule != null)
-                        Text(
-                          _rule!.urduName,
-                          style: const TextStyle(
-                            color: Color(0xFF2ECC71),
-                            fontSize: 20,
-                            fontWeight: FontWeight.w900,
-                          ),
-                          textDirection: TextDirection.rtl,
-                        ),
+                      if (weather != null) _buildWeatherBadge(weather),
                     ],
                   ),
-                  const SizedBox(height: 4),
-                  AnimatedBuilder(
-                    animation: _typewriterAnimation,
-                    builder: (context, child) {
-                      String sub = cleanName.substring(0, disableAnimations ? cleanName.length : _typewriterAnimation.value);
-                      return Text(
-                        sub,
-                        style: TextStyle(
-                          color: Theme.of(context).textTheme.bodyLarge?.color?.withOpacity(0.6),
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
+                ),
+
+                const SizedBox(height: 10),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Row(
                     children: [
-                      Icon(Icons.verified_outlined, size: 16, color: const Color(0xFF2ECC71).withOpacity(0.8)),
-                      const SizedBox(width: 6),
+                      const Icon(Icons.check_circle, color: Color(0xFF2E7D32), size: 18),
+                      const SizedBox(width: 8),
                       AnimatedBuilder(
                         animation: _countUpAnimation,
                         builder: (context, child) {
                           double val = disableAnimations ? widget.confidence : _countUpAnimation.value;
                           return Text(
                             'Confidence: ${(val * 100).toStringAsFixed(1)}%',
-                            style: TextStyle(
-                              color: const Color(0xFF2ECC71).withOpacity(0.8),
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                            ),
+                            style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF2E7D32)),
                           );
                         },
                       ),
                     ],
                   ),
-                ],
+                ),
+
+                const SizedBox(height: 30),
+
+                // 2. Image Diagnosis Widget with Scanning Animation
+                _buildAnalysisFrame(),
+
+                const SizedBox(height: 30),
+
+                // 3. Diagnosis Intelligence Grid/Scroll
+                _buildIntelligenceSection(),
+
+                const SizedBox(height: 24),
+
+                // 4. Environmental Context
+                if (weather != null) _buildEnvironmentalSection(weather),
+
+                // 5. Treatment Action Tiles
+                _buildTreatmentActions(),
+
+                const SizedBox(height: 40),
+              ],
+            ),
+          ),
+
+          // Back Button
+          Positioned(
+            top: 50,
+            left: 20,
+            child: CircleAvatar(
+              backgroundColor: Colors.white.withOpacity(0.5),
+              child: IconButton(
+                icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black, size: 20),
+                onPressed: () => Navigator.pop(context),
               ),
             ),
+          ),
+        ],
+      ),
+    );
+  }
 
-            const SizedBox(height: 30),
-
-            if (widget.secondaryInspectionRequired)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                child: Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.redAccent.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(15),
-                    border: Border.all(color: Colors.redAccent.withOpacity(0.3)),
-                  ),
-                  child: const Row(
-                    children: [
-                      Icon(Icons.warning_amber_rounded, color: Colors.redAccent),
-                      SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Secondary Inspection Required',
-                              style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.w900, fontSize: 14),
-                            ),
-                            Text(
-                              'تفصیلی معائنے کی ضرورت ہے',
-                              style: TextStyle(color: Colors.redAccent, fontSize: 12, fontFamily: 'Jameel Noori'),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-            if (widget.secondaryInspectionRequired) const SizedBox(height: 24),
-
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0),
-              child: Column(
+  Widget _buildWeatherBadge(WeatherData weather) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.3),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withOpacity(0.5)),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(weather.locationName, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 4),
+              Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  if (_rule != null) ...[
-                    // Scientific Name
-                    if (_rule!.scientificName.isNotEmpty && _rule!.scientificName != 'N/A')
-                      _buildAnimatedSection(0, _buildSimpleInfoBox(
-                        'Scientific Name',
-                        _rule!.scientificName,
-                        icon: Icons.biotech_outlined,
-                        color: Colors.tealAccent,
-                      )),
-                    // Symptoms
-                    if (_rule!.symptoms.isNotEmpty)
-                      _buildAnimatedSection(1, _buildSimpleInfoBox(
-                        'Symptoms / علامات',
-                        _rule!.symptoms,
-                        icon: Icons.visibility_outlined,
-                        color: Colors.amberAccent,
-                      )),
-                    // Cause
-                    _buildAnimatedSection(2, _buildSimpleInfoBox(
-                      'Cause / وجہ',
-                      _rule!.cause,
-                      icon: Icons.info_outline,
-                      color: Colors.blueAccent,
-                    )),
-                    // Favorable Conditions
-                    if (_rule!.favorableConditions.isNotEmpty)
-                      _buildAnimatedSection(3, _buildSimpleInfoBox(
-                        'Favorable Conditions',
-                        _rule!.favorableConditions,
-                        icon: Icons.thermostat_outlined,
-                        color: Colors.deepOrangeAccent,
-                      )),
-                    // Treatment (Bilingual)
-                    _buildAnimatedSection(4, _buildDualReportBox(
-                      'Treatment / علاج',
-                      _rule!.treatmentEn,
-                      _rule!.treatmentUr,
-                      Icons.medical_services_outlined,
-                      const Color(0xFF2ECC71),
-                    )),
-                    // Prevention
-                    if (_rule!.prevention.isNotEmpty)
-                      _buildAnimatedSection(5, _buildSimpleInfoBox(
-                        'Prevention / احتیاط',
-                        _rule!.prevention,
-                        icon: Icons.shield_outlined,
-                        color: const Color(0xFF2ECC71),
-                      )),
-                  ] else ...[
-                    _buildReportRow('Status', 'Analysis Complete'),
-                    _buildReportRow('Details', 'Exact treatment data for this label is pending updates.'),
+                  Text('${weather.temp.toStringAsFixed(1)}°C', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, letterSpacing: -1)),
+                  const SizedBox(width: 8),
+                  const Icon(Icons.thermostat, size: 14, color: Colors.redAccent),
+                ],
+              ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('${weather.humidity}%', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.blueAccent)),
+                  const SizedBox(width: 4),
+                  const Icon(Icons.water_drop, size: 12, color: Colors.blueAccent),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAnalysisFrame() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 24),
+      height: 280,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(30),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 20, offset: const Offset(0, 10))],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(30),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            Image.file(File(widget.imagePath), fit: BoxFit.cover),
+            // Target Crosshairs
+            _buildCrosshairs(),
+            // Scanning Line Animation
+            AnimatedBuilder(
+              animation: _scanLineAnimation,
+              builder: (context, child) {
+                return Positioned(
+                  top: 280 * _scanLineAnimation.value,
+                  left: 0,
+                  right: 0,
+                  child: Container(
+                    height: 2,
+                    decoration: BoxDecoration(
+                      color: Colors.greenAccent,
+                      boxShadow: [BoxShadow(color: Colors.greenAccent.withOpacity(0.8), blurRadius: 10, spreadRadius: 2)],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCrosshairs() {
+    return Stack(
+      children: [
+        Center(child: Container(width: 40, height: 40, decoration: BoxDecoration(border: Border.all(color: Colors.white.withOpacity(0.5), width: 1)))),
+        Center(child: Container(width: 2, height: 60, color: Colors.white.withOpacity(0.3))),
+        Center(child: Container(width: 60, height: 2, color: Colors.white.withOpacity(0.3))),
+      ],
+    );
+  }
+
+  Widget _buildIntelligenceSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 24),
+          child: Row(
+            children: [
+              Icon(Icons.psychology_outlined, color: Color(0xFF1B5E20)),
+              SizedBox(width: 10),
+              Text('Diagnosis Intelligence', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF1B5E20))),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        SizedBox(
+          height: 140,
+          child: ListView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            physics: const BouncingScrollPhysics(),
+            children: [
+              _buildIntelCard('Scientific', _rule?.scientificName ?? 'N/A', Icons.biotech, const Color(0xFF2E7D32)),
+              _buildIntelCard('Symptoms', _rule?.symptoms ?? 'N/A', Icons.visibility, Colors.brown),
+              _buildIntelCard('Cause', _rule?.cause ?? 'N/A', Icons.info, Colors.blueGrey),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildIntelCard(String title, String val, IconData icon, Color color) {
+    return Container(
+      width: 180,
+      margin: const EdgeInsets.only(right: 16, bottom: 8),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.4),
+        borderRadius: BorderRadius.circular(25),
+        border: Border.all(color: Colors.white.withOpacity(0.6)),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(25),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(icon, size: 16, color: color),
+                  const SizedBox(width: 8),
+                  Text(title, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: color)),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Expanded(
+                child: Text(
+                  val,
+                  maxLines: 4,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500, height: 1.3),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEnvironmentalSection(WeatherData weather) {
+    final alert = RiceHealthLogic.getEnvironmentalAlert(weather.humidity, weather.temp);
+    final isCritical = weather.humidity > 85;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.5),
+          borderRadius: BorderRadius.circular(25),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Row(
+              children: [
+                Icon(Icons.cloud_outlined, color: Colors.blueGrey),
+                SizedBox(width: 10),
+                Text('Environmental Context', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Colors.blueGrey)),
+              ],
+            ),
+            const SizedBox(height: 15),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(weather.locationName, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 4),
+                    Text('${weather.temp.toStringAsFixed(1)}°C  |  ${weather.humidity}% Humid', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
                   ],
+                ),
+                Icon(isCritical ? Icons.warning_amber_rounded : Icons.check_circle_outline, color: alert['color'], size: 30),
+              ],
+            ),
+            const SizedBox(height: 20),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: (alert['color'] as Color).withOpacity(0.15),
+                borderRadius: BorderRadius.circular(15),
+                border: Border.all(color: alert['color']),
+              ),
+              child: Row(
+                children: [
+                  Icon(alert['icon'], color: alert['color'], size: 20),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      alert['message'],
+                      style: TextStyle(color: alert['color'], fontWeight: FontWeight.bold, fontSize: 13),
+                    ),
+                  ),
                 ],
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
 
-            const SizedBox(height: 40),
-
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
-              child: ElevatedButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => TreatmentDetailScreen(
-                        diseaseLabel: widget.diseaseNameEnglish,
-                        plantName: widget.diseaseNameEnglish.toDisplayCrop(),
-                        preFetchedData: widget.diagnosisData,
-                      ),
-                    ),
-                  );
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF2ECC71),
-                  foregroundColor: Colors.black,
-                  minimumSize: const Size(double.infinity, 60),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                  elevation: 5,
-                ),
-                child: Text(
-                  isHealthy ? 'Maintenance Care' : 'View Full Treatment Plan',
-                  style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18),
-                ),
-              ),
+  Widget _buildTreatmentActions() {
+    return Padding(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Recommended Actions', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF1B5E20))),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              _buildActionTile('Fungicide Application', 'Apply Tricyclazole', Icons.colorize_outlined, Colors.teal),
+              const SizedBox(width: 12),
+              _buildActionTile('Nitrogen Control', r'Adjust $N_2$ Levels', Icons.science_outlined, Colors.indigo),
+            ],
+          ),
+          const SizedBox(height: 24),
+          ElevatedButton.icon(
+            onPressed: () {},
+            icon: const Icon(Icons.share, size: 18),
+            label: const Text('Share Diagnostic Report'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF1B5E20),
+              foregroundColor: Colors.white,
+              minimumSize: const Size(double.infinity, 55),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActionTile(String title, String action, IconData icon, Color color) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: color.withOpacity(0.3)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, color: color, size: 24),
+            const SizedBox(height: 12),
+            Text(title, style: TextStyle(fontSize: 10, color: color.withOpacity(0.7), fontWeight: FontWeight.bold)),
+            Text(action, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: color)),
           ],
         ),
       ),
@@ -424,6 +557,32 @@ class _ResultsScreenState extends State<ResultsScreen> with TickerProviderStateM
       child: SlideTransition(
         position: _getSectionSlide(index),
         child: child,
+      ),
+    );
+  }
+
+  Animation<double> _getSectionFade(int index) {
+    return Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _sectionsController,
+        curve: Interval(
+          (0.1 * index).clamp(0.0, 0.8),
+          (0.1 * index + 0.2).clamp(0.0, 1.0),
+          curve: Curves.easeIn,
+        ),
+      ),
+    );
+  }
+
+  Animation<Offset> _getSectionSlide(int index) {
+    return Tween<Offset>(begin: const Offset(0, 0.1), end: Offset.zero).animate(
+      CurvedAnimation(
+        parent: _sectionsController,
+        curve: Interval(
+          (0.1 * index).clamp(0.0, 0.8),
+          (0.1 * index + 0.2).clamp(0.0, 1.0),
+          curve: Curves.easeOutCubic,
+        ),
       ),
     );
   }

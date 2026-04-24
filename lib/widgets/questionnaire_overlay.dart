@@ -25,6 +25,7 @@ class QuestionnaireOverlay extends StatefulWidget {
 class _QuestionnaireOverlayState extends State<QuestionnaireOverlay> with TickerProviderStateMixin {
   int _currentIndex = 0;
   final List<bool> _answers = [];
+  bool _isFinished = false;
 
   // Animations
   late AnimationController _cardController;
@@ -81,6 +82,7 @@ class _QuestionnaireOverlayState extends State<QuestionnaireOverlay> with Ticker
   }
 
   void _submitAnswer(bool answer) {
+    if (_isFinished) return;
     _answers.add(answer);
     if (_currentIndex < widget.questions.length - 1) {
       setState(() {
@@ -98,6 +100,7 @@ class _QuestionnaireOverlayState extends State<QuestionnaireOverlay> with Ticker
       _progressController.forward(from: 0.0);
       _buttonsController.forward(from: 0.0);
     } else {
+      _isFinished = true;
       widget.onCompleted(_answers);
     }
   }

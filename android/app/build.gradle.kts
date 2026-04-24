@@ -26,7 +26,7 @@ android {
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion // Required for core library desugaring
-        targetSdk = flutter.targetSdkVersion
+        targetSdk = 35
         versionCode = flutter.versionCode
         versionName = flutter.versionName
         multiDexEnabled = true
@@ -42,7 +42,11 @@ android {
 }
 
 dependencies {
+    implementation("org.jetbrains.kotlin:kotlin-stdlib:1.9.0")
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
+    api("com.google.maps.android:android-maps-utils:3.8.2")
+    implementation("com.google.android.gms:play-services-maps:19.0.0")
+    implementation("androidx.startup:startup-runtime:1.2.0")
 }
 
 flutter {

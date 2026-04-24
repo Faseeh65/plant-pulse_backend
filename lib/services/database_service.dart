@@ -50,6 +50,8 @@ class DatabaseService {
     required double confidence,
     required String causalFactor,
     required String imagePath,
+    double? lat,
+    double? lng,
   }) async {
     final id = const Uuid().v4();
     final createdAt = DateTime.now().toIso8601String();
@@ -64,15 +66,17 @@ class DatabaseService {
       'image_path': imagePath,
       'created_at': createdAt,
       'is_synced': 0,
+      'lat': lat,
+      'lng': lng,
     });
 
     // 2. Attempt Background Sync to Supabase
     if (userId != null) {
-      _trySync(id, userId, diseaseName, confidence, causalFactor, imagePath, createdAt);
+      _trySync(id, userId, diseaseName, confidence, causalFactor, imagePath, createdAt, lat, lng);
     }
   }
 
-  Future<void> _trySync(String id, String userId, String disease, double conf, String causal, String path, String date) async {
+  Future<void> _trySync(String id, String userId, String disease, double conf, String causal, String path, String date, double? lat, double? lng) async {
     try {
       // Upload image
       final imageUrl = await _storage.uploadScanImage(File(path));
@@ -90,6 +94,8 @@ class DatabaseService {
         'causal_factor': causal,
         'image_url': sanitizedUrl,
         'created_at': date,
+        'lat': lat,
+        'lng': lng,
       });
 
       // Mark locally as synced
@@ -114,7 +120,9 @@ class DatabaseService {
         scan['confidence'], 
         scan['causal_factor'], 
         scan['image_path'], 
-        scan['created_at']
+        scan['created_at'],
+        scan['lat'],
+        scan['lng']
       );
     }
   }

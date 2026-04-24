@@ -6,14 +6,20 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'l10n/app_localizations.dart';
 import 'providers/locale_provider.dart';
 import 'providers/theme_provider.dart';
-import 'utils/app_theme.dart';
-import 'utils/constants.dart';
 import 'screens/auth_screen.dart';
 import 'screens/home_screen.dart';
+import 'screens/history_screen.dart';
+import 'screens/profile_screen.dart';
+import 'screens/reminder_screen.dart';
+import 'screens/scanner_screen.dart';
 import 'screens/splash_screen.dart';
+import 'screens/stats_screen.dart';
 import 'services/causal_service.dart';
 import 'services/database_service.dart';
 import 'services/notification_service.dart';
+import 'providers/map_provider.dart';
+import 'providers/weather_provider.dart';
+import 'screens/map_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -64,6 +70,8 @@ Future<void> main() async {
       providers: [
         ChangeNotifierProvider.value(value: localeProvider),
         ChangeNotifierProvider.value(value: themeProvider),
+        ChangeNotifierProvider(create: (_) => MapProvider()),
+        ChangeNotifierProvider(create: (_) => WeatherProvider()),
       ],
       child: const PlantPulseApp(),
     ),
@@ -90,6 +98,12 @@ class PlantPulseApp extends StatelessWidget {
         '/': (context) => const SplashScreen(),
         '/auth': (context) => const AuthScreen(),
         '/home': (context) => const HomeScreen(),
+        '/map': (context) => const MapScreen(),
+        '/scanner': (context) => const ScannerScreen(),
+        '/history': (context) => const HistoryScreen(),
+        '/profile': (context) => const ProfileScreen(),
+        '/reminders': (context) => const ReminderScreen(),
+        '/stats': (context) => const StatsScreen(),
       },
     );
   }

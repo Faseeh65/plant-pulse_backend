@@ -9,6 +9,7 @@ import '../services/api_service.dart';
 import '../services/causal_service.dart';
 import '../services/database_service.dart';
 import '../services/scan_guard.dart';
+import 'package:geolocator/geolocator.dart';
 import '../models/causal_logic.dart';
 import '../models/disease_result.dart';
 import 'results_screen.dart';
@@ -30,6 +31,7 @@ class _ScannerScreenState extends State<ScannerScreen> with TickerProviderStateM
   bool _isProcessing = false;
   final CausalService _causalService = CausalService();
   final ApiService _apiService = ApiService();
+  final DatabaseService _dbService = DatabaseService();
 
   // Animations
   late AnimationController _scanLineController;
@@ -40,6 +42,7 @@ class _ScannerScreenState extends State<ScannerScreen> with TickerProviderStateM
   late Animation<double> _scanLineAnimation;
   late Animation<double> _cornersAnimation;
   late Animation<double> _flashAnimation;
+  bool _isNavigationInProgress = false;
 
   @override
   void initState() {
@@ -317,6 +320,19 @@ class _ScannerScreenState extends State<ScannerScreen> with TickerProviderStateM
       final String label = rawResult['label'] as String;
       final double confidence = rawResult['confidence'] as double;
 
+      // New: Capture GPS for Historical Mapping
+      double? lat, lng;
+      try {
+        final pos = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.high,
+          timeLimit: const Duration(seconds: 5),
+        );
+        lat = pos.latitude;
+        lng = pos.longitude;
+      } catch (e) {
+        debugPrint('GPS capture skipped: $e');
+      }
+
       ScanGuard.instance.validate(label, confidence);
 
       if (!mounted) return;
@@ -334,6 +350,8 @@ class _ScannerScreenState extends State<ScannerScreen> with TickerProviderStateM
             secondaryInspectionRequired: false,
             answers: [],
           ),
+          lat: lat,
+          lng: lng,
         );
       } else {
         if (!mounted) return;
@@ -345,15 +363,21 @@ class _ScannerScreenState extends State<ScannerScreen> with TickerProviderStateM
               label: label,
               questions: _causalService.staticQuestions,
               onCompleted: (answers) {
+                if (_isNavigationInProgress) return;
+                _isNavigationInProgress = true;
+                
                 final refined = _causalService.refineResult(
                   label: label,
                   originalConfidence: confidence,
                   answers: answers,
                 );
                 Navigator.pop(ctx);
-                _navigateToResults(photo.path, refined);
+                _navigateToResults(photo.path, refined, lat: lat, lng: lng);
               },
               onSkip: () {
+                if (_isNavigationInProgress) return;
+                _isNavigationInProgress = true;
+
                 Navigator.pop(ctx);
                 _navigateToResults(
                   photo.path,
@@ -364,6 +388,8 @@ class _ScannerScreenState extends State<ScannerScreen> with TickerProviderStateM
                     secondaryInspectionRequired: false,
                     answers: [],
                   ),
+                  lat: lat,
+                  lng: lng,
                 );
               },
             );
@@ -403,7 +429,7 @@ class _ScannerScreenState extends State<ScannerScreen> with TickerProviderStateM
     }
   }
 
-  void _navigateToResults(String imagePath, RefinedResult result) async {
+  void _navigateToResults(String imagePath, RefinedResult result, {double? lat, double? lng}) async {
     if (!mounted) return;
 
     setState(() => _isProcessing = true);
@@ -429,17 +455,40 @@ class _ScannerScreenState extends State<ScannerScreen> with TickerProviderStateM
 
     try {
       final userId = Supabase.instance.client.auth.currentUser?.id ?? '';
-      if (userId.isNotEmpty) {
-        await _apiService.saveScanResult(
-          userId: userId,
-          plantName: result.label.toDisplayCrop(),
-          diseaseResult: result.label,
-          confidenceScore: result.refinedConfidence,
+      
+      // 1. Save to Local DB (Priority - for Stats & Offline View)
+      try {
+        await _dbService.saveScan(
+          diseaseName: result.label,
+          confidence: result.refinedConfidence,
+          causalFactor: result.answers.isNotEmpty 
+              ? "Refined via ${result.answers.where((a)=>a).length} positive symptoms" 
+              : "Direct Image Analysis",
+          imagePath: imagePath,
+          lat: lat,
+          lng: lng,
         );
+      } catch (e) {
+        debugPrint('Local history save error: $e');
+      }
+
+      // 2. Save to Remote Backend (Optional Background Sync)
+      if (userId.isNotEmpty) {
+        try {
+          await _apiService.saveScanResult(
+            userId: userId,
+            plantName: result.label.toDisplayCrop(),
+            diseaseResult: result.label,
+            confidenceScore: result.refinedConfidence,
+          );
+        } catch (e) {
+          debugPrint('Remote history save error (non-fatal): $e');
+        }
       }
     } catch (e) {
-      debugPrint('History save error (non-fatal): $e');
+      debugPrint('Persistence failure: $e');
     }
+
 
     if (!mounted) return;
 
@@ -457,7 +506,12 @@ class _ScannerScreenState extends State<ScannerScreen> with TickerProviderStateM
         ),
       ),
     ).then((_) {
-      if (mounted) setState(() => _isProcessing = false);
+      if (mounted) {
+        setState(() {
+          _isProcessing = false;
+          _isNavigationInProgress = false;
+        });
+      }
     });
   }
 
@@ -600,23 +654,34 @@ class _ScannerScreenState extends State<ScannerScreen> with TickerProviderStateM
         title: Row(
           children: const [
             Icon(Icons.wifi_off_rounded, color: Colors.redAccent),
-            SizedBox(width: 10),
-            Expanded(child: Text('Connection Error')),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: const [
-            Flexible(child: Text('Please verify your network status to sync crop data.')),
-            SizedBox(height: 15),
+            SizedBox(width: 12),
             Flexible(
               child: Text(
-                'سرور سے رابطہ نہیں ہو سکا۔ براہ کرم یقینی بنائیں کہ آپ کا نیٹ ورک آن ہے۔',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900),
+                'Connection Error',
+                style: TextStyle(fontWeight: FontWeight.bold),
+                overflow: TextOverflow.ellipsis,
               ),
             ),
           ],
+        ),
+        content: SingleChildScrollView(
+          child: ListBody(
+            children: const [
+              Text(
+                'Please verify your network status to sync crop data.',
+                style: TextStyle(fontSize: 15),
+              ),
+              SizedBox(height: 16),
+              Text(
+                'سرور سے رابطہ نہیں ہو سکا۔ براہ کرم یقینی بنائیں کہ آپ کا نیٹ ورک آن ہے۔',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  height: 1.5,
+                ),
+              ),
+            ],
+          ),
         ),
         actions: [
           TextButton(

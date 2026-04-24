@@ -19,6 +19,9 @@ dependencies:
   path_provider: ^2.1.4
   google_fonts: ^8.0.2
   flutter_dotenv: ^5.1.0
+  google_maps_flutter: ^2.10.0
+  geolocator: ^11.0.0
+  latlong2: ^0.9.1
 
   sqflite: ^2.3.0
   path: ^1.9.0
@@ -29,6 +32,10 @@ dependencies:
   fl_chart: ^0.70.2
   flutter_local_notifications: ^18.0.1
   timezone: ^0.10.0
+  lottie: ^3.3.3
+  sensors_plus: ^7.0.0
+  font_awesome_flutter: ^11.0.0
+  animations: ^2.2.0
 
 dev_dependencies:
   flutter_test:
@@ -37,9 +44,11 @@ dev_dependencies:
   flutter_launcher_icons: ^0.13.1
 
 flutter_launcher_icons:
-  android: "ic_launcher"
+  android: true
   ios: true
   image_path: "assets/images/LOGO_.png"
+  adaptive_icon_background: "#0A1108"
+  adaptive_icon_foreground: "assets/images/LOGO_.png"
   min_sdk_android: 21
 
 flutter:

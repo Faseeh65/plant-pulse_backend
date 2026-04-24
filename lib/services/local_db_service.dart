@@ -18,7 +18,7 @@ class LocalDbService {
     final String path = join(await getDatabasesPath(), 'plant_pulse.db');
     return await openDatabase(
       path,
-      version: 1,
+      version: 2,
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE scans(
@@ -29,9 +29,17 @@ class LocalDbService {
             image_path TEXT,
             image_url TEXT,
             is_synced INTEGER DEFAULT 0,
+            lat REAL,
+            lng REAL,
             created_at TEXT
           )
         ''');
+      },
+      onUpgrade: (db, oldVersion, newVersion) async {
+        if (oldVersion < 2) {
+          await db.execute('ALTER TABLE scans ADD COLUMN lat REAL');
+          await db.execute('ALTER TABLE scans ADD COLUMN lng REAL');
+        }
       },
     );
   }

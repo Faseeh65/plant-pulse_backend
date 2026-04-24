@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../services/api_service.dart';
+import '../services/database_service.dart';
 import 'results_screen.dart';
 import '../utils/string_extensions.dart';
 
@@ -13,8 +13,8 @@ class HistoryScreen extends StatefulWidget {
 }
 
 class _HistoryScreenState extends State<HistoryScreen> with TickerProviderStateMixin {
-  final _apiService = ApiService();
-  late Future<List<dynamic>> _historyFuture;
+  final _dbService = DatabaseService();
+  late Future<List<Map<String, dynamic>>> _historyFuture;
 
   // Animations
   late AnimationController _listController;
@@ -44,9 +44,8 @@ class _HistoryScreenState extends State<HistoryScreen> with TickerProviderStateM
   }
 
   void _loadHistory() {
-    final userId = Supabase.instance.client.auth.currentUser?.id ?? '';
     setState(() {
-      _historyFuture = _apiService.getHistory(userId);
+      _historyFuture = _dbService.getUserScanHistory();
     });
     _listController.forward(from: 0.0);
   }
@@ -127,9 +126,11 @@ class _HistoryScreenState extends State<HistoryScreen> with TickerProviderStateM
   }
 
   Widget _buildHistoryCard(Map<String, dynamic> scan) {
-    final String crop = scan['crop_name'] ?? 'Crop';
-    final String disease = scan['disease_result'] ?? 'Unknown';
+    final String disease = scan['disease_name'] ?? 'Unknown';
+    final String crop = (disease).toDisplayCrop();
     final String dateString = scan['created_at'] ?? '';
+    final bool isSynced = scan['is_synced'] == 1;
+    
     String date = '';
     if (dateString.isNotEmpty) {
       try {
@@ -139,7 +140,7 @@ class _HistoryScreenState extends State<HistoryScreen> with TickerProviderStateM
       }
     }
     
-    final double confidence = (scan['confidence_score'] as num?)?.toDouble() ?? 0.0;
+    final double confidence = (scan['confidence'] as num?)?.toDouble() ?? 0.0;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -179,7 +180,11 @@ class _HistoryScreenState extends State<HistoryScreen> with TickerProviderStateM
                 Text('Confidence / یقین: ${(confidence * 100).toStringAsFixed(1)}%', 
                   style: TextStyle(fontWeight: FontWeight.w600, color: Theme.of(context).primaryColor.withOpacity(0.8), fontSize: 12)),
                 const Spacer(),
-                const Icon(Icons.cloud_done, size: 14, color: Colors.green),
+                Icon(
+                  isSynced ? Icons.cloud_done_rounded : Icons.cloud_off_rounded,
+                  size: 16,
+                  color: isSynced ? Colors.greenAccent : Colors.white24,
+                ),
               ],
             ),
           ],
