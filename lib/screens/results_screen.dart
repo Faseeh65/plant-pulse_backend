@@ -495,6 +495,9 @@ class _ResultsScreenState extends State<ResultsScreen> with TickerProviderStateM
   }
 
   Widget _buildTreatmentActions() {
+    final String treatment = _rule?.treatmentEn ?? widget.diagnosisData.instruction;
+    final String prevention = _rule?.prevention ?? 'Monitor crop regularly.';
+    
     return Padding(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -504,9 +507,19 @@ class _ResultsScreenState extends State<ResultsScreen> with TickerProviderStateM
           const SizedBox(height: 16),
           Row(
             children: [
-              _buildActionTile('Fungicide Application', 'Apply Tricyclazole', Icons.colorize_outlined, Colors.teal),
+              _buildActionTile(
+                'Primary Treatment', 
+                treatment.split('.').first, // Take first instruction for tile
+                Icons.colorize_outlined, 
+                Colors.teal
+              ),
               const SizedBox(width: 12),
-              _buildActionTile('Nitrogen Control', r'Adjust $N_2$ Levels', Icons.science_outlined, Colors.indigo),
+              _buildActionTile(
+                'Preventive Measure', 
+                prevention.split('.').first, 
+                Icons.science_outlined, 
+                Colors.indigo
+              ),
             ],
           ),
           const SizedBox(height: 24),
