@@ -89,7 +89,7 @@ class RiceInferenceEngine:
         # We use all ones (1.0) to tell the model to pay attention to the whole image
         if len(self.input_details) > 1:
             dummy_shape = self.input_details[1]['shape']
-            dummy_mask = np.ones(dummy_shape, dtype=np.float32)
+            dummy_mask = np.zeros(dummy_shape, dtype=np.float32)
         else:
             dummy_mask = None
 
