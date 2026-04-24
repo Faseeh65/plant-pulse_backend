@@ -11,21 +11,71 @@ class SplashScreen extends StatefulWidget {
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _fadeAnimation;
+class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMixin {
+  late AnimationController _entranceController;
+  late AnimationController _breathingController;
+  late AnimationController _floatingController;
+
+  late Animation<double> _logoScaleAnimation;
+  late Animation<double> _breathingAnimation;
+  late Animation<double> _appNameFadeAnimation;
+  late Animation<Offset> _appNameSlideAnimation;
+
   String _status = 'Initializing...';
   bool _isError = false;
 
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
+
+    _entranceController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1500),
+      duration: const Duration(milliseconds: 2000),
     );
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(_controller);
-    _controller.forward();
+
+    // 1. Logo entrance: scale from 0.0 to 1.0 with elastic curve
+    _logoScaleAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _entranceController,
+        curve: const Interval(0.0, 0.6, curve: Curves.elasticOut),
+      ),
+    );
+
+    // 2. App name fade-in slides up from bottom
+    _appNameFadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _entranceController,
+        curve: const Interval(0.6, 1.0, curve: Curves.easeInOut),
+      ),
+    );
+    _appNameSlideAnimation = Tween<Offset>(begin: const Offset(0, 0.5), end: Offset.zero).animate(
+      CurvedAnimation(
+        parent: _entranceController,
+        curve: const Interval(0.6, 1.0, curve: Curves.easeOutCubic),
+      ),
+    );
+
+    // 3. Subtle breathing animation
+    _breathingController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2000),
+    );
+    _breathingAnimation = Tween<double>(begin: 1.0, end: 1.05).animate(
+      CurvedAnimation(
+        parent: _breathingController,
+        curve: Curves.easeInOut,
+      ),
+    );
+
+    _entranceController.forward().then((_) {
+      if (mounted) _breathingController.repeat(reverse: true);
+    });
+
+    // 4. Background floating particles
+    _floatingController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 10),
+    )..repeat();
 
     _performStartupChecks();
   }
@@ -34,7 +84,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     setState(() => _status = 'Checking Server Connectivity...');
     
     // Minimum wait for animation/branding
-    await Future.delayed(const Duration(seconds: 2));
+    await Future.delayed(const Duration(seconds: 3));
 
     final isHealthy = await ApiService().checkHealth();
 
@@ -53,7 +103,6 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
 
     if (mounted) {
       try {
-        // Guard: Supabase.instance may throw if keys were missing at startup
         final session = Supabase.instance.client.auth.currentSession;
         if (session != null) {
           Navigator.pushReplacementNamed(context, '/home');
@@ -61,7 +110,6 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
           Navigator.pushReplacementNamed(context, '/auth');
         }
       } catch (e) {
-        // Supabase not initialized — go straight to auth screen
         debugPrint('⚠️ Supabase not initialized, redirecting to auth: $e');
         Navigator.pushReplacementNamed(context, '/auth');
       }
@@ -70,61 +118,169 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
 
   @override
   void dispose() {
-    _controller.dispose();
+    _entranceController.dispose();
+    _breathingController.dispose();
+    _floatingController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final disableAnimations = MediaQuery.of(context).disableAnimations;
+
     return Scaffold(
-      backgroundColor: const Color(0xFF0A1108), // Near black dark green
-      body: Center(
-        child: FadeTransition(
-          opacity: _fadeAnimation,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // Leaf Logo (Using High-Res Logo provided by User)
-              Image.asset(
-                AppAssets.appIcon,
-                height: 180,
-                fit: BoxFit.contain,
-              ),
-              const SizedBox(height: 24),
-              Text(
-                'Plant Pulse',
-                style: TextStyle(
-                  fontSize: 42,
-                  fontWeight: FontWeight.bold,
-                  color: const Color(0xFF6CFB7B),
-                  letterSpacing: 2.0,
-                  fontFamily: 'Poppins',
-                ),
-              ),
-              const SizedBox(height: 48),
-              Text(
-                _status,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: _isError ? Colors.redAccent : Colors.white70,
-                  fontSize: 16,
-                ),
-              ),
-              if (_isError) ...[
-                const SizedBox(height: 24),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF6CFB7B),
-                    foregroundColor: Colors.black,
+      backgroundColor: const Color(0xFF0A1108), // Dark Green Background
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          // Background floating particles
+          if (!disableAnimations)
+            AnimatedBuilder(
+              animation: _floatingController,
+              builder: (context, child) {
+                return CustomPaint(
+                  painter: _ParticlesPainter(
+                    progress: _floatingController.value,
                   ),
-                  onPressed: _performStartupChecks,
-                  child: const Text('Retry Connection'),
+                );
+              },
+            ),
+
+          // Main Content
+          Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // Logo with entrance and breathing
+                AnimatedBuilder(
+                  animation: Listenable.merge([_entranceController, _breathingController]),
+                  builder: (context, child) {
+                    double scale = disableAnimations ? 1.0 : _logoScaleAnimation.value;
+                    if (_entranceController.isCompleted && !disableAnimations) {
+                      scale = _breathingAnimation.value;
+                    }
+                    return Transform.scale(
+                      scale: scale,
+                      child: child,
+                    );
+                  },
+                  child: Image.asset(
+                    AppAssets.appIcon,
+                    width: 230,
+                    height: 230,
+                    fit: BoxFit.contain,
+                  ),
                 ),
+                const SizedBox(height: 24),
+
+                // App Name with slide-up fade
+                AnimatedBuilder(
+                  animation: _entranceController,
+                  builder: (context, child) {
+                    return SlideTransition(
+                      position: disableAnimations ? const AlwaysStoppedAnimation(Offset.zero) : _appNameSlideAnimation,
+                      child: FadeTransition(
+                        opacity: disableAnimations ? const AlwaysStoppedAnimation(1.0) : _appNameFadeAnimation,
+                        child: child,
+                      ),
+                    );
+                  },
+                  child: const Text(
+                    'Plant Pulse',
+                    style: TextStyle(
+                      fontSize: 36,
+                      fontWeight: FontWeight.w900,
+                      color: Color(0xFF6CFB7B),
+                      letterSpacing: 2.0,
+                      fontFamily: 'Poppins',
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 48),
+
+                // Status Text
+                AnimatedBuilder(
+                  animation: _entranceController,
+                  builder: (context, child) {
+                    return FadeTransition(
+                      opacity: disableAnimations ? const AlwaysStoppedAnimation(1.0) : _appNameFadeAnimation,
+                      child: child,
+                    );
+                  },
+                  child: Text(
+                    _status,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: _isError ? Colors.redAccent : Colors.white70,
+                      fontSize: 16,
+                    ),
+                  ),
+                ),
+
+                if (_isError) ...[
+                  const SizedBox(height: 24),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF6CFB7B),
+                      foregroundColor: Colors.black,
+                    ),
+                    onPressed: _performStartupChecks,
+                    child: const Text('Retry Connection'),
+                  ),
+                ],
               ],
-            ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
+}
+
+class _ParticlesPainter extends CustomPainter {
+  final double progress;
+
+  _ParticlesPainter({required this.progress});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = const Color(0xFF6CFB7B).withOpacity(0.1)
+      ..style = PaintingStyle.fill;
+
+    final particles = [
+      _Particle(0.2, 0.8, 15, 1.2),
+      _Particle(0.7, 0.6, 20, 0.8),
+      _Particle(0.4, 0.3, 10, 1.5),
+      _Particle(0.8, 0.1, 25, 0.9),
+      _Particle(0.3, 0.9, 12, 1.1),
+      _Particle(0.6, 0.4, 18, 1.3),
+    ];
+
+    for (var p in particles) {
+      double yOffset = (progress * p.speed) % 1.0;
+      double currentY = (p.startY - yOffset);
+      if (currentY < 0) currentY += 1.0;
+
+      canvas.drawCircle(
+        Offset(size.width * p.startX, size.height * currentY),
+        p.radius,
+        paint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _ParticlesPainter oldDelegate) {
+    return oldDelegate.progress != progress;
+  }
+}
+
+class _Particle {
+  final double startX;
+  final double startY;
+  final double radius;
+  final double speed;
+
+  _Particle(this.startX, this.startY, this.radius, this.speed);
 }
