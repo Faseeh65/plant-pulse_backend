@@ -51,8 +51,9 @@ class RiceInferenceEngine:
             img = Image.open(io.BytesIO(image_bytes))
             
             # 1. Get expected input shape
-            expected_shape = self.input_details[0]['shape'] # e.g. [1, 224, 224, 1] or [1, 224, 224, 3]
-            expected_channels = expected_shape[-1]
+            # Determine expected channels from model metadata (look for the RGB input)
+            rgb_input = next((d for d in self.input_details if d['shape'][-1] == 3), self.input_details[0])
+            expected_channels = rgb_input['shape'][-1]
             
             # 2. Convert image to match expected channels
             if expected_channels == 1:
@@ -94,13 +95,29 @@ class RiceInferenceEngine:
             dummy_mask = None
 
         try:
-            # 3. Set Tensors
-            # We use a loop or explicit indices to feed BOTH inputs
-            # Index 0: The Image | Index 1: The Mask
-            self.interpreter.set_tensor(self.input_details[0]['index'], input_data)
+            # 3. Set Tensors (Dynamic Shape-Based Mapping)
+            rgb_index = None
+            mask_index = None
             
-            if len(self.input_details) > 1:
-                self.interpreter.set_tensor(self.input_details[1]['index'], dummy_mask)
+            for detail in self.input_details:
+                if detail['shape'][-1] == 3:
+                    rgb_index = detail['index']
+                elif detail['shape'][-1] == 1:
+                    mask_index = detail['index']
+
+            # --- DIAGNOSTIC LOGS ---
+            print(f"DEBUG: Found RGB Index: {rgb_index}, Mask Index: {mask_index}")
+            print(f"DEBUG: input_data shape: {input_data.shape}")
+            print(f"DEBUG: dummy_mask shape: {dummy_mask.shape if dummy_mask is not None else 'None'}")
+            # -----------------------
+
+            # Feed the Image
+            if rgb_index is not None:
+                self.interpreter.set_tensor(rgb_index, input_data)
+            
+            # Feed the Mask
+            if mask_index is not None:
+                self.interpreter.set_tensor(mask_index, dummy_mask)
             
             # 4. Run Inference
             self.interpreter.invoke()
