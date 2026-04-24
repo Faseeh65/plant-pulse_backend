@@ -60,7 +60,7 @@ class RiceInferenceEngine:
             elif expected_channels == 3:
                 img = img.convert('RGB')
             elif expected_channels == 4:
-                img = img.convert('RGBA')
+                img = img.convert('RGB')
             
             # 1. Resize and Normalize
             img = img.resize((224, 224))
