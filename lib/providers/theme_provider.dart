@@ -67,25 +67,32 @@ class ThemeProvider extends ChangeNotifier {
   static ThemeData get lightTheme {
     final base = ThemeData(brightness: Brightness.light);
     return base.copyWith(
-      primaryColor: const Color(0xFF1B5E20),
-      scaffoldBackgroundColor: const Color(0xFFF4FAF4), // Morning Mist
-      colorScheme: const ColorScheme.light(
-        primary: Color(0xFF1B5E20),
-        secondary: Color(0xFF2E7D32),
-        surface: Color(0xFFFFFFFF),
+      primaryColor: const Color(0xFF1B5E20), // Deep Forest Green
+      scaffoldBackgroundColor: const Color(0xFFF9FDF9), // Mint Mist
+      colorScheme: ColorScheme.light(
+        primary: const Color(0xFF1B5E20),
+        secondary: const Color(0xFF388E3C),
+        surface: const Color(0xFFFFFFFF),
+        surfaceContainerHighest: const Color(0xFFE8F5E9), // Soft Sage
         onPrimary: Colors.white,
-        onSurface: Color(0xFF1A1A1A),
+        onSurface: const Color(0xFF0D1B0D), // Dark Moss
       ),
       cardColor: const Color(0xFFFFFFFF),
       cardTheme: _cardTheme.copyWith(
-        elevation: 20,
-        shadowColor: const Color(0xFF1B5E20).withOpacity(0.08),
+        elevation: 8,
+        shadowColor: const Color(0xFF1B5E20).withOpacity(0.05),
+      ),
+      appBarTheme: const AppBarTheme(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        iconTheme: IconThemeData(color: Color(0xFF1B5E20)),
+        centerTitle: true,
       ),
       elevatedButtonTheme: _buttonTheme,
-      dividerColor: Colors.black.withOpacity(0.06),
+      dividerColor: const Color(0xFF1B5E20).withOpacity(0.1),
       textTheme: GoogleFonts.interTextTheme(base.textTheme).apply(
-        bodyColor: const Color(0xFF1A1A1A),
-        displayColor: const Color(0xFF1A1A1A),
+        bodyColor: const Color(0xFF0D1B0D),
+        displayColor: const Color(0xFF0D1B0D),
       ),
     );
   }

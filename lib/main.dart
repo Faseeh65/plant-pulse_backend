@@ -56,15 +56,7 @@ Future<void> main() async {
   final bool savedIsDark = await ThemeProvider.getSavedTheme();
   final themeProvider = ThemeProvider(savedIsDark);
 
-  SystemChrome.setSystemUIOverlayStyle(
-    const SystemUiOverlayStyle(
-      statusBarColor: Colors.transparent,
-      statusBarIconBrightness: Brightness.light,
-      systemNavigationBarColor: Color(0xFF0A1108),
-      systemNavigationBarIconBrightness: Brightness.light,
-    ),
-  );
-
+  // Theme and Locale will be managed inside the build method via Providers
   runApp(
     MultiProvider(
       providers: [
@@ -83,8 +75,19 @@ class PlantPulseApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final locale = context.watch<LocaleProvider>().locale;
     final themeProvider = context.watch<ThemeProvider>();
+    final locale = context.watch<LocaleProvider>().locale;
+
+    // Apply dynamic status bar/nav bar brightness based on current theme
+    SystemChrome.setSystemUIOverlayStyle(
+      SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: themeProvider.isDarkMode ? Brightness.light : Brightness.dark,
+        statusBarBrightness: themeProvider.isDarkMode ? Brightness.dark : Brightness.light,
+        systemNavigationBarColor: themeProvider.isDarkMode ? const Color(0xFF0A1108) : Colors.white,
+        systemNavigationBarIconBrightness: themeProvider.isDarkMode ? Brightness.light : Brightness.dark,
+      ),
+    );
 
     return MaterialApp(
       title: 'PlantPulse',
