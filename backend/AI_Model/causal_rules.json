@@ -1,89 +1,100 @@
 {
-  "BacterialLeafBlight": {
+  "bacterial_leaf_blight": {
     "name_en": "Bacterial Leaf Blight",
     "name_ur": "بیکٹیریل لیف بلائٹ",
     "scientific_name": "Xanthomonas oryzae pv. oryzae",
-    "symptoms": "Water-soaked lesions at leaf tips and margins that turn yellow, then brown. Leaves dry out completely in severe cases (kresek stage).",
-    "cause": "A bacterial infection spread by wind, rain splash, and irrigation water. Enters through wounds or hydathodes. High nitrogen levels increase susceptibility.",
-    "favorable_conditions": "High humidity, heavy rainfall, standing water, and temperatures between 25–34°C.",
-    "spread": "Wind-driven rain, infected seeds, contaminated tools, and irrigation water.",
+    "symptoms": "Water-soaked stripes on leaf blades that turn yellow and then grayish-white.",
+    "cause": "Bacterial infection entering through wounds or natural openings in the plant.",
+    "favorable_conditions": "High humidity, heavy rain, and warm temperatures (25-34°C).",
+    "spread": "Wind, rain splashes, and irrigation water.",
     "severity_level": "High",
-    "affected_stage": "Seedling to tillering stage (most destructive early stage).",
-    "treatment_en": "1. Apply copper-based bactericides (Copper Oxychloride). 2. Maintain proper drainage. 3. Avoid excess nitrogen fertilizer. 4. Use resistant rice varieties (e.g., IR varieties).",
-    "treatment_ur": "1۔ کاپر آکسی کلورائڈ استعمال کریں۔ 2۔ کھیت میں پانی کا نکاس بہتر کریں۔ 3۔ نائٹروجن کھاد کم کریں۔ 4۔ مزاحم اقسام استعمال کریں۔",
-    "prevention": "Use certified seeds, avoid dense planting, maintain field hygiene, and monitor regularly."
+    "affected_stage": "Maximum tillering to heading stage.",
+    "treatment_en": "1. Drain the field to reduce humidity. 2. Apply copper-based bactericides. 3. Avoid excessive nitrogen fertilizer.",
+    "treatment_ur": "1۔ کھیت سے پانی نکال دیں۔ 2۔ کاپر پر مبنی جراثیم کش ادویات کا سپرے کریں۔ 3۔ نائٹروجن کھاد کا زیادہ استعمال نہ کریں۔",
+    "prevention": "Use resistant varieties and ensure proper field drainage."
   },
-
-  "BrownSpot": {
+  "brown_spot": {
     "name_en": "Brown Spot",
-    "name_ur": "براؤن سپاٹ",
-    "scientific_name": "Cochliobolus miyabeanus",
-    "symptoms": "Small circular to oval brown lesions with grey centers. Can appear on leaves, grains, and seedlings.",
-    "cause": "Fungal disease due to nutrient deficiency (especially Potassium and Nitrogen imbalance).",
-    "favorable_conditions": "Dry conditions, poor soil fertility, temperatures around 25–30°C.",
-    "spread": "Airborne spores, infected seeds, and crop residue.",
+    "name_ur": "براؤن سپاٹ (بھورے دھبے)",
+    "scientific_name": "Bipolaris oryzae",
+    "symptoms": "Many small, circular to oval, dark brown spots on the leaves.",
+    "cause": "Fungal infection, often indicating poor soil nutrition.",
+    "favorable_conditions": "High humidity and nutrient-deficient soils.",
+    "spread": "Airborne spores and infected seeds.",
     "severity_level": "Medium",
-    "affected_stage": "All growth stages, especially grain filling stage.",
-    "treatment_en": "1. Apply fungicides like Mancozeb or Iprodione. 2. Improve soil fertility using Potassium. 3. Treat seeds before sowing.",
-    "treatment_ur": "1۔ مینکوزیب استعمال کریں۔ 2۔ پوٹاشیم شامل کریں۔ 3۔ بیج کو پہلے ٹریٹ کریں۔",
-    "prevention": "Balanced fertilization, proper irrigation, and use of healthy seeds."
+    "affected_stage": "Seedling to maturity.",
+    "treatment_en": "1. Apply soil nutrients, especially Potassium. 2. Spray Mancozeb or Propiconazole. 3. Treat seeds before planting.",
+    "treatment_ur": "1۔ مٹی میں پوٹاشیم کی کمی پوری کریں۔ 2۔ مانکوزیب کا سپرے کریں۔ 3۔ بیج کو بونے سے پہلے دوائی لگائیں۔",
+    "prevention": "Balanced fertilization and crop rotation."
   },
-
-  "Healthy": {
-    "name_en": "Healthy Rice Leaf",
-    "name_ur": "صحت مند چاول کا پتہ",
-    "scientific_name": "N/A",
-    "symptoms": "Green, upright leaves with no visible lesions or discoloration.",
-    "cause": "No infection present.",
-    "favorable_conditions": "Proper sunlight, irrigation, and balanced nutrients.",
+  "healthy": {
+    "name_en": "Healthy Rice Plant",
+    "name_ur": "صحت مند چاول کا پودا",
+    "scientific_name": "Oryza sativa",
+    "symptoms": "Leaves are uniformly green with no spots, lesions, or yellowing.",
+    "cause": "Optimal growing conditions and absence of pathogens.",
+    "favorable_conditions": "Balanced nutrients, proper water management, and good sunlight.",
+    "spread": "N/A",
     "severity_level": "None",
-    "treatment_en": "No treatment required. Continue monitoring and maintain irrigation and fertilization schedule.",
-    "treatment_ur": "کسی علاج کی ضرورت نہیں۔ معمول کی دیکھ بھال جاری رکھیں۔",
-    "prevention": "Regular field inspection and pest monitoring."
+    "affected_stage": "All stages.",
+    "treatment_en": "No treatment required. Continue standard agricultural practices.",
+    "treatment_ur": "کسی علاج کی ضرورت نہیں۔ معمول کے مطابق دیکھ بھال جاری رکھیں۔",
+    "prevention": "Maintain current fertilizer and irrigation schedules."
   },
-
-  "LeafBlast": {
-    "name_en": "Leaf Blast",
-    "name_ur": "لیف بلاسٹ",
+  "leaf_blast": {
+    "name_en": "Rice Blast",
+    "name_ur": "رائس بلاسٹ",
     "scientific_name": "Magnaporthe oryzae",
-    "symptoms": "Diamond-shaped lesions with grey centers and dark borders on leaves.",
-    "cause": "Fungal infection promoted by high humidity and excessive nitrogen use.",
-    "favorable_conditions": "Cool nights (20–26°C), high humidity (>90%), and leaf wetness.",
-    "spread": "Airborne spores and infected crop debris.",
-    "severity_level": "Very High",
-    "affected_stage": "Seedling to reproductive stage.",
-    "treatment_en": "1. Use Tricyclazole or Carbendazim fungicides. 2. Reduce nitrogen usage. 3. Maintain proper water levels.",
-    "treatment_ur": "1۔ ٹرائیسائکلازول استعمال کریں۔ 2۔ یوریا کم کریں۔ 3۔ پانی کی سطح برقرار رکھیں۔",
-    "prevention": "Resistant varieties, proper spacing, and avoiding over-fertilization."
+    "symptoms": "Diamond-shaped or eye-shaped lesions with gray centers and dark brown borders.",
+    "cause": "Aggressive fungal pathogen that attacks leaves, collars, and panicles.",
+    "favorable_conditions": "Cool nights, warm days, and extended periods of dew.",
+    "spread": "Airborne spores carried by wind.",
+    "severity_level": "Critical",
+    "affected_stage": "All growth stages.",
+    "treatment_en": "1. Apply Tricyclazole or Isoprothiolane immediately. 2. Do not let the field dry out. 3. Split nitrogen applications.",
+    "treatment_ur": "1۔ ٹرائی سائیکلازول کا فوری سپرے کریں۔ 2۔ کھیت کو خشک نہ ہونے دیں۔ 3۔ نائٹروجن کھاد کو قسطوں میں ڈالیں۔",
+    "prevention": "Plant resistant varieties and manage water levels carefully."
   },
-
-  "LeafScald": {
+  "leaf_scald": {
     "name_en": "Leaf Scald",
     "name_ur": "لیف اسکالڈ",
     "scientific_name": "Monographella albescens",
     "symptoms": "Irregular lesions with light centers and dark brown margins, giving a scalded appearance.",
     "cause": "Fungal disease transmitted via infected seeds and plant debris.",
-    "favorable_conditions": "Warm, wet tropical climates.",
-    "spread": "Infected seeds and field residues.",
+    "favorable_conditions": "Warm, wet tropical climates and high nitrogen levels.",
+    "spread": "Infected seeds, water splashes, and field residues.",
     "severity_level": "Medium",
     "affected_stage": "Late vegetative to reproductive stage.",
     "treatment_en": "1. Apply Benomyl or Thiophanate-methyl. 2. Use clean seeds. 3. Practice crop rotation.",
     "treatment_ur": "1۔ بینومائل استعمال کریں۔ 2۔ صاف بیج استعمال کریں۔ 3۔ فصلوں کی تبدیلی کریں۔",
     "prevention": "Field sanitation and certified seeds."
   },
-
-  "NarrowBrownSpot": {
+  "narrow_brown_spot": {
     "name_en": "Narrow Brown Spot",
     "name_ur": "نیرو براؤن سپاٹ",
     "scientific_name": "Cercospora janseana",
-    "symptoms": "Narrow, linear brown lesions mainly on leaves.",
-    "cause": "Fungal infection during later growth stages.",
-    "favorable_conditions": "High humidity and dense crop canopy.",
-    "spread": "Spores through wind and water.",
+    "symptoms": "Short, linear, brown lesions parallel to the leaf veins.",
+    "cause": "Fungal pathogen that thrives late in the growing season.",
+    "favorable_conditions": "Low soil potassium and late planting.",
+    "spread": "Wind-blown spores and infected plant residue.",
     "severity_level": "Low to Medium",
-    "affected_stage": "Heading stage.",
-    "treatment_en": "1. Use Propiconazole if infection is severe. 2. Grow resistant varieties.",
-    "treatment_ur": "1۔ پروپیکونازول سپرے کریں۔ 2۔ مزاحم اقسام اگائیں۔",
-    "prevention": "Proper spacing and resistant seeds."
+    "affected_stage": "Heading to maturity.",
+    "treatment_en": "1. Apply Propiconazole if the infection is severe. 2. Ensure adequate Potassium in the soil.",
+    "treatment_ur": "1۔ بیماری شدید ہونے پر پروپیکونازول کا سپرے کریں۔ 2۔ مٹی میں پوٹاشیم کی مقدار مناسب رکھیں۔",
+    "prevention": "Use early-maturing varieties and plow under crop residue."
+  },
+  "not_rice": {
+    "name_en": "Not a Rice Plant",
+    "name_ur": "یہ چاول کا پودا نہیں ہے",
+    "scientific_name": "Unknown",
+    "symptoms": "The uploaded image does not appear to contain a recognizable rice leaf.",
+    "cause": "Invalid image input.",
+    "favorable_conditions": "N/A",
+    "spread": "N/A",
+    "severity_level": "None",
+    "affected_stage": "N/A",
+    "treatment_en": "Please ensure you are taking a clear, focused picture of a rice leaf in good lighting.",
+    "treatment_ur": "براہ کرم یقینی بنائیں کہ آپ اچھی روشنی میں چاول کے پتے کی واضح تصویر لے رہے ہیں۔",
+    "prevention": "Ensure the subject is centered in the camera frame."
   }
 }
