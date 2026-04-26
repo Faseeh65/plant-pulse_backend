@@ -91,7 +91,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
     if (!isHealthy) {
       if (mounted) {
         setState(() {
-          _status = 'Backend Offline — Running in Demo Mode\nبیک اینڈ آف لائن — ڈیمو موڈ';
+          _status = 'Backend Offline — Running in Demo Mode';
           _isError = true;
         });
         // Give user 2 seconds to see warning, then continue anyway
@@ -190,7 +190,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                     style: TextStyle(
                       fontSize: 36,
                       fontWeight: FontWeight.w900,
-                      color: Color(0xFF6CFB7B),
+                      color: const Color(0xFF1B5E20),
                       letterSpacing: 2.0,
                       fontFamily: 'Poppins',
                     ),
@@ -221,7 +221,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                   const SizedBox(height: 24),
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF6CFB7B),
+                      backgroundColor: const Color(0xFF1B5E20),
                       foregroundColor: Colors.black,
                     ),
                     onPressed: _performStartupChecks,
@@ -245,7 +245,7 @@ class _ParticlesPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = const Color(0xFF6CFB7B).withOpacity(0.1)
+      ..color = const Color(0xFF1B5E20).withOpacity(0.1)
       ..style = PaintingStyle.fill;
 
     final particles = [

@@ -2,7 +2,9 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/disease_result.dart';
+import '../models/crop_summary.dart';
 
 class ApiService {
   // Use backend URL from .env or fallback to localhost (works with adb reverse)
@@ -267,51 +269,4 @@ class SprayReminder {
       );
 
   int get notifId => id.hashCode.abs() % 2147483647;
-}
-
-class TopDisease {
-  final String disease;
-  final int count;
-  final double percentage;
-
-  const TopDisease({
-    required this.disease,
-    required this.count,
-    required this.percentage,
-  });
-
-  factory TopDisease.fromJson(Map<String, dynamic> j) => TopDisease(
-        disease:    j['disease'] as String? ?? 'Unknown',
-        count:      (j['count'] as num?)?.toInt() ?? 0,
-        percentage: (j['percentage'] as num?)?.toDouble() ?? 0.0,
-      );
-}
-
-class CropSummary {
-  final int totalScans;
-  final int healthyCount;
-  final int diseasedCount;
-  final double healthyPct;
-  final double diseasedPct;
-  final List<TopDisease> topDiseases;
-
-  const CropSummary({
-    required this.totalScans,
-    required this.healthyCount,
-    required this.diseasedCount,
-    required this.healthyPct,
-    required this.diseasedPct,
-    required this.topDiseases,
-  });
-
-  factory CropSummary.fromJson(Map<String, dynamic> j) => CropSummary(
-        totalScans:    (j['total_scans']    as num?)?.toInt() ?? 0,
-        healthyCount:  (j['healthy_count']  as num?)?.toInt() ?? 0,
-        diseasedCount: (j['diseased_count'] as num?)?.toInt() ?? 0,
-        healthyPct:    (j['healthy_pct']    as num?)?.toDouble() ?? 0.0,
-        diseasedPct:   (j['diseased_pct']   as num?)?.toDouble() ?? 0.0,
-        topDiseases:   ((j['top_diseases'] as List?) ?? [])
-            .map((e) => TopDisease.fromJson(e as Map<String, dynamic>))
-            .toList(),
-      );
 }

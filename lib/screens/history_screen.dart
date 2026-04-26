@@ -4,6 +4,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/database_service.dart';
 import 'results_screen.dart';
 import '../utils/string_extensions.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'dart:ui';
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
@@ -55,9 +57,24 @@ class _HistoryScreenState extends State<HistoryScreen> with TickerProviderStateM
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        title: Text('Scan History', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900, color: Theme.of(context).primaryColor)),
+        title: Text(
+          'SCAN HISTORY', 
+          style: GoogleFonts.poppins(
+            fontWeight: FontWeight.w900, 
+            fontSize: 18,
+            letterSpacing: 1.2,
+            color: Theme.of(context).primaryColor,
+          ),
+        ),
         backgroundColor: Colors.transparent,
         elevation: 0,
+        centerTitle: true,
+        flexibleSpace: ClipRRect(
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+            child: Container(color: Colors.transparent),
+          ),
+        ),
         iconTheme: IconThemeData(color: Theme.of(context).textTheme.bodyLarge?.color),
       ),
       body: RefreshIndicator(
@@ -65,7 +82,7 @@ class _HistoryScreenState extends State<HistoryScreen> with TickerProviderStateM
           _loadHistory();
           await _historyFuture;
         },
-        color: const Color(0xFF6CFB7B),
+        color: Theme.of(context).primaryColor,
         child: FutureBuilder<List<dynamic>>(
           future: _historyFuture,
           builder: (context, snapshot) {
@@ -130,11 +147,13 @@ class _HistoryScreenState extends State<HistoryScreen> with TickerProviderStateM
     final String crop = (disease).toDisplayCrop();
     final String dateString = scan['created_at'] ?? '';
     final bool isSynced = scan['is_synced'] == 1;
+    final primaryColor = Theme.of(context).primaryColor;
     
     String date = '';
     if (dateString.isNotEmpty) {
       try {
-        date = DateTime.parse(dateString).toLocal().toString().split('.')[0];
+        final dt = DateTime.parse(dateString).toLocal();
+        date = '${dt.day}/${dt.month}/${dt.year}  ${dt.hour}:${dt.minute.toString().padLeft(2, '0')}';
       } catch (_) {
         date = dateString;
       }
@@ -145,49 +164,107 @@ class _HistoryScreenState extends State<HistoryScreen> with TickerProviderStateM
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: Theme.of(context).cardTheme.elevation != 0 
-            ? [BoxShadow(color: Theme.of(context).cardTheme.shadowColor ?? Colors.black12, blurRadius: 12, offset: const Offset(0, 4))] 
-            : null,
+        color: Theme.of(context).cardColor.withOpacity(0.6),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.white.withOpacity(0.1)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 12,
+            offset: const Offset(0, 8),
+          )
+        ],
       ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.all(16),
-        leading: Container(
-          width: 50,
-          height: 50,
-          decoration: BoxDecoration(
-            color: Theme.of(context).primaryColor.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Icon(Icons.eco, color: Theme.of(context).primaryColor),
-        ),
-        title: Text(crop.toDisplayDisease(), style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color, fontWeight: FontWeight.w900, fontSize: 16)),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 6),
-            Text(disease.toDisplayDisease(), style: TextStyle(color: Theme.of(context).primaryColor, fontWeight: FontWeight.w600, fontSize: 14)),
-            const SizedBox(height: 6),
-            Row(
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Row(
               children: [
-                Text('Date / تاریخ: $date', style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color?.withOpacity(0.5), fontSize: 12)),
-              ],
-            ),
-            const SizedBox(height: 6),
-            Row(
-              children: [
-                Text('Confidence / یقین: ${(confidence * 100).toStringAsFixed(1)}%', 
-                  style: TextStyle(fontWeight: FontWeight.w600, color: Theme.of(context).primaryColor.withOpacity(0.8), fontSize: 12)),
-                const Spacer(),
-                Icon(
-                  isSynced ? Icons.cloud_done_rounded : Icons.cloud_off_rounded,
-                  size: 16,
-                  color: isSynced ? Colors.greenAccent : Colors.white24,
+                Container(
+                  width: 60,
+                  height: 60,
+                  decoration: BoxDecoration(
+                    color: primaryColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Center(
+                    child: Icon(Icons.eco_rounded, color: primaryColor, size: 30),
+                  ),
+                ),
+                const SizedBox(width: 20),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        crop.toUpperCase(), 
+                        style: GoogleFonts.inter(
+                          color: primaryColor, 
+                          fontWeight: FontWeight.w900, 
+                          fontSize: 10,
+                          letterSpacing: 1.5,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        disease.toDisplayDisease(), 
+                        style: GoogleFonts.poppins(
+                          color: Theme.of(context).textTheme.bodyLarge?.color, 
+                          fontWeight: FontWeight.w800, 
+                          fontSize: 16,
+                          height: 1.2,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Icon(Icons.calendar_today_rounded, size: 10, color: Theme.of(context).textTheme.bodyLarge?.color?.withOpacity(0.4)),
+                          const SizedBox(width: 6),
+                          Text(
+                            date, 
+                            style: GoogleFonts.inter(
+                              color: Theme.of(context).textTheme.bodyLarge?.color?.withOpacity(0.5), 
+                              fontSize: 11,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: primaryColor.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              '${(confidence * 100).toStringAsFixed(1)}% CONFIDENCE', 
+                              style: GoogleFonts.inter(
+                                fontWeight: FontWeight.w900, 
+                                color: primaryColor, 
+                                fontSize: 9,
+                              ),
+                            ),
+                          ),
+                          const Spacer(),
+                          Icon(
+                            isSynced ? Icons.cloud_done_rounded : Icons.cloud_off_rounded,
+                            size: 14,
+                            color: isSynced ? primaryColor.withOpacity(0.8) : Theme.of(context).dividerColor,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -212,7 +289,7 @@ class _HistoryScreenState extends State<HistoryScreen> with TickerProviderStateM
           child: Icon(Icons.history_toggle_off, size: 80, color: Theme.of(context).textTheme.bodyLarge?.color?.withOpacity(0.1)),
         ),
         const SizedBox(height: 16),
-        Text('No scans yet\nابھی تک کوئی اسکین نہیں', textAlign: TextAlign.center, style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color?.withOpacity(0.5), fontSize: 18, fontWeight: FontWeight.w900)),
+        Text('No scans yet', textAlign: TextAlign.center, style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color?.withOpacity(0.5), fontSize: 18, fontWeight: FontWeight.w900)),
       ],
     );
   }
@@ -243,12 +320,9 @@ class _RotatingSproutState extends State<_RotatingSprout> with SingleTickerProvi
 
   @override
   Widget build(BuildContext context) {
-    if (MediaQuery.of(context).disableAnimations) {
-      return Icon(Icons.eco, color: const Color(0xFF6CFB7B), size: widget.size);
-    }
     return RotationTransition(
       turns: _controller,
-      child: Icon(Icons.eco, color: const Color(0xFF6CFB7B), size: widget.size),
+      child: Icon(Icons.eco, color: Theme.of(context).primaryColor, size: widget.size),
     );
   }
 }

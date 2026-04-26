@@ -118,7 +118,7 @@ class _ScannerScreenState extends State<ScannerScreen> with TickerProviderStateM
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: const Text(
-                'Unsupported image format or quality.\nغیر معاون تصویر فارمیٹ۔',
+                'Unsupported image format or quality.',
                 style: TextStyle(fontWeight: FontWeight.w900),
               ),
               backgroundColor: Colors.redAccent,
@@ -141,7 +141,7 @@ class _ScannerScreenState extends State<ScannerScreen> with TickerProviderStateM
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: const Text(
-                'Unsupported image format or quality. Image is too small.\nتصویر بہت چھوٹی ہے۔',
+                'Unsupported image format or quality. Image is too small.',
                 style: TextStyle(fontWeight: FontWeight.w900),
               ),
               backgroundColor: Colors.redAccent,
@@ -237,12 +237,12 @@ class _ScannerScreenState extends State<ScannerScreen> with TickerProviderStateM
           SnackBar(
             content: Text(
               isFormatError
-                  ? 'Unsupported image format or quality.\nغیر معاون تصویر فارمیٹ یا کوالٹی۔'
-                  : 'Scan Error: $e\nسکین میں خرابی آ گئی۔ دوبارہ کوشش کریں۔',
+                  ? 'Unsupported image format or quality.'
+                  : 'Scan Error: Unable to reach server. Please check your connection.',
               style: const TextStyle(fontWeight: FontWeight.w900),
             ),
             backgroundColor: Colors.redAccent,
-            duration: const Duration(seconds: 3),
+            duration: const Duration(seconds: 4),
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             margin: const EdgeInsets.all(16),
@@ -406,10 +406,12 @@ class _ScannerScreenState extends State<ScannerScreen> with TickerProviderStateM
           return;
         }
 
-        final isConnError = e.toString().contains('CONNECT') ||
-            e.toString().contains('SocketException') ||
-            e.toString().contains('TimeoutException') ||
-            e.toString().contains('CONNECTION_FAILED');
+        final String errStr = e.toString().toUpperCase();
+        final isConnError = errStr.contains('CONNECT') ||
+            errStr.contains('SOCKETEXCEPTION') ||
+            errStr.contains('TIMEOUTEXCEPTION') ||
+            errStr.contains('CONNECTION_FAILED') ||
+            errStr.contains('REFUSED');
 
         if (isConnError) {
           _showConnectionErrorDialog();
@@ -417,11 +419,11 @@ class _ScannerScreenState extends State<ScannerScreen> with TickerProviderStateM
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                'Scan Error: $e\nسکین میں خرابی آ گئی۔ دوبارہ کوشش کریں۔',
+                'Scan Error: $e',
                 style: const TextStyle(fontWeight: FontWeight.w900),
               ),
               backgroundColor: Colors.redAccent,
-              duration: const Duration(seconds: 3),
+              duration: const Duration(seconds: 5),
             ),
           );
         }
@@ -447,7 +449,7 @@ class _ScannerScreenState extends State<ScannerScreen> with TickerProviderStateM
       diseaseResult = DiseaseResult(
         disease: result.label,
         language: 'en',
-        instruction: 'Treatment data is currently unavailable. Please consult a local agricultural expert.\nعلاج کی معلومات دستیاب نہیں۔ مقامی زرعی ماہر سے مشورہ کریں۔',
+        instruction: 'Treatment data is currently unavailable. Please consult a local agricultural expert.',
         dosagePerAcre: 'N/A',
         recommendations: [],
       );
@@ -547,23 +549,17 @@ class _ScannerScreenState extends State<ScannerScreen> with TickerProviderStateM
               ),
             ),
             const SizedBox(height: 18),
-            const Text(
+            Text(
               'Unable to Analyze Image',
               style: TextStyle(
-                color: Colors.white,
+                color: Theme.of(context).textTheme.titleLarge?.color ?? Colors.black,
                 fontSize: 20,
                 fontWeight: FontWeight.w900,
                 letterSpacing: 0.3,
               ),
             ),
             const SizedBox(height: 6),
-            const Text(
-              'ناقابلِ شناخت اسکین',
-              style: TextStyle(
-                color: Colors.white54,
-                fontSize: 14,
-              ),
-            ),
+            const SizedBox(height: 1),
             const SizedBox(height: 20),
             if (e.confidence > 0 && e.confidence < ScanGuard.kConfidenceThreshold)
               Container(
@@ -583,7 +579,7 @@ class _ScannerScreenState extends State<ScannerScreen> with TickerProviderStateM
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: const Color(0xFF152213),
+                color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF152213) : const Color(0xFFF1F8E9),
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Column(
@@ -600,11 +596,7 @@ class _ScannerScreenState extends State<ScannerScreen> with TickerProviderStateM
                   const SizedBox(height: 14),
                   const Divider(color: Color(0xFF1E3A1A)),
                   const SizedBox(height: 10),
-                  const Text(
-                    'براہ کرم یقینی بنائیں کہ ایک حقیقی، واضح اور روشن پتہ فریم میں ہو۔',
-                    textDirection: TextDirection.rtl,
-                    style: TextStyle(color: Colors.white60, fontSize: 13, height: 1.5),
-                  ),
+                  const SizedBox(height: 1),
                 ],
               ),
             ),
@@ -614,14 +606,14 @@ class _ScannerScreenState extends State<ScannerScreen> with TickerProviderStateM
               height: 50,
               child: ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF6CFB7B),
-                  foregroundColor: Colors.black,
+                  backgroundColor: Theme.of(context).primaryColor,
+                  foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16)),
                 ),
                 icon: const Icon(Icons.camera_alt_outlined, size: 20),
                 label: const Text(
-                  'Try Again  •  دوبارہ کوشش کریں',
+                  'Try Again',
                   style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14),
                 ),
                 onPressed: () => Navigator.pop(ctx),
@@ -636,11 +628,15 @@ class _ScannerScreenState extends State<ScannerScreen> with TickerProviderStateM
   Widget _tipRow(IconData icon, String text) => Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: const Color(0xFF6CFB7B), size: 18),
+          Icon(icon, color: Theme.of(context).primaryColor, size: 18),
           const SizedBox(width: 10),
           Expanded(
-            child: Text(text,
-                style: const TextStyle(color: Colors.white70, fontSize: 13, height: 1.4)),
+              child: Text(text,
+                style: TextStyle(
+                  color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.8), 
+                  fontSize: 13, 
+                  height: 1.4
+                )),
           ),
         ],
       );
@@ -666,19 +662,14 @@ class _ScannerScreenState extends State<ScannerScreen> with TickerProviderStateM
         ),
         content: SingleChildScrollView(
           child: ListBody(
-            children: const [
+            children: [
               Text(
                 'Please verify your network status to sync crop data.',
                 style: TextStyle(fontSize: 15),
               ),
-              SizedBox(height: 16),
               Text(
-                'سرور سے رابطہ نہیں ہو سکا۔ براہ کرم یقینی بنائیں کہ آپ کا نیٹ ورک آن ہے۔',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  height: 1.5,
-                ),
+                'The server could not be reached. Please check your internet connection.',
+                style: TextStyle(fontSize: 14, color: Colors.grey[600]),
               ),
             ],
           ),
@@ -686,7 +677,7 @@ class _ScannerScreenState extends State<ScannerScreen> with TickerProviderStateM
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('OK / ٹھیک ہے', style: TextStyle(color: Color(0xFF2ECC71), fontWeight: FontWeight.w900)),
+            child: const Text('OK', style: TextStyle(color: Color(0xFF2ECC71), fontWeight: FontWeight.w900)),
           ),
         ],
       ),
@@ -696,7 +687,7 @@ class _ScannerScreenState extends State<ScannerScreen> with TickerProviderStateM
   void _showComingSoon(String feature) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('$feature — Feature Coming Soon\n$feature — جلد آ رہا ہے',
+        content: Text('$feature — Feature Coming Soon',
           style: const TextStyle(fontWeight: FontWeight.w900)),
         backgroundColor: const Color(0xFF2ECC71),
         duration: const Duration(seconds: 2),
@@ -754,7 +745,7 @@ class _ScannerScreenState extends State<ScannerScreen> with TickerProviderStateM
                               painter: _ScannerFramePainter(
                                 scanLineProgress: disableAnimations ? 0.5 : _scanLineAnimation.value,
                                 cornersProgress: disableAnimations ? 1.0 : _cornersAnimation.value,
-                                color: const Color(0xFF6CFB7B),
+                                  color: Theme.of(context).primaryColor,
                               ),
                             );
                           },
@@ -803,9 +794,9 @@ class _ScannerScreenState extends State<ScannerScreen> with TickerProviderStateM
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      'Analyzing leaf...\nپتے کا تجزیہ ہو رہا ہے...',
+                      'Analyzing leaf...',
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 14, fontWeight: FontWeight.w500),
+                      style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600),
                     ),
                   ],
                 ),
@@ -863,13 +854,10 @@ class _ScannerScreenState extends State<ScannerScreen> with TickerProviderStateM
                 height: 70,
                 width: 70,
                 decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF6CFB7B), Color(0xFF2ECC71)],
-                  ),
+                  color: const Color(0xFF1B5E20),
                   boxShadow: const [
                     BoxShadow(
-                      color: Color(0x442ECC71),
+                      color: Color(0x441B5E20),
                       blurRadius: 12,
                       offset: Offset(0, 3),
                     ),
@@ -962,11 +950,7 @@ class _ScannerFramePainter extends CustomPainter {
 
     // Sweep Glow Effect
     final glowPaint = Paint()
-      ..shader = LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        colors: [color.withOpacity(0.0), color.withOpacity(0.3), color.withOpacity(0.0)],
-      ).createShader(Rect.fromLTWH(0, y - 20, size.width, 40));
+      ..color = color.withOpacity(0.15);
     
     canvas.drawRect(Rect.fromLTWH(0, y - 20, size.width, 40), glowPaint);
   }

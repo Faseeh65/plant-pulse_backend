@@ -26,7 +26,7 @@ Future<void> main() async {
 
   // Init notification channel + timezone DB before anything else
   await NotificationService.instance.init();
-  
+
   await dotenv.load(fileName: ".env");
 
   // --- Session Guard Deployment ---
@@ -35,10 +35,7 @@ Future<void> main() async {
 
   if (supabaseUrl.isNotEmpty && supabaseAnonKey.isNotEmpty) {
     try {
-      await Supabase.initialize(
-        url: supabaseUrl,
-        anonKey: supabaseAnonKey,
-      );
+      await Supabase.initialize(url: supabaseUrl, anonKey: supabaseAnonKey);
     } catch (e) {
       debugPrint('⚠️ Supabase Connection Failed: $e');
     }
@@ -82,10 +79,18 @@ class PlantPulseApp extends StatelessWidget {
     SystemChrome.setSystemUIOverlayStyle(
       SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
-        statusBarIconBrightness: themeProvider.isDarkMode ? Brightness.light : Brightness.dark,
-        statusBarBrightness: themeProvider.isDarkMode ? Brightness.dark : Brightness.light,
-        systemNavigationBarColor: themeProvider.isDarkMode ? const Color(0xFF0A1108) : Colors.white,
-        systemNavigationBarIconBrightness: themeProvider.isDarkMode ? Brightness.light : Brightness.dark,
+        statusBarIconBrightness: themeProvider.isDarkMode
+            ? Brightness.light
+            : Brightness.dark,
+        statusBarBrightness: themeProvider.isDarkMode
+            ? Brightness.dark
+            : Brightness.light,
+        systemNavigationBarColor: themeProvider.isDarkMode
+            ? const Color(0xFF0A1108)
+            : ThemeProvider.lightBackground,
+        systemNavigationBarIconBrightness: themeProvider.isDarkMode
+            ? Brightness.light
+            : Brightness.dark,
       ),
     );
 
@@ -97,6 +102,14 @@ class PlantPulseApp extends StatelessWidget {
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       initialRoute: '/',
+      builder: (context, child) {
+        return AnimatedTheme(
+          data: themeProvider.currentTheme,
+          duration: const Duration(milliseconds: 600),
+          curve: Curves.easeInOut,
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
       routes: {
         '/': (context) => const SplashScreen(),
         '/auth': (context) => const AuthScreen(),

@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'local_db_service.dart';
 import 'storage_service.dart';
 import 'package:uuid/uuid.dart';
+import '../models/crop_summary.dart';
 
 class DatabaseService {
   final _client = Supabase.instance.client;
@@ -87,7 +88,7 @@ class DatabaseService {
       final sanitizedUrl = Uri.tryParse(imageUrl)?.toString() ?? imageUrl;
 
       // Save to Supabase (Protected by PostgREST parametrization)
-      await _client.from('scans').insert({
+      await _client.from('scan_history').insert({
         'user_id': userId,
         'disease_name': disease,
         'confidence': conf,
@@ -135,5 +136,85 @@ class DatabaseService {
   /// Gets analytic summary for the Home Page
   Future<Map<String, dynamic>> getFieldSummary() async {
     return await _localDb.getWeeklyStats();
+  }
+
+  /// Fetches aggregated crop statistics (Compatible with StatsScreen)
+  Future<CropSummary> fetchCropSummary(String userId) async {
+    // 1. Get Local Scans
+    var allScans = await _localDb.getAllScans();
+
+    // 2. If local is empty and we have a userId, try fetching from Supabase
+    if (allScans.isEmpty && userId.isNotEmpty) {
+      try {
+        final remoteScans = await _client
+            .from('scan_history')
+            .select()
+            .eq('user_id', userId)
+            .order('created_at', ascending: false);
+        
+        if (remoteScans != null && remoteScans.isNotEmpty) {
+          // Cache remote scans locally for next time
+          for (var s in remoteScans) {
+            await _localDb.insertScan({
+              'id': s['id'] ?? const Uuid().v4(),
+              'disease_name': s['disease_name'],
+              'confidence': s['confidence'],
+              'causal_factor': s['causal_factor'],
+              'image_url': s['image_url'],
+              'is_synced': 1,
+              'created_at': s['created_at'],
+              'lat': s['lat'],
+              'lng': s['lng'],
+            });
+          }
+          allScans = await _localDb.getAllScans();
+        }
+      } catch (e) {
+        print('Error fetching remote stats: $e');
+      }
+    }
+
+    if (allScans.isEmpty) {
+      return const CropSummary(
+        totalScans: 0,
+        healthyCount: 0,
+        diseasedCount: 0,
+        healthyPct: 0.0,
+        diseasedPct: 0.0,
+        topDiseases: [],
+      );
+    }
+
+    int healthy = 0;
+    Map<String, int> counts = {};
+
+    for (var s in allScans) {
+      final name = (s['disease_name'] as String?) ?? 'Unknown';
+      counts[name] = (counts[name] ?? 0) + 1;
+      if (name.toLowerCase().contains('healthy')) {
+        healthy++;
+      }
+    }
+
+    final total = allScans.length;
+    final diseased = total - healthy;
+
+    final sortedEntries = counts.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+
+    final topDiseases = sortedEntries.map((e) => TopDisease(
+      disease: e.key,
+      count: e.value,
+      percentage: (e.value / total) * 100,
+    )).toList();
+
+    return CropSummary(
+      totalScans: total,
+      healthyCount: healthy,
+      diseasedCount: diseased,
+      healthyPct: (healthy / total) * 100,
+      diseasedPct: (diseased / total) * 100,
+      topDiseases: topDiseases,
+    );
   }
 }

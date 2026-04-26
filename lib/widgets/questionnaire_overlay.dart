@@ -109,7 +109,7 @@ class _QuestionnaireOverlayState extends State<QuestionnaireOverlay> with Ticker
   Widget build(BuildContext context) {
     final locale = context.watch<LocaleProvider>().locale.languageCode;
     final currentQuestion = widget.questions[_currentIndex];
-    final questionText = locale == 'ur' ? currentQuestion.urduText : currentQuestion.englishText;
+    final questionText = currentQuestion.englishText;
     final disableAnimations = MediaQuery.of(context).disableAnimations;
 
     return Scaffold(
@@ -153,7 +153,7 @@ class _QuestionnaireOverlayState extends State<QuestionnaireOverlay> with Ticker
                         return LinearProgressIndicator(
                           value: disableAnimations ? (_currentIndex + 1) / widget.questions.length : _progressAnimation.value,
                           backgroundColor: Colors.white.withOpacity(0.1),
-                          color: const Color(0xFF6CFB7B),
+                          color: Theme.of(context).primaryColor,
                           borderRadius: BorderRadius.circular(10),
                         );
                       },
@@ -161,12 +161,12 @@ class _QuestionnaireOverlayState extends State<QuestionnaireOverlay> with Ticker
                     const SizedBox(height: 30),
                     
                     // Question Icon
-                    const Icon(Icons.help_outline, color: Color(0xFF6CFB7B), size: 48),
+                    Icon(Icons.help_outline, color: Theme.of(context).primaryColor, size: 48),
                     const SizedBox(height: 20),
                     
                     // Question Text
                     Text(
-                      locale == 'ur' ? 'تشخیصی سوالات' : 'Diagnostic Questions',
+                      'Diagnostic Questions',
                       style: TextStyle(
                         color: Colors.white.withOpacity(0.5),
                         fontSize: 14,
@@ -193,7 +193,7 @@ class _QuestionnaireOverlayState extends State<QuestionnaireOverlay> with Ticker
                           child: ScaleTransition(
                             scale: disableAnimations ? const AlwaysStoppedAnimation(1.0) : _noButtonScale,
                             child: _buildActionButton(
-                              text: locale == 'ur' ? 'نہیں' : 'No',
+                              text: 'No',
                               isPrimary: false,
                               onTap: () => _submitAnswer(false),
                             ),
@@ -204,7 +204,7 @@ class _QuestionnaireOverlayState extends State<QuestionnaireOverlay> with Ticker
                           child: ScaleTransition(
                             scale: disableAnimations ? const AlwaysStoppedAnimation(1.0) : _yesButtonScale,
                             child: _buildActionButton(
-                              text: locale == 'ur' ? 'جی ہاں' : 'Yes',
+                              text: 'Yes',
                               isPrimary: true,
                               onTap: () => _submitAnswer(true),
                             ),
@@ -219,7 +219,7 @@ class _QuestionnaireOverlayState extends State<QuestionnaireOverlay> with Ticker
                     TextButton(
                       onPressed: widget.onSkip,
                       child: Text(
-                        locale == 'ur' ? 'چھوڑیں (ماہرین کے لیے)' : 'Skip (for experts)',
+                        'Skip (for experts)',
                         style: TextStyle(
                           color: Colors.white.withOpacity(0.3),
                           fontSize: 14,
@@ -242,7 +242,7 @@ class _QuestionnaireOverlayState extends State<QuestionnaireOverlay> with Ticker
       child: Container(
         height: 50,
         decoration: BoxDecoration(
-          color: isPrimary ? const Color(0xFF6CFB7B) : Colors.white.withOpacity(0.05),
+          color: isPrimary ? Theme.of(context).primaryColor : Colors.white.withOpacity(0.05),
           borderRadius: BorderRadius.circular(15),
           border: isPrimary ? null : Border.all(color: Colors.white.withOpacity(0.1)),
         ),
@@ -250,7 +250,7 @@ class _QuestionnaireOverlayState extends State<QuestionnaireOverlay> with Ticker
           child: Text(
             text,
             style: TextStyle(
-              color: isPrimary ? Colors.black : Colors.white,
+              color: Colors.white,
               fontSize: 16,
               fontWeight: FontWeight.w900,
             ),

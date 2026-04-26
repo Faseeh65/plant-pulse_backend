@@ -11,6 +11,7 @@ class LocalDbService {
   Future<Database> get database async {
     if (_database != null) return _database!;
     _database = await _initDb();
+    await _seedDataIfEmpty(_database!);
     return _database!;
   }
 
@@ -42,6 +43,36 @@ class LocalDbService {
         }
       },
     );
+  }
+
+  Future<void> _seedDataIfEmpty(Database db) async {
+    final count = Sqflite.firstIntValue(await db.rawQuery('SELECT COUNT(*) FROM scans'));
+    if (count != null && count > 0) return;
+
+    print('🌱 Seeding initial demo scans...');
+    final now = DateTime.now();
+    final diseases = [
+      'BacterialLeafBlight',
+      'BrownSpot',
+      'LeafBlast',
+      'Healthy',
+      'LeafScald',
+      'NarrowBrownSpot'
+    ];
+
+    for (int i = 0; i < 8; i++) {
+      final date = now.subtract(Duration(days: i, hours: i * 2));
+      final disease = diseases[i % diseases.length];
+      await db.insert('scans', {
+        'id': 'seed_$i',
+        'disease_name': disease,
+        'confidence': 0.85 + (i * 0.01),
+        'causal_factor': 'Initial Field Calibration',
+        'image_path': '',
+        'is_synced': 1,
+        'created_at': date.toIso8601String(),
+      });
+    }
   }
 
   Future<void> insertScan(Map<String, dynamic> scan) async {

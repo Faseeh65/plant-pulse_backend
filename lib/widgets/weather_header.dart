@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../providers/weather_provider.dart';
 import '../models/weather_data.dart';
 import '../utils/rice_health_logic.dart';
@@ -30,8 +31,12 @@ class _WeatherHeaderState extends State<WeatherHeader> {
           return _buildLoading();
         }
 
-        if (provider.error != null || provider.currentWeather == null) {
-          return const SizedBox.shrink(); // Hide if error or no data
+        if (provider.error != null) {
+          return _buildErrorState(provider.error!);
+        }
+
+        if (provider.currentWeather == null) {
+          return const SizedBox.shrink();
         }
 
         return _buildWeatherCard(provider.currentWeather!);
@@ -45,9 +50,9 @@ class _WeatherHeaderState extends State<WeatherHeader> {
       height: 160,
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(32),
       ),
-      child: const Center(child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF6CFB7B))),
+      child: const Center(child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF2E5E32))),
     );
   }
 
@@ -56,108 +61,128 @@ class _WeatherHeaderState extends State<WeatherHeader> {
     final dateStr = DateFormat('EEEE, MMM d').format(now);
 
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-      clipBehavior: Clip.antiAlias,
+      width: double.infinity,
+      margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(24),
-        gradient: LinearGradient(
+        borderRadius: BorderRadius.circular(32),
+        gradient: const LinearGradient(
           colors: [
-            const Color(0xFF1B5E20).withOpacity(0.8),
-            const Color(0xFF2E7D32).withOpacity(0.6),
+            Color(0xFF1B5E20), // Deep green
+            Color(0xFF7CB342), // Bright yellow-green
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.2),
-            blurRadius: 15,
-            offset: const Offset(0, 8),
+            color: const Color(0xFF1B5E20).withOpacity(0.3),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
           ),
         ],
       ),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  // --- Left Side: Temperature & Location ---
-                  Column(
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Left Column: Metrics
+                Expanded(
+                  flex: 1,
+                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        '${weather.temp.toStringAsFixed(0)}°C',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 48,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: -2,
-                        ),
+                      _metricRow('💧', '${weather.humidity}%'),
+                      const SizedBox(height: 8),
+                      _metricRow('💨', '${weather.windSpeed.toStringAsFixed(1)}m/s'),
+                    ],
+                  ),
+                ),
+                // Right Column: Temp & Location
+                Expanded(
+                  flex: 1,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      _getWeatherIcon(weather.main),
+                      const SizedBox(height: 4),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '${weather.temp.toStringAsFixed(0)}',
+                            style: GoogleFonts.inter(
+                              color: Colors.white,
+                              fontSize: 48,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.only(top: 8),
+                            child: Text(
+                              '°C',
+                              style: GoogleFonts.inter(
+                                color: Colors.white,
+                                fontSize: 20,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                       Text(
                         weather.locationName,
-                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                        style: GoogleFonts.inter(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                        ),
+                        textAlign: TextAlign.end,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                       Text(
                         dateStr,
-                        style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 13),
+                        style: GoogleFonts.inter(
+                          color: Colors.white.withOpacity(0.8),
+                          fontSize: 12,
+                        ),
+                        textAlign: TextAlign.end,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ],
                   ),
-
-                  // --- Center: Icon ---
-                  _getWeatherIcon(weather.main),
-
-                  // --- Right Side: Risk Column ---
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      _riskItem(Icons.water_drop_outlined, '${weather.humidity}%', 'Humidity'),
-                      const SizedBox(height: 12),
-                      _riskItem(Icons.air, '${weather.windSpeed.toStringAsFixed(1)}m/s', 'Wind'),
-                    ],
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              
-              // --- Agri-Smart Logic (Bottom Alert) ---
-              _buildAgriAlert(weather),
-            ],
+                ),
+              ],
+            ),
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAgriAlert(WeatherData weather) {
-    final alert = RiceHealthLogic.getEnvironmentalAlert(weather.humidity, weather.temp);
-    final Color color = alert['color'];
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1), // Light background tint
-        borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: color.withOpacity(0.5)),
-      ),
-      child: Row(
-        children: [
-          Icon(alert['icon'], color: color, size: 20),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              alert['message'],
-              style: TextStyle(
-                color: color,
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 0.2,
-              ),
+          // Inset Status Bar
+          Container(
+            margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: const Color(0xFF154317).withOpacity(0.6), // Darker green inset
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.info_outline_rounded, color: Colors.white70, size: 18),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Environmental conditions are currently stable.',
+                    style: GoogleFonts.inter(
+                      color: Colors.white,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -165,43 +190,69 @@ class _WeatherHeaderState extends State<WeatherHeader> {
     );
   }
 
+  Widget _metricRow(String emoji, String text) {
+    return Row(
+      children: [
+        Text(emoji, style: const TextStyle(fontSize: 16)),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            text,
+            style: GoogleFonts.inter(
+              color: Colors.white,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _getWeatherIcon(String main) {
     IconData icon;
-    Color color = Colors.white;
-
     switch (main.toLowerCase()) {
       case 'rain':
         icon = Icons.cloudy_snowing;
-        color = Colors.lightBlueAccent;
         break;
       case 'clouds':
-        icon = Icons.cloud_queue_rounded;
+        icon = Icons.cloud_outlined;
         break;
       case 'clear':
         icon = Icons.sunny;
-        color = Colors.orangeAccent;
         break;
       default:
         icon = Icons.wb_cloudy_outlined;
     }
-
-    return Icon(icon, color: color, size: 64);
+    return Icon(icon, color: Colors.white, size: 40);
   }
 
-  Widget _riskItem(IconData icon, String val, String label) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(val, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 16)),
-            const SizedBox(width: 8),
-            Icon(icon, color: const Color(0xFF6CFB7B), size: 16),
-          ],
-        ),
-        Text(label, style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 10)),
-      ],
+  Widget _buildErrorState(String error) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.9),
+        borderRadius: BorderRadius.circular(32),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.cloud_off_rounded, color: Color(0xFF2E5E32), size: 30),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Text(
+              'Weather data unavailable',
+              style: GoogleFonts.inter(color: const Color(0xFF2E5E32), fontWeight: FontWeight.bold),
+            ),
+          ),
+          IconButton(
+            onPressed: () => context.read<WeatherProvider>().refreshWeather(),
+            icon: const Icon(Icons.refresh_rounded, color: Color(0xFF2E5E32)),
+          ),
+        ],
+      ),
     );
   }
 }

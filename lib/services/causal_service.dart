@@ -13,17 +13,17 @@ class CausalService {
   final List<DiagnosticQuestion> staticQuestions = [
     DiagnosticQuestion(
       englishText: "Has there been high humidity or rain recently?",
-      urduText: "کیا حال ہی میں زیادہ نمی یا بارش ہوئی ہے؟",
+      urduText: "",
       weight: 0.05,
     ),
     DiagnosticQuestion(
       englishText: "Are you watering directly on the leaves?",
-      urduText: "کیا آپ براہ راست پتوں پر پانی دے رہے ہیں؟",
+      urduText: "",
       weight: 0.03,
     ),
     DiagnosticQuestion(
       englishText: "Is your plant getting enough sunlight?",
-      urduText: "کیا آپ کے پودے کو کافی دھوپ مل رہی ہے؟",
+      urduText: "",
       weight: 0.02,
     ),
   ];

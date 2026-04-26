@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -18,11 +19,11 @@ class NotificationService {
   bool _initialized = false;
 
   // ── Android notification channel ─────────────────────────────────────────
-  static const _channelId   = 'plantpulse_reminders';
-  static const _channelName = 'Spray Reminders';
-  static const _channelDesc = 'Plant treatment alerts from PlantPulse';
+  static const _channelId   = 'plantpulse_reminders_v3';
+  static const _channelName = 'Spray Alerts';
+  static const _channelDesc = 'Urgent plant treatment alerts from PlantPulse';
 
-  static const AndroidNotificationDetails _androidDetails =
+  static final AndroidNotificationDetails _androidDetails =
       AndroidNotificationDetails(
     _channelId,
     _channelName,
@@ -33,11 +34,17 @@ class NotificationService {
     icon: '@mipmap/ic_launcher',
     color: Color(0xFF6CFB7B),
     enableVibration: true,
+    vibrationPattern: Int64List.fromList([0, 500, 200, 500]),
+    enableLights: true,
+    ledColor: Color(0xFF6CFB7B),
+    ledOnMs: 1000,
+    ledOffMs: 500,
     playSound: true,
+    audioAttributesUsage: AudioAttributesUsage.notification,
     styleInformation: BigTextStyleInformation(''),
   );
 
-  static const NotificationDetails _notifDetails =
+  static final NotificationDetails _notifDetails =
       NotificationDetails(android: _androidDetails);
 
   // ── init ──────────────────────────────────────────────────────────────────
@@ -107,13 +114,13 @@ class NotificationService {
       return false;
     }
 
-    if (scheduledTime.isBefore(DateTime.now())) {
+    if (scheduledTime.toUtc().isBefore(DateTime.now().toUtc())) {
       debugPrint('⚠️ scheduledTime is in the past — skipping.');
       return false;
     }
 
-    // Convert to TZDateTime in device's local timezone
-    final tzTime = tz.TZDateTime.from(scheduledTime, tz.local);
+    // Use UTC location for absolute time scheduling to avoid tz.local initialization issues
+    final tzTime = tz.TZDateTime.from(scheduledTime.toUtc(), tz.getLocation('UTC'));
 
     await _plugin.zonedSchedule(
       notifId,

@@ -36,7 +36,7 @@ class RiceHealthLogic {
     else {
       return {
         "message": "Environmental conditions are currently stable.",
-        "color": Colors.blueAccent,
+        "color": Colors.lightBlueAccent,
         "icon": Icons.info_outline,
       };
     }

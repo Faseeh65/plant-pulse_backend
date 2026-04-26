@@ -3,15 +3,20 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/api_service.dart';
 import '../services/notification_service.dart';
 import '../utils/string_extensions.dart';
-
-// ─── theme tokens ─────────────────────────────────────────────────────────────
-const _green  = Color(0xFF6CFB7B);
-const _green2 = Color(0xFF2ECC71);
-const _amber  = Color(0xFFFFB300);
-const _red    = Color(0xFFFF5252);
+import 'package:google_fonts/google_fonts.dart';
+import 'dart:ui';
 
 class ReminderScreen extends StatefulWidget {
-  const ReminderScreen({super.key});
+  final String? initialPlant;
+  final String? initialDisease;
+  final String? initialTreatment;
+
+  const ReminderScreen({
+    super.key,
+    this.initialPlant,
+    this.initialDisease,
+    this.initialTreatment,
+  });
 
   @override
   State<ReminderScreen> createState() => _ReminderScreenState();
@@ -19,7 +24,14 @@ class ReminderScreen extends StatefulWidget {
 
 class _ReminderScreenState extends State<ReminderScreen> {
   late Future<List<SprayReminder>> _future;
-  final Set<String> _completing = {};   // IDs currently being "done"
+  final Set<String> _completing = {}; // IDs currently being "done"
+
+  // Use Theme primary as default
+  Color get _primary => Theme.of(context).primaryColor;
+  Color get _green2 => const Color(0xFF2ECC71);
+  Color get _amber => const Color(0xFFFFB300);
+  Color get _red => const Color(0xFFFF5252);
+  Color get _green => Theme.of(context).primaryColor;
 
   String get _userId =>
       Supabase.instance.client.auth.currentUser?.id ?? '';
@@ -28,6 +40,17 @@ class _ReminderScreenState extends State<ReminderScreen> {
   void initState() {
     super.initState();
     _load();
+    
+    // If opened with initial values, show add dialog automatically
+    if (widget.initialPlant != null || widget.initialDisease != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _showAddDialog(
+          plant: widget.initialPlant,
+          disease: widget.initialDisease,
+          treatment: widget.initialTreatment,
+        );
+      });
+    }
   }
 
   void _load() => setState(() {
@@ -56,183 +79,216 @@ class _ReminderScreenState extends State<ReminderScreen> {
   }
 
   // ── add reminder dialog ─────────────────────────────────────────────────────
-  Future<void> _showAddDialog() async {
-    final plantCtrl     = TextEditingController();
-    final diseaseCtrl   = TextEditingController();
-    final treatmentCtrl = TextEditingController();
+  Future<void> _showAddDialog({String? plant, String? disease, String? treatment}) async {
+    final plantCtrl     = TextEditingController(text: plant ?? 'Rice');
+    final diseaseCtrl   = TextEditingController(text: disease ?? '');
+    final treatmentCtrl = TextEditingController(text: treatment ?? '');
     DateTime? picked;
+
+    final plants = ['Rice'];
+    final diseases = {
+      'bacterial_leaf_blight': 'Bacterial Leaf Blight',
+      'brown_spot': 'Brown Spot',
+      'leaf_blast': 'Rice Blast',
+      'leaf_scald': 'Leaf Scald',
+      'narrow_brown_spot': 'Narrow Brown Spot',
+    };
+
+    // Extract treatments from causal rules or hardcode common ones
+    final treatments = {
+      'bacterial_leaf_blight': 'Copper-based bactericides (e.g., Copper Oxychloride)',
+      'brown_spot': 'Mancozeb or Propiconazole',
+      'leaf_blast': 'Tricyclazole or Isoprothiolane',
+      'leaf_scald': 'Benomyl or Thiophanate-methyl',
+      'narrow_brown_spot': 'Propiconazole or Hexaconazole',
+    };
+
+    String? selectedPlant = plant ?? 'Rice';
+    String? selectedDiseaseKey;
+
+    // Try to match incoming disease name to keys
+    if (disease != null) {
+      selectedDiseaseKey = diseases.entries
+          .where((e) => e.value.toLowerCase() == disease.toLowerCase() || e.key.toLowerCase() == disease.toLowerCase())
+          .map((e) => e.key)
+          .firstOrNull;
+      
+      if (selectedDiseaseKey != null && treatment == null) {
+        treatmentCtrl.text = treatments[selectedDiseaseKey] ?? '';
+      }
+    }
 
     await showGeneralDialog(
       context: context,
       barrierDismissible: true,
       barrierLabel: 'Dismiss',
-      barrierColor: Colors.black54,
+      barrierColor: Colors.black.withOpacity(0.7),
+      transitionDuration: const Duration(milliseconds: 400),
       pageBuilder: (ctx, anim1, anim2) {
-        return StatefulBuilder(builder: (ctx, setDlg) {
-          return Center(
-            child: SingleChildScrollView(
-              child: Material(
-                type: MaterialType.transparency,
-                child: Container(
-                margin: const EdgeInsets.symmetric(horizontal: 24),
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).cardColor,
-                  borderRadius: BorderRadius.circular(24),
-                  border: Border.all(color: Theme.of(context).dividerColor),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Header
-                    Row(
-                      children: [
-                        Icon(Icons.add_alarm_rounded,
-                            color: _green, size: 22),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text('New Reminder  •  نیا یاد دہانی',
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                  color: (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black),
-                                  fontWeight: FontWeight.w900,
-                                  height: 1.3,
-                                  fontSize: 16)),
-                        ),
-                        const Spacer(),
-                        GestureDetector(
-                            onTap: () => Navigator.pop(ctx),
-                            child: Icon(Icons.close,
-                                color: (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black).withOpacity(0.38), size: 20)),
+        return BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+          child: StatefulBuilder(builder: (ctx, setDlg) {
+            return Center(
+              child: SingleChildScrollView(
+                child: Material(
+                  type: MaterialType.transparency,
+                  child: Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 24),
+                    padding: const EdgeInsets.all(28),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).cardColor.withOpacity(0.9),
+                      borderRadius: BorderRadius.circular(32),
+                      border: Border.all(color: Colors.white.withOpacity(0.1)),
+                      boxShadow: [
+                        BoxShadow(
+                          color: _primary.withOpacity(0.1),
+                          blurRadius: 30,
+                          spreadRadius: 10,
+                        )
                       ],
                     ),
-                    const SizedBox(height: 20),
-                    _dlgField(plantCtrl, 'Plant Name  •  پودے کا نام',
-                        Icons.eco_outlined),
-                    const SizedBox(height: 12),
-                    _dlgField(diseaseCtrl, 'Disease  •  بیماری',
-                        Icons.coronavirus_outlined),
-                    const SizedBox(height: 12),
-                    _dlgField(treatmentCtrl, 'Treatment  •  علاج',
-                        Icons.medical_services_outlined),
-                    const SizedBox(height: 16),
-                    // Date + time picker
-                    GestureDetector(
-                      onTap: () async {
-                        final date = await showDatePicker(
-                          context: ctx,
-                          initialDate:
-                              DateTime.now().add(const Duration(hours: 1)),
-                          firstDate: DateTime.now(),
-                          lastDate: DateTime.now()
-                              .add(const Duration(days: 365)),
-                          builder: (c, child) => Theme(
-                            data: ThemeData.dark().copyWith(
-                              colorScheme: ColorScheme.dark(
-                                primary: _green,
-                                surface: Theme.of(context).cardColor,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Center(
+                          child: Column(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: _primary.withOpacity(0.1),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(Icons.add_alarm_rounded, color: _primary, size: 28),
                               ),
-                            ),
-                            child: child!,
+                              const SizedBox(height: 12),
+                              Text(
+                                'Set Treatment Plan',
+                                style: GoogleFonts.poppins(
+                                  color: (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black),
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 20,
+                                ),
+                              ),
+                              Text(
+                                'Schedule your next spray action',
+                                style: TextStyle(
+                                  color: (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black).withOpacity(0.4),
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
                           ),
-                        );
-                        if (date == null) return;
-                        final time = await showTimePicker(
-                          context: ctx,
-                          initialTime: TimeOfDay.now(),
-                          builder: (c, child) => Theme(
-                            data: ThemeData.dark().copyWith(
-                              colorScheme: ColorScheme.dark(
-                                primary: _green,
-                                surface: Theme.of(context).cardColor,
-                              ),
-                            ),
-                            child: child!,
-                          ),
-                        );
-                        if (time == null) return;
-                        setDlg(() => picked = DateTime(date.year,
-                            date.month, date.day, time.hour, time.minute));
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 14, vertical: 14),
-                        decoration: BoxDecoration(
-                          color: (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black).withOpacity(0.04),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Theme.of(context).dividerColor),
                         ),
-                        child: Row(
-                          children: [
-                            Icon(Icons.access_time_rounded,
-                                color: _green, size: 18),
-                             const SizedBox(width: 10),
-                             Expanded(
-                               child: Text(
-                                 picked == null
-                                     ? 'Select date & time  •  وقت منتخب کریں'
-                                     : _fmt(picked!),
-                                 overflow: TextOverflow.ellipsis,
-                                 style: TextStyle(
-                                   color: picked == null
-                                       ? (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black).withOpacity(0.38)
-                                       : (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black),
-                                   height: 1.3,
-                                   fontSize: 14,
-                                 ),
-                               ),
-                             ),
-                          ],
+                        const SizedBox(height: 32),
+                        _dlgDropdown(
+                          label: 'Select Crop',
+                          icon: Icons.eco_outlined,
+                          value: selectedPlant,
+                          items: plants.map((p) => DropdownMenuItem(value: p, child: Text(p))).toList(),
+                          onChanged: (val) => setDlg(() => selectedPlant = val),
                         ),
-                      ),
-                    ),
-                    const SizedBox(height: 22),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 48,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: _green,
-                          foregroundColor: Colors.black,
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14)),
+                        const SizedBox(height: 16),
+                        _dlgDropdown(
+                          label: 'Detected Disease',
+                          icon: Icons.coronavirus_outlined,
+                          value: selectedDiseaseKey,
+                          items: diseases.entries.map((e) => DropdownMenuItem(value: e.key, child: Text(e.value))).toList(),
+                          onChanged: (val) {
+                            setDlg(() {
+                              selectedDiseaseKey = val;
+                              diseaseCtrl.text = diseases[val!]!;
+                              treatmentCtrl.text = treatments[val] ?? '';
+                            });
+                          },
                         ),
-                        onPressed: () async {
-                          if (plantCtrl.text.isEmpty ||
-                              diseaseCtrl.text.isEmpty ||
-                              treatmentCtrl.text.isEmpty ||
-                              picked == null) {
-                            ScaffoldMessenger.of(ctx).showSnackBar(
-                              const SnackBar(
-                                content: Text('Please fill all fields.'),
-                                backgroundColor: _red,
-                              ),
+                        const SizedBox(height: 16),
+                        _dlgField(treatmentCtrl, 'Treatment Method', Icons.medical_services_outlined, readOnly: false),
+                        const SizedBox(height: 16),
+                        GestureDetector(
+                          onTap: () async {
+                            final date = await showDatePicker(
+                              context: ctx,
+                              initialDate: DateTime.now().add(const Duration(hours: 1)),
+                              firstDate: DateTime.now(),
+                              lastDate: DateTime.now().add(const Duration(days: 365)),
                             );
-                            return;
-                          }
-                          Navigator.pop(ctx);
-                          await _createReminder(
-                            plantCtrl.text.trim(),
-                            diseaseCtrl.text.trim(),
-                            treatmentCtrl.text.trim(),
-                            picked!,
-                          );
-                        },
-                        child: Text(
-                          'Schedule Reminder  •  یاد دہانی طے کریں',
-                          style: TextStyle(
-                              fontWeight: FontWeight.w900, fontSize: 13, height: 1.3),
+                            if (date == null) return;
+                            if (!mounted) return;
+                            final time = await showTimePicker(
+                              context: ctx,
+                              initialTime: TimeOfDay.now(),
+                            );
+                            if (time == null) return;
+                            setDlg(() => picked = DateTime(date.year, date.month, date.day, time.hour, time.minute));
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 18),
+                            decoration: BoxDecoration(
+                              color: (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black).withOpacity(0.04),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: Theme.of(context).dividerColor),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(Icons.calendar_month_outlined, color: _primary, size: 20),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    picked == null ? 'When to schedule?' : _fmt(picked!),
+                                    style: TextStyle(
+                                      color: picked == null
+                                          ? (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black).withOpacity(0.38)
+                                          : (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black),
+                                      fontSize: 14,
+                                      fontWeight: picked == null ? FontWeight.normal : FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                                Icon(Icons.keyboard_arrow_down_rounded, color: (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black).withOpacity(0.2)),
+                              ],
+                            ),
+                          ),
                         ),
-                      ),
+                        const SizedBox(height: 32),
+                        SizedBox(
+                          width: double.infinity,
+                          height: 56,
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: _primary,
+                              foregroundColor: Colors.black,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                              elevation: 0,
+                            ),
+                            onPressed: () async {
+                              if (picked == null) {
+                                ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(content: Text('Please select a time.')));
+                                return;
+                              }
+                              Navigator.pop(ctx);
+                              await _createReminder(
+                                selectedPlant ?? 'Rice',
+                                diseaseCtrl.text.trim(),
+                                treatmentCtrl.text.trim(),
+                                picked!,
+                              );
+                            },
+                            child: const Text(
+                              'CONFIRM SCHEDULE',
+                              style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
               ),
-            ),
-          ),
-          );
-        });
+            );
+          }),
+        );
       },
     );
   }
@@ -253,7 +309,7 @@ class _ReminderScreenState extends State<ReminderScreen> {
         notifId:       recordId.hashCode.abs() % 2147483647,
         title:         '🌿 Spray Reminder — $plant',
         body:          '$disease treatment due: $treatment',
-        scheduledTime: time.toUtc(),
+        scheduledTime: time, // Pass local time for scheduling
       );
       if (mounted) {
         _showSnack('Reminder scheduled for ${_fmt(time)} ✓', isSuccess: true);
@@ -296,9 +352,10 @@ class _ReminderScreenState extends State<ReminderScreen> {
     ));
   }
 
-  Widget _dlgField(TextEditingController ctrl, String label, IconData icon) =>
+  Widget _dlgField(TextEditingController ctrl, String label, IconData icon, {bool readOnly = false}) =>
       TextField(
         controller: ctrl,
+        readOnly: readOnly,
         style: TextStyle(
           color: (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black), 
           fontSize: 14,
@@ -331,6 +388,48 @@ class _ReminderScreenState extends State<ReminderScreen> {
         ),
       );
 
+  Widget _dlgDropdown({
+    required String label,
+    required IconData icon,
+    required dynamic value,
+    required List<DropdownMenuItem<dynamic>> items,
+    required ValueChanged<dynamic> onChanged,
+  }) =>
+      DropdownButtonFormField<dynamic>(
+        value: value,
+        items: items,
+        onChanged: onChanged,
+        style: TextStyle(
+          color: (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black),
+          fontSize: 14,
+        ),
+        decoration: InputDecoration(
+          prefixIcon: Icon(icon, color: _green, size: 18),
+          labelText: label,
+          labelStyle: TextStyle(
+            color: (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black).withOpacity(0.38),
+            fontSize: 13,
+          ),
+          filled: true,
+          fillColor: (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black).withOpacity(0.04),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: Theme.of(context).dividerColor),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: Theme.of(context).dividerColor),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: _green, width: 1.5),
+          ),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        ),
+        dropdownColor: Theme.of(context).cardColor,
+        icon: Icon(Icons.arrow_drop_down, color: _green),
+      );
+
   // ── build ────────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
@@ -345,7 +444,7 @@ class _ReminderScreenState extends State<ReminderScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          'Spray Reminders  •  اسپرے کی یاد دہانی',
+          'Spray Reminders',
           overflow: TextOverflow.ellipsis,
           style: TextStyle(
               color: (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black), 
@@ -372,7 +471,7 @@ class _ReminderScreenState extends State<ReminderScreen> {
         future: _future,
         builder: (context, snap) {
           if (snap.connectionState == ConnectionState.waiting) {
-            return const Center(
+            return Center(
                 child: CircularProgressIndicator(
                     color: _green, strokeWidth: 2.5));
           }
@@ -503,7 +602,7 @@ class _ReminderScreenState extends State<ReminderScreen> {
               width: double.infinity,
               height: 40,
               child: isCompleting
-                  ? const Center(
+                  ? Center(
                       child: SizedBox(
                         width: 20,
                         height: 20,
@@ -520,7 +619,7 @@ class _ReminderScreenState extends State<ReminderScreen> {
                       ),
                       icon: Icon(Icons.check_circle_outline, size: 16),
                       label: Text(
-                        'Mark as Done  •  مکمل',
+                        'Mark as Done',
                         style: TextStyle(
                             fontWeight: FontWeight.w900, fontSize: 13, height: 1.3),
                       ),

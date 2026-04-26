@@ -24,6 +24,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   late AnimationController _entranceController;
+  late AnimationController _floatingController;
+  late AnimationController _pulseController;
   
   @override
   void initState() {
@@ -32,12 +34,25 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       vsync: this,
       duration: const Duration(milliseconds: 1500),
     );
+    
+    _floatingController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 4),
+    )..repeat(reverse: true);
+
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    )..repeat(reverse: true);
+
     _entranceController.forward();
   }
 
   @override
   void dispose() {
     _entranceController.dispose();
+    _floatingController.dispose();
+    _pulseController.dispose();
     super.dispose();
   }
 
@@ -52,52 +67,123 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       key: _scaffoldKey,
       extendBody: true,
       drawer: _buildNavigationDrawer(),
+      endDrawer: _buildNotificationDrawer(),
       body: Stack(
         children: [
           // ── Background Adaptive Theme ──────────────────────────────────────────
           _buildThemeBackground(isDark, weather),
 
           // ── Main Content ───────────────────────────────────────────────────────
-          CustomScrollView(
-            physics: const BouncingScrollPhysics(),
-            slivers: [
+          TweenAnimationBuilder<double>(
+            tween: Tween<double>(begin: 0.0, end: 1.0),
+            duration: const Duration(milliseconds: 500),
+            builder: (context, value, child) {
+              return Transform.translate(
+                offset: Offset(0, 20 * (1 - value)),
+                child: Opacity(
+                  opacity: value,
+                  child: child,
+                ),
+              );
+            },
+            child: CustomScrollView(
+              physics: const BouncingScrollPhysics(),
+              slivers: [
               // 1. Adaptive Header (Weather & Toggle)
               SliverToBoxAdapter(
                 child: SafeArea(
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(24, 20, 24, 10),
+                    padding: const EdgeInsets.fromLTRB(16, 20, 16, 10),
                     child: Column(
                       children: [
+                        // --- Custom App Bar Header ---
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Row(
-                              children: [
-                                _buildDrawerButton(),
-                                const SizedBox(width: 16),
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'Plant Pulse',
-                                      style: GoogleFonts.poppins(
-                                        fontSize: 32,
-                                        fontWeight: FontWeight.w900,
-                                        foreground: Paint()
-                                          ..shader = LinearGradient(
-                                            colors: [primary, primary.withOpacity(0.6)],
-                                          ).createShader(const Rect.fromLTWH(0, 0, 200, 70)),
-                                      ),
+                            // Left: Menu Button
+                            GestureDetector(
+                              onTap: () => _scaffoldKey.currentState?.openDrawer(),
+                              child: Container(
+                                width: 50,
+                                height: 50,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: Colors.white.withOpacity(0.8),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.05),
+                                      blurRadius: 10,
+                                      offset: const Offset(0, 4),
+                                    )
+                                  ],
+                                ),
+                                child: const Icon(Icons.menu_rounded, color: Color(0xFF2E5E32), size: 24),
+                              ),
+                            ),
+                            
+                            // Center: Branding
+                            Expanded(
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    'Plant Pulse',
+                                    style: GoogleFonts.playfairDisplay(
+                                      fontSize: 26,
+                                      fontWeight: FontWeight.w900,
+                                      color: const Color(0xFF2E5E32),
+                                      letterSpacing: -0.5,
                                     ),
-                                    Text(
-                                      'Precision Rice Pathology',
-                                      style: TextStyle(color: isDark ? Colors.white30 : Colors.black26, fontWeight: FontWeight.bold, fontSize: 13),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                  Text(
+                                    'PRECISION RICE PATHOLOGY',
+                                    style: GoogleFonts.inter(
+                                      color: Colors.black38,
+                                      fontWeight: FontWeight.w800,
+                                      fontSize: 9,
+                                      letterSpacing: 1.2,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ],
+                              ),
+                            ),
+                            
+                            // Right: Notification/Spray History Button
+                            GestureDetector(
+                              onTap: () => _scaffoldKey.currentState?.openEndDrawer(),
+                              child: Container(
+                                width: 50,
+                                height: 50,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: Colors.white.withOpacity(0.8),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.05),
+                                      blurRadius: 10,
+                                      offset: const Offset(0, 4),
+                                    )
+                                  ],
+                                ),
+                                child: Stack(
+                                  alignment: Alignment.center,
+                                  children: [
+                                    const Icon(Icons.notifications_none_rounded, color: Color(0xFF2E5E32), size: 24),
+                                    Positioned(
+                                      top: 12,
+                                      right: 12,
+                                      child: Container(
+                                        width: 8,
+                                        height: 8,
+                                        decoration: const BoxDecoration(color: Color(0xFF6CFB7B), shape: BoxShape.circle),
+                                      ),
                                     ),
                                   ],
                                 ),
-                              ],
+                              ),
                             ),
-                            _buildAnimatedThemeToggle(themeProvider),
                           ],
                         ),
                         const SizedBox(height: 20),
@@ -118,8 +204,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 child: _buildHeroScanZone(),
               ),
 
-              const SliverPadding(padding: EdgeInsets.only(bottom: 120)),
+              const SliverPadding(padding: EdgeInsets.only(bottom: 160)),
             ],
+          ),
           ),
 
           // ── Floating Dock Navigation ───────────────────────────────────────────
@@ -135,37 +222,35 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   Widget _buildThemeBackground(bool isDark, dynamic weather) {
-    final humidity = weather?.humidity ?? 0;
-    return Container(
-      decoration: BoxDecoration(color: Theme.of(context).scaffoldBackgroundColor),
-      child: Stack(
-        children: [
-          if (humidity > 80)
-            Positioned.fill(
-              child: Opacity(
-                opacity: 0.1,
-                child: Lottie.network(
-                  'https://assets10.lottiefiles.com/packages/lf20_S6v9Y9.json', // Fog/Mist
-                  fit: BoxFit.cover,
-                ),
+    return Stack(
+      children: [
+        // Base Background
+        Container(color: const Color(0xFFF5F5F5)), // Light grey/white base
+        
+        // Header Area: Soft curved mint-green-to-white gradient
+        Positioned(
+          top: 0,
+          left: 0,
+          right: 0,
+          height: MediaQuery.of(context).size.height * 0.4,
+          child: Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Color(0xFFE8F5E9), // Soft Mint
+                  Color(0xFFF5F5F5), // White/Grey
+                ],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+              ),
+              borderRadius: BorderRadius.only(
+                bottomLeft: Radius.circular(60),
+                bottomRight: Radius.circular(60),
               ),
             ),
-          if (isDark)
-            Positioned(
-              top: -50,
-              right: -50,
-              child: Container(
-                width: 200,
-                height: 200,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Theme.of(context).primaryColor.withOpacity(0.05),
-                ),
-                child: BackdropFilter(filter: ImageFilter.blur(sigmaX: 50, sigmaY: 50), child: const SizedBox()),
-              ),
-            ),
-        ],
-      ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -195,72 +280,127 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   Widget _buildNavigationDrawer() {
-    final theme = Theme.of(context);
-    final isDark = context.watch<ThemeProvider>().isDarkMode;
+    final themeProvider = context.watch<ThemeProvider>();
+    final isDark = themeProvider.isDarkMode;
 
     return Drawer(
-      child: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: isDark
-                ? const [Color(0xFF0A1108), Color(0xFF152213), Color(0xFF0F1B0C)]
-                : const [Color(0xFFF8FFF5), Color(0xFFE9F6EA), Color(0xFFFDFEFB)],
-          ),
+      backgroundColor: isDark ? const Color(0xFF0A0E0A) : const Color(0xFFF8FFF5),
+      width: MediaQuery.of(context).size.width * 0.85, // Exact width feel
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.only(
+          topRight: Radius.circular(30),
+          bottomRight: Radius.circular(30),
         ),
-        child: SafeArea(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 18),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      width: 52,
-                      height: 52,
+      ),
+      child: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // --- Header Row: Notification Icon & Theme Toggle ---
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Container(
+                    width: 64,
+                    height: 64,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF152213),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: const Icon(Icons.notifications_none_rounded, color: Color(0xFF6CFB7B), size: 32),
+                  ),
+                  // Custom Theme Toggle matching the screenshot
+                  GestureDetector(
+                    onTap: () => themeProvider.toggleTheme(),
+                    child: Container(
+                      width: 48,
+                      height: 48,
                       decoration: BoxDecoration(
-                        color: theme.primaryColor.withOpacity(0.14),
-                        borderRadius: BorderRadius.circular(18),
+                        shape: BoxShape.circle,
+                        color: const Color(0xFF1A1F1A),
+                        border: Border.all(color: const Color(0xFF6CFB7B).withOpacity(0.3), width: 1),
                       ),
-                      child: Icon(Icons.eco_rounded, color: theme.primaryColor, size: 28),
-                    ),
-                    const SizedBox(height: 14),
-                    Text(
-                      'Plant Pulse Menu',
-                      style: GoogleFonts.poppins(
-                        fontSize: 24,
-                        fontWeight: FontWeight.w800,
-                        color: theme.textTheme.bodyLarge?.color,
+                      child: const Center(
+                        child: Icon(Icons.nightlight_round, color: Color(0xFF6CFB7B), size: 20),
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Quick access to all services',
-                      style: TextStyle(
-                        color: theme.textTheme.bodyMedium?.color?.withOpacity(0.65),
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-              Expanded(
-                child: ListView(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  children: [
-                    _buildDrawerItem(
-                      icon: Icons.map_outlined,
-                      label: 'Disease Map',
-                      routeName: '/map',
+            ),
+
+            // --- Titles ---
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Plant Pulse Menu',
+                    style: GoogleFonts.poppins(
+                      fontSize: 28,
+                      fontWeight: FontWeight.w800,
+                      color: isDark ? Colors.white : Colors.black,
+                      height: 1.1,
                     ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'All secondary functions',
+                    style: TextStyle(
+                      color: isDark ? Colors.white.withOpacity(0.4) : Colors.black.withOpacity(0.4),
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      letterSpacing: 0.2,
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
+
+            const SizedBox(height: 30),
+
+            // --- Menu Items ---
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                children: [
+                  _buildDrawerItem(
+                    icon: Icons.bar_chart_rounded,
+                    label: 'Analytics & Stats',
+                    routeName: '/stats',
+                    isDark: isDark,
+                  ),
+                  _buildDrawerItem(
+                    icon: Icons.map_outlined,
+                    label: 'Disease Map',
+                    routeName: '/map',
+                    isDark: isDark,
+                  ),
+                  _buildDrawerItem(
+                    icon: Icons.person_outline_rounded,
+                    label: 'My Profile',
+                    routeName: '/profile',
+                    isDark: isDark,
+                  ),
+                  
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 16, horizontal: 10),
+                    child: Divider(color: Colors.white12, thickness: 1.5),
+                  ),
+
+                  _buildDrawerItem(
+                    icon: Icons.settings_outlined,
+                    label: 'App Settings',
+                    routeName: '/settings',
+                    isDark: isDark,
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -270,57 +410,206 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     required IconData icon,
     required String label,
     required String routeName,
+    required bool isDark,
   }) {
-    final theme = Theme.of(context);
-
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(18),
-          onTap: () {
-            final navigator = Navigator.of(context);
-            navigator.pop();
-            Future.microtask(() => navigator.pushNamed(routeName));
-          },
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            decoration: BoxDecoration(
-              color: theme.cardColor.withOpacity(0.42),
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: theme.dividerColor.withOpacity(0.6)),
+      padding: const EdgeInsets.only(bottom: 14),
+      child: InkWell(
+        onTap: () {
+          Navigator.pop(context);
+          Navigator.pushNamed(context, routeName);
+        },
+        borderRadius: BorderRadius.circular(24),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(
+              color: isDark ? Colors.white : Colors.black.withOpacity(0.1),
+              width: 1,
             ),
-            child: Row(
-              children: [
-                Container(
-                  width: 38,
-                  height: 38,
-                  decoration: BoxDecoration(
-                    color: theme.primaryColor.withOpacity(0.14),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(icon, color: theme.primaryColor, size: 20),
+            color: Colors.transparent,
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF152213),
+                  borderRadius: BorderRadius.circular(14),
                 ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Text(
-                    label,
-                    style: TextStyle(
-                      color: theme.textTheme.bodyLarge?.color,
-                      fontWeight: FontWeight.w700,
+                child: Icon(icon, color: const Color(0xFF6CFB7B), size: 22),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Text(
+                  label,
+                  style: GoogleFonts.poppins(
+                    color: isDark ? Colors.white : Colors.black,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              Icon(
+                Icons.chevron_right_rounded,
+                color: isDark ? Colors.white54 : Colors.black54,
+                size: 24,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNotificationDrawer() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primaryColor = Theme.of(context).primaryColor;
+
+    return Drawer(
+      width: MediaQuery.of(context).size.width * 0.85,
+      backgroundColor: Colors.transparent,
+      child: Container(
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF0D150B).withOpacity(0.95) : Colors.white.withOpacity(0.95),
+          borderRadius: const BorderRadius.horizontal(left: Radius.circular(40)),
+        ),
+        child: Column(
+          children: [
+            // --- Header ---
+            Container(
+              padding: const EdgeInsets.fromLTRB(24, 60, 24, 20),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'NOTIFICATIONS',
+                    style: GoogleFonts.poppins(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
+                      color: isDark ? Colors.white : Colors.black,
+                      letterSpacing: 1.2,
                     ),
                   ),
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: Text(
+                      'Clear All',
+                      style: TextStyle(color: primaryColor, fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // --- Notification List ---
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                children: [
+                  _notificationItem(
+                    icon: Icons.wb_sunny_rounded,
+                    title: 'Weather Update',
+                    body: 'High humidity detected. Increased risk of Blast disease.',
+                    time: 'Just now',
+                    color: Colors.orangeAccent,
+                    isDark: isDark,
+                  ),
+                  _notificationItem(
+                    icon: Icons.check_circle_rounded,
+                    title: 'Scan Successful',
+                    body: 'Rice Leaf Folder detected in Field A. View recommendations.',
+                    time: '2 hours ago',
+                    color: primaryColor,
+                    isDark: isDark,
+                  ),
+                  _notificationItem(
+                    icon: Icons.info_outline_rounded,
+                    title: 'System Update',
+                    body: 'New AI models for Brown Spot detection are now live.',
+                    time: '1 day ago',
+                    color: Colors.blueAccent,
+                    isDark: isDark,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _notificationItem({
+    required IconData icon,
+    required String title,
+    required String body,
+    required String time,
+    required Color color,
+    required bool isDark,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: isDark ? Colors.white12 : Colors.black12),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: color, size: 20),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.poppins(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 14,
+                          color: isDark ? Colors.white : Colors.black,
+                        ),
+                      ),
+                    ),
+                    Text(
+                      time,
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: isDark ? Colors.white38 : Colors.black38,
+                      ),
+                    ),
+                  ],
                 ),
-                Icon(
-                  Icons.arrow_forward_ios_rounded,
-                  size: 16,
-                  color: theme.textTheme.bodyMedium?.color?.withOpacity(0.55),
+                const SizedBox(height: 4),
+                Text(
+                  body,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: isDark ? Colors.white60 : Colors.black54,
+                    height: 1.4,
+                  ),
                 ),
               ],
             ),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -330,20 +619,32 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     return GestureDetector(
       onTap: () => provider.toggleTheme(),
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 400),
+        duration: const Duration(milliseconds: 500),
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
           color: isDark ? const Color(0xFF1A1A12) : Colors.white,
           borderRadius: BorderRadius.circular(20),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(isDark ? 0.3 : 0.05), blurRadius: 10)],
+          boxShadow: [
+            BoxShadow(
+              color: isDark ? Colors.black.withOpacity(0.4) : Colors.black.withOpacity(0.08),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            )
+          ],
         ),
         child: AnimatedSwitcher(
-          duration: const Duration(milliseconds: 300),
+          duration: const Duration(milliseconds: 500),
+          transitionBuilder: (child, animation) {
+            return RotationTransition(
+              turns: animation,
+              child: ScaleTransition(scale: animation, child: child),
+            );
+          },
           child: Icon(
             isDark ? Icons.nightlight_round : Icons.sunny,
             key: ValueKey(isDark),
             color: isDark ? const Color(0xFF6CFB7B) : Colors.orangeAccent,
-            size: 20,
+            size: 22,
           ),
         ),
       ),
@@ -355,130 +656,169 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       future: _dbService.getFieldSummary(),
       builder: (context, snapshot) {
         final stats = snapshot.data ?? {'count': 0, 'most_common': 'None'};
-        final count = stats['count'] as int;
 
-        return SizedBox(
-          height: 180,
-          child: ListView(
+        return Container(
+          height: 240,
+          margin: const EdgeInsets.only(top: 10),
+          child: SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
             physics: const BouncingScrollPhysics(),
-            children: [
-              IntelligenceCard(
-                title: 'ENV RISK',
-                subtitle: 'Live Humidity Gauge',
-                accentColor: Colors.orangeAccent,
-                content: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('${weather?.humidity ?? 0}%', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900)),
-                    const SizedBox(height: 5),
-                    Container(
-                      height: 4,
-                      width: 100,
-                      decoration: BoxDecoration(color: Colors.white10, borderRadius: BorderRadius.circular(5)),
-                      child: FractionallySizedBox(
-                        alignment: Alignment.centerLeft,
-                        widthFactor: ((weather?.humidity ?? 0) / 100).clamp(0.0, 1.0),
-                        child: Container(decoration: BoxDecoration(color: Colors.orangeAccent, borderRadius: BorderRadius.circular(5))),
+            child: Row(
+              children: [
+                IntelligenceCard(
+                  title: 'ENV RISK',
+                  subtitle: 'Risk Analysis',
+                  accentColor: const Color(0xFFFFB347), 
+                  content: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            '${weather?.humidity ?? "--"}',
+                            style: GoogleFonts.inter(fontSize: 32, fontWeight: FontWeight.w900, color: Colors.white),
+                          ),
+                          const SizedBox(width: 4),
+                          Text('%', style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white70)),
+                        ],
                       ),
-                    ),
-                  ],
-                ),
-              ),
-              IntelligenceCard(
-                title: 'RECENT ACTIVITY',
-                subtitle: 'Last 7 Days Scans',
-                accentColor: const Color(0xFF6CFB7B),
-                content: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('$count', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900)),
-                    const SizedBox(height: 5),
-                    SizedBox(
-                      height: 35,
-                      width: 120,
-                      child: FutureBuilder<List<Map<String, dynamic>>>(
-                        future: _dbService.getUserScanHistory(),
-                        builder: (ctx, histSnap) {
-                          final history = histSnap.data ?? [];
-                          // Simple mock spots based on real history length or spread
-                          final spots = history.isEmpty ? [const FlSpot(0, 0)] : 
-                                       history.take(5).toList().asMap().entries.map((e) => FlSpot(e.key.toDouble(), 1 + (e.key % 3).toDouble())).toList();
-                          
-                          return LineChart(
-                            LineChartData(
-                              gridData: const FlGridData(show: false),
-                              titlesData: const FlTitlesData(show: false),
-                              borderData: FlBorderData(show: false),
-                              lineBarsData: [
-                                LineChartBarData(
-                                  spots: spots,
-                                  isCurved: true,
-                                  color: const Color(0xFF6CFB7B),
-                                  barWidth: 3,
-                                  dotData: const FlDotData(show: false),
-                                  belowBarData: BarAreaData(show: true, color: const Color(0xFF6CFB7B).withOpacity(0.1)),
-                                ),
-                              ],
-                            ),
-                          );
-                        }
+                      const SizedBox(height: 10),
+                      const Text('Relative Humidity', style: TextStyle(color: Colors.white70, fontSize: 10)),
+                      const SizedBox(height: 15),
+                      Container(
+                        height: 8,
+                        width: 180,
+                        decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(4)),
+                        child: FractionallySizedBox(
+                          alignment: Alignment.centerLeft,
+                          widthFactor: ((weather?.humidity ?? 0) / 100).clamp(0.0, 1.0),
+                          child: Container(
+                            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(4)),
+                          ),
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-              IntelligenceCard(
-                title: 'TOP THREAT',
-                subtitle: 'Regional Alert',
-                accentColor: Colors.redAccent,
-                content: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      (stats['most_common'] as String).toDiseaseOnly(), 
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.white),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 5),
-                    const Row(
-                      children: [
-                        Icon(Icons.warning_amber_rounded, color: Colors.redAccent, size: 16),
-                        SizedBox(width: 4),
-                        Text('High Priority', style: TextStyle(color: Colors.redAccent, fontSize: 10, fontWeight: FontWeight.bold)),
-                      ],
-                    ),
-                  ],
+                IntelligenceCard(
+                  title: 'ACTIVITY',
+                  subtitle: 'Field Metrics',
+                  accentColor: const Color(0xFF6CFB7B),
+                  content: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('${stats['count'] ?? 0}', style: GoogleFonts.inter(fontSize: 32, fontWeight: FontWeight.w900, color: Colors.white)),
+                      const SizedBox(height: 10),
+                      const Text('Total Scans', style: TextStyle(color: Colors.white70, fontSize: 10)),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+                IntelligenceCard(
+                  title: 'THREAT',
+                  subtitle: 'Disease Alert',
+                  accentColor: const Color(0xFFFF5252),
+                  content: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        (stats['most_common']?.toString() ?? 'None').toDiseaseOnly(),
+                        style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w900, color: Colors.white),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 10),
+                      const Text('Most Common', style: TextStyle(color: Colors.white70, fontSize: 10)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         );
-      }
+      },
     );
   }
 
   Widget _buildHeroScanZone() {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-      padding: const EdgeInsets.all(40),
+      margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 30),
       decoration: BoxDecoration(
-        color: Theme.of(context).cardColor.withOpacity(0.5),
-        borderRadius: BorderRadius.circular(40),
-        border: Border.all(color: Theme.of(context).primaryColor.withOpacity(0.1)),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(32),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          )
+        ],
       ),
       child: Column(
         children: [
-          Lottie.network(
-            'https://assets9.lottiefiles.com/packages/lf20_T6v6tZ.json',
-            height: 160,
-            errorBuilder: (c, e, s) => Icon(Icons.eco, size: 100, color: Theme.of(context).primaryColor.withOpacity(0.2)),
+          AnimatedBuilder(
+            animation: _floatingController,
+            builder: (context, child) {
+              return Transform.translate(
+                offset: Offset(0, 5 * _floatingController.value),
+                child: child,
+              );
+            },
+            child: Container(
+              height: 140,
+              width: 140,
+              decoration: BoxDecoration(
+                color: const Color(0xFFE8F5E9),
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF2E5E32).withOpacity(0.05),
+                    blurRadius: 20,
+                    spreadRadius: 5,
+                  )
+                ],
+              ),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  const Icon(Icons.eco_rounded, size: 80, color: Color(0xFF2E5E32)),
+                  // Custom Scanning Laser Effect
+                  AnimatedBuilder(
+                    animation: _floatingController,
+                    builder: (context, child) {
+                      return Positioned(
+                        top: 20 + (100 * _floatingController.value),
+                        child: Container(
+                          width: 100,
+                          height: 2,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF6CFB7B),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFF6CFB7B).withOpacity(0.8),
+                                blurRadius: 10,
+                                spreadRadius: 2,
+                              )
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
           ),
-          const SizedBox(height: 20),
-          Text('Plant Pulse', style: GoogleFonts.poppins(fontSize: 22, fontWeight: FontWeight.w900)),
-          const Text('Scan your rice field with AI', style: TextStyle(color: Colors.white38, fontSize: 12)),
+          const SizedBox(height: 16),
+          Text(
+            'Field Scanner',
+            style: GoogleFonts.playfairDisplay(fontSize: 22, fontWeight: FontWeight.w900, color: const Color(0xFF2E5E32)),
+          ),
+          const Text(
+            'Identify rice diseases instantly with AI',
+            style: TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.w500),
+          ),
           const SizedBox(height: 30),
           _buildPulseButton(),
         ],
@@ -487,78 +827,136 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   Widget _buildPulseButton() {
-    return ElevatedButton(
-      onPressed: () => Navigator.pushNamed(context, '/scanner'),
-      style: ElevatedButton.styleFrom(
-        backgroundColor: Theme.of(context).primaryColor,
-        foregroundColor: Colors.black,
-        minimumSize: const Size(200, 60),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        elevation: 15,
-        shadowColor: Theme.of(context).primaryColor.withOpacity(0.5),
-      ),
-      child: const Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.camera_alt),
-          SizedBox(width: 12),
-          Text('START SCANNING', style: TextStyle(fontWeight: FontWeight.w900)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFloatingDock(bool isDark) {
-    final primary = Theme.of(context).primaryColor;
-    return Container(
-      height: 75,
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor.withOpacity(0.7),
-        borderRadius: BorderRadius.circular(30),
-        border: Border.all(color: Colors.white.withOpacity(0.1)),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 30)],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(30),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              _dockItem(Icons.camera_alt_rounded, false, primary, onTap: () => Navigator.pushNamed(context, '/scanner')),
-              _dockItem(Icons.notifications_active_outlined, false, primary, onTap: () => Navigator.pushNamed(context, '/reminders')),
-              _dockItem(Icons.history_rounded, false, primary, onTap: () => Navigator.pushNamed(context, '/history')),
-              _dockItem(Icons.bar_chart_rounded, false, primary, onTap: () => Navigator.pushNamed(context, '/stats')),
-              _dockItem(
-                Icons.person_outline_rounded,
-                false,
-                primary,
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const ProfileScreen()),
-                ),
-              ),
-            ],
+    return AnimatedBuilder(
+      animation: _pulseController,
+      builder: (context, child) {
+        return Transform.scale(
+          scale: 1.0 + (_pulseController.value * 0.05),
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Theme.of(context).primaryColor.withOpacity(0.3 * _pulseController.value),
+                  blurRadius: 15,
+                  spreadRadius: 5 * _pulseController.value,
+                )
+              ],
+            ),
+            child: child,
           ),
+        );
+      },
+      child: ElevatedButton(
+        onPressed: () => Navigator.pushNamed(context, '/scanner'),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Theme.of(context).primaryColor,
+          foregroundColor: Colors.white,
+          minimumSize: const Size(220, 64),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+          elevation: 8,
+          shadowColor: Colors.black26,
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.camera_alt_rounded, size: 24),
+            const SizedBox(width: 12),
+            Text(
+              'START SCANNING',
+              style: GoogleFonts.poppins(
+                fontWeight: FontWeight.w800,
+                fontSize: 16,
+                letterSpacing: 0.5,
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _dockItem(IconData icon, bool active, Color primary, {VoidCallback? onTap}) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(18),
-        child: SizedBox(
-          width: 56,
-          height: double.infinity,
+  Widget _buildFloatingDock(bool isDark) {
+    return Container(
+      height: 70,
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(35),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 30,
+            offset: const Offset(0, 10),
+          )
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          _dockItem(
+            icon: Icons.history_rounded,
+            active: false,
+            onTap: () => Navigator.pushNamed(context, '/history'),
+          ),
+          _dotDivider(),
+          _dockItem(
+            icon: Icons.camera_alt_rounded,
+            active: true,
+            onTap: () => Navigator.pushNamed(context, '/scanner'),
+          ),
+          _dotDivider(),
+          _dockItem(
+            icon: Icons.medication_liquid_rounded,
+            active: false,
+            onTap: () => Navigator.pushNamed(context, '/reminders'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _dotDivider() {
+    return Container(
+      width: 4,
+      height: 4,
+      decoration: const BoxDecoration(
+        color: Colors.black12,
+        shape: BoxShape.circle,
+      ),
+    );
+  }
+
+  Widget _dockItem({required IconData icon, required bool active, required VoidCallback onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        width: 50,
+        height: 50,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: active ? const Color(0xFFF0F7F0) : Colors.transparent,
+        ),
+        child: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, color: active ? primary : Colors.white24, size: 24),
+              Icon(
+                icon,
+                color: active ? const Color(0xFF2E5E32) : Colors.black45,
+                size: 24,
+              ),
               if (active)
-                Container(margin: const EdgeInsets.only(top: 4), width: 4, height: 4, decoration: BoxDecoration(color: primary, shape: BoxShape.circle)),
+                Container(
+                  margin: const EdgeInsets.only(top: 4),
+                  width: 4,
+                  height: 4,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF2E5E32),
+                    shape: BoxShape.circle,
+                  ),
+                ),
             ],
           ),
         ),

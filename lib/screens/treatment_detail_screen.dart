@@ -107,40 +107,37 @@ class _TreatmentDetailScreenState extends State<TreatmentDetailScreen> with Tick
 
   @override
   Widget build(BuildContext context) {
-    final bool isUrdu = context.watch<LocaleProvider>().locale.languageCode == 'ur';
     final String cleanDisease = widget.diseaseLabel.toDiseaseOnly();
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F9FB),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        title: Text(isUrdu ? 'علاج کی تفصیلات' : 'Treatment Details', 
-          style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w900)),
-        backgroundColor: Colors.white,
+        title: const Text('Treatment Details', 
+          style: TextStyle(fontWeight: FontWeight.w900)),
         elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.black),
       ),
       body: _isLoading 
         ? _buildLoadingState()
         : _error.isNotEmpty 
-          ? _buildErrorState(isUrdu)
+          ? _buildErrorState()
           : _apiData == null 
-            ? _buildEmptyState(isUrdu)
+            ? _buildEmptyState()
             : SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildHeader(cleanDisease, isUrdu),
+                    _buildHeader(cleanDisease),
                     const SizedBox(height: 20),
-                    _buildWarningBanner(isUrdu),
+                    _buildWarningBanner(),
                     const SizedBox(height: 25),
-                    _buildTabSelector(isUrdu),
+                    _buildTabSelector(),
                     const SizedBox(height: 12),
-                    _buildSolutionSection(isUrdu),
+                    _buildSolutionSection(),
                     const SizedBox(height: 25),
-                    _buildMarketSection(isUrdu),
+                    _buildMarketSection(),
                     const SizedBox(height: 25),
-                    _buildDosageCalculator(isUrdu),
+                    _buildDosageCalculator(),
                     const SizedBox(height: 40),
                   ],
                 ),
@@ -160,11 +157,11 @@ class _TreatmentDetailScreenState extends State<TreatmentDetailScreen> with Tick
     );
   }
 
-  Widget _buildHeader(String disease, bool isUrdu) {
+  Widget _buildHeader(String disease) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))],
       ),
@@ -173,22 +170,22 @@ class _TreatmentDetailScreenState extends State<TreatmentDetailScreen> with Tick
         children: [
           Row(
             children: [
-              const Icon(Icons.assignment_turned_in, color: Color(0xFF2ECC71)),
+              Icon(Icons.assignment_turned_in, color: Theme.of(context).primaryColor),
               const SizedBox(width: 8),
               Text(
-                isUrdu ? 'تشخیص مکمل' : 'Diagnosis Confirmed',
-                style: const TextStyle(color: Color(0xFF2ECC71), fontWeight: FontWeight.w900, fontSize: 12),
+                'Diagnosis Confirmed',
+                style: TextStyle(color: Theme.of(context).primaryColor, fontWeight: FontWeight.w900, fontSize: 12),
               ),
             ],
           ),
           const SizedBox(height: 12),
           Text(
             '${widget.plantName.toDisplayDisease()} — ${disease.toDisplayDisease()}',
-            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Colors.black),
+            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
           ),
           const SizedBox(height: 8),
           Text(
-            isUrdu ? 'طبی رپورٹ پر مبنی سفارشات' : 'Recommendations based on clinical report',
+            'Recommendations based on clinical report',
             style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
           ),
         ],
@@ -196,7 +193,7 @@ class _TreatmentDetailScreenState extends State<TreatmentDetailScreen> with Tick
     );
   }
 
-  Widget _buildWarningBanner(bool isUrdu) {
+  Widget _buildWarningBanner() {
     final disableAnimations = MediaQuery.of(context).disableAnimations;
     return AnimatedBuilder(
       animation: _shakeAnimation,
@@ -218,14 +215,14 @@ class _TreatmentDetailScreenState extends State<TreatmentDetailScreen> with Tick
           borderRadius: BorderRadius.circular(15),
           border: Border.all(color: Colors.amber.withOpacity(0.3)),
         ),
-        child: Row(
+        child: const Row(
           children: [
-            const Icon(Icons.warning_amber_rounded, color: Colors.orange),
+            Icon(Icons.warning_amber_rounded, color: Colors.orange),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
-                isUrdu ? 'احتیاط: تجویز کردہ مقدار پر سختی سے عمل کریں۔' : 'Caution: Follow the recommended dosage strictly.',
-                style: const TextStyle(color: Colors.orange, fontWeight: FontWeight.w700, fontSize: 13),
+                'Caution: Follow the recommended dosage strictly.',
+                style: TextStyle(color: Colors.orange, fontWeight: FontWeight.w700, fontSize: 13),
               ),
             ),
           ],
@@ -234,7 +231,7 @@ class _TreatmentDetailScreenState extends State<TreatmentDetailScreen> with Tick
     );
   }
 
-  Widget _buildTabSelector(bool isUrdu) {
+  Widget _buildTabSelector() {
     return Container(
       height: 45,
       decoration: BoxDecoration(
@@ -245,19 +242,19 @@ class _TreatmentDetailScreenState extends State<TreatmentDetailScreen> with Tick
         controller: _tabController,
         indicator: BoxDecoration(
           borderRadius: BorderRadius.circular(10),
-          color: const Color(0xFF2ECC71),
+          color: Theme.of(context).primaryColor,
         ),
         labelColor: Colors.white,
         unselectedLabelColor: Colors.grey,
-        tabs: [
-          Tab(text: isUrdu ? 'قدرتی علاج' : 'Organic'),
-          Tab(text: isUrdu ? 'کیمیائی علاج' : 'Chemical'),
+        tabs: const [
+          Tab(text: 'Organic'),
+          Tab(text: 'Chemical'),
         ],
       ),
     );
   }
 
-  Widget _buildSolutionSection(bool isUrdu) {
+  Widget _buildSolutionSection() {
     return SizedBox(
       height: 120,
       child: TabBarView(
@@ -287,25 +284,25 @@ class _TreatmentDetailScreenState extends State<TreatmentDetailScreen> with Tick
     );
   }
 
-  Widget _buildMarketSection(bool isUrdu) {
+  Widget _buildMarketSection() {
     final List<MarketRecommendation> recommendations = _apiData?.recommendations ?? [];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionTitle(isUrdu ? 'مارکیٹ کی مصنوعات' : 'Market Products', Icons.shopping_basket_outlined),
+        _buildSectionTitle('Market Products', Icons.shopping_basket_outlined),
         const SizedBox(height: 12),
-        ...recommendations.map((item) => _buildProductCard(item, isUrdu)),
+        ...recommendations.map((item) => _buildProductCard(item)),
       ],
     );
   }
 
-  Widget _buildProductCard(MarketRecommendation product, bool isUrdu) {
+  Widget _buildProductCard(MarketRecommendation product) {
     final disableAnimations = MediaQuery.of(context).disableAnimations;
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(15),
         border: Border.all(color: Colors.grey.shade200),
       ),
@@ -325,7 +322,7 @@ class _TreatmentDetailScreenState extends State<TreatmentDetailScreen> with Tick
                 Text('${product.company} • ${product.size}', style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
                 const SizedBox(height: 4),
                 Text(
-                  isUrdu ? 'مطلوبہ پیک: ${product.requiredPacks}' : 'Required: ${product.requiredPacks} packs',
+                  'Required: ${product.requiredPacks} packs',
                   style: const TextStyle(fontSize: 12, color: Colors.orange, fontWeight: FontWeight.w900),
                 ),
               ],
@@ -348,7 +345,7 @@ class _TreatmentDetailScreenState extends State<TreatmentDetailScreen> with Tick
     );
   }
 
-  Widget _buildDosageCalculator(bool isUrdu) {
+  Widget _buildDosageCalculator() {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -359,10 +356,10 @@ class _TreatmentDetailScreenState extends State<TreatmentDetailScreen> with Tick
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildSectionTitle(isUrdu ? 'خوراک اور قیمت کا حساب' : 'Dosage & Price Calc', Icons.calculate),
+          _buildSectionTitle('Dosage & Price Calc', Icons.calculate),
           const SizedBox(height: 16),
           Text(
-            isUrdu ? 'کھیت کا رقبہ (ایکڑ): ${_acreage.toStringAsFixed(1)}' : 'Field Size (Acres): ${_acreage.toStringAsFixed(1)}',
+            'Field Size (Acres): ${_acreage.toStringAsFixed(1)}',
             style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
           ),
           Slider(
@@ -378,7 +375,7 @@ class _TreatmentDetailScreenState extends State<TreatmentDetailScreen> with Tick
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(isUrdu ? 'کل خوراک:' : 'Total Dosage:', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
+              const Text('Total Dosage:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(color: Colors.blue, borderRadius: BorderRadius.circular(10)),
@@ -404,20 +401,20 @@ class _TreatmentDetailScreenState extends State<TreatmentDetailScreen> with Tick
     );
   }
 
-  Widget _buildEmptyState(bool isUrdu) {
-    return Center(
+  Widget _buildEmptyState() {
+    return const Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.info_outline, size: 60, color: Colors.grey),
-          const SizedBox(height: 16),
-          Text(isUrdu ? 'علاج کی معلومات دستیاب نہیں' : 'Treatment info not available', style: const TextStyle(color: Colors.grey)),
+          Icon(Icons.info_outline, size: 60, color: Colors.grey),
+          SizedBox(height: 16),
+          Text('Treatment info not available', style: TextStyle(color: Colors.grey)),
         ],
       ),
     );
   }
 
-  Widget _buildErrorState(bool isUrdu) {
+  Widget _buildErrorState() {
     return Padding(
       padding: const EdgeInsets.all(24),
       child: Center(
@@ -428,7 +425,7 @@ class _TreatmentDetailScreenState extends State<TreatmentDetailScreen> with Tick
             const SizedBox(height: 16),
             Text(_error, textAlign: TextAlign.center, style: const TextStyle(color: Colors.redAccent)),
             const SizedBox(height: 24),
-            ElevatedButton(onPressed: _loadTreatment, child: Text(isUrdu ? 'دوبارہ کوشش کریں' : 'Retry')),
+            ElevatedButton(onPressed: _loadTreatment, child: const Text('Retry')),
           ],
         ),
       ),
@@ -472,12 +469,7 @@ class _ShimmerBoxState extends State<_ShimmerBox> with SingleTickerProviderState
           margin: widget.margin,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(15),
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [Colors.grey.shade300, Colors.grey.shade100, Colors.grey.shade300],
-              stops: [_animation.value - 0.3, _animation.value, _animation.value + 0.3],
-            ),
+            color: Colors.grey.shade300.withOpacity(0.3 + (_animation.value.abs() % 0.4)),
           ),
         );
       },
