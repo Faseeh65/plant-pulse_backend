@@ -145,11 +145,11 @@ class _StatsScreenState extends State<StatsScreen> {
             title: 'Health Distribution',
             icon: Icons.pie_chart_outline_rounded,
             child: SizedBox(
-              height: 200,
+              height: 180,
               child: Row(
                 children: [
                   Expanded(
-                    flex: 3,
+                    flex: 4,
                     child: PieChart(
                       PieChartData(
                         pieTouchData: PieTouchData(
@@ -163,25 +163,23 @@ class _StatsScreenState extends State<StatsScreen> {
                             });
                           },
                         ),
-                        sectionsSpace: 4,
-                        centerSpaceRadius: 24,
+                        sectionsSpace: 3,
+                        centerSpaceRadius: 20,
                         sections: _pieSections(data),
                       ),
                     ),
                   ),
+                  const SizedBox(width: 12),
                   Expanded(
-                    flex: 2,
-                    child: Padding(
-                      padding: const EdgeInsets.only(left: 8),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _pieLegend(_green, 'Healthy', '${data.healthyPct.toStringAsFixed(1)}%'),
-                          const SizedBox(height: 12),
-                          _pieLegend(_red, 'Diseased', '${data.diseasedPct.toStringAsFixed(1)}%'),
-                        ],
-                      ),
+                    flex: 3,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _pieLegend(_green, 'Healthy', '${data.healthyPct.toStringAsFixed(0)}%'),
+                        const SizedBox(height: 16),
+                        _pieLegend(_red, 'Diseased', '${data.diseasedPct.toStringAsFixed(0)}%'),
+                      ],
                     ),
                   ),
                 ],
@@ -209,19 +207,18 @@ class _StatsScreenState extends State<StatsScreen> {
   }
 
   List<PieChartSectionData> _pieSections(CropSummary data) {
-    final touched = _touchedPieIndex >= 0;
     return [
       PieChartSectionData(
         value: data.healthyPct,
         color: _green,
-        radius: _touchedPieIndex == 0 ? 40 : 34,
+        radius: _touchedPieIndex == 0 ? 32 : 28,
         title: _touchedPieIndex == 0 ? '${data.healthyPct.toStringAsFixed(0)}%' : '',
         titleStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 10),
       ),
       PieChartSectionData(
         value: data.diseasedPct,
         color: _red,
-        radius: _touchedPieIndex == 1 ? 40 : 34,
+        radius: _touchedPieIndex == 1 ? 32 : 28,
         title: _touchedPieIndex == 1 ? '${data.diseasedPct.toStringAsFixed(0)}%' : '',
         titleStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 10),
       ),

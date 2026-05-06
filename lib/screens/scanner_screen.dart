@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:http/http.dart' as http;
@@ -18,6 +19,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../widgets/questionnaire_overlay.dart';
 import '../utils/string_extensions.dart';
 import 'profile_screen.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class ScannerScreen extends StatefulWidget {
   const ScannerScreen({super.key});
@@ -42,6 +44,7 @@ class _ScannerScreenState extends State<ScannerScreen> with TickerProviderStateM
   late Animation<double> _scanLineAnimation;
   late Animation<double> _cornersAnimation;
   late Animation<double> _flashAnimation;
+  late AnimationController _shutterPulseController;
   bool _isNavigationInProgress = false;
 
   @override
@@ -77,7 +80,13 @@ class _ScannerScreenState extends State<ScannerScreen> with TickerProviderStateM
       TweenSequenceItem(tween: Tween<double>(begin: 0.3, end: 0.0), weight: 50),
     ]).animate(_flashController);
 
-    // 4. Loading state rotating leaf
+    // 4. Shutter pulse
+    _shutterPulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 1),
+    )..repeat(reverse: true);
+    
+    // 5. Loading state rotating leaf
     _leafRotationController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 2),
@@ -92,6 +101,7 @@ class _ScannerScreenState extends State<ScannerScreen> with TickerProviderStateM
     _cornersController.dispose();
     _flashController.dispose();
     _leafRotationController.dispose();
+    _shutterPulseController.dispose();
     super.dispose();
   }
 
@@ -715,47 +725,153 @@ class _ScannerScreenState extends State<ScannerScreen> with TickerProviderStateM
         children: [
           CameraPreview(_controller!),
 
-          // Animated Scanning Frame and Sweeping Line
-          IgnorePointer(
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final frameW = constraints.maxWidth * 0.7;
-                final frameH = frameW * 1.2;
-                return Center(
-                  child: Column(
+          // Premium HUD Overlay (Top & Corners)
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: Container(
+              height: 200,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.black.withOpacity(0.7),
+                    Colors.black.withOpacity(0.0),
+                  ],
+                ),
+              ),
+              child: SafeArea(
+                child: Column(
+                  children: [
+                    const SizedBox(height: 10),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.3),
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(color: Colors.white.withOpacity(0.1)),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.2),
+                            blurRadius: 10,
+                          ),
+                        ],
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(24),
+                        child: BackdropFilter(
+                          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  'Field Scanner',
+                                  style: GoogleFonts.playfairDisplay(
+                                    color: Colors.white,
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.w900,
+                                    letterSpacing: -0.5,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    AnimatedBuilder(
+                                      animation: _shutterPulseController,
+                                      builder: (context, child) {
+                                        return Container(
+                                          width: 8,
+                                          height: 8,
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFF6CFB7B).withOpacity(0.4 + (0.6 * _shutterPulseController.value)),
+                                            shape: BoxShape.circle,
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: const Color(0xFF6CFB7B).withOpacity(0.5 * _shutterPulseController.value),
+                                                blurRadius: 8,
+                                                spreadRadius: 2,
+                                              )
+                                            ],
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Text(
+                                      'SYSTEM READY',
+                                      style: GoogleFonts.rajdhani(
+                                        color: Colors.white.withOpacity(0.7),
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w700,
+                                        letterSpacing: 2.0,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+          // Central Scanning UI
+          Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                SizedBox(
+                  width: MediaQuery.of(context).size.width * 0.75,
+                  height: MediaQuery.of(context).size.width * 0.9,
+                  child: Stack(
                     children: [
-                      const SizedBox(height: 60),
-                      const Text(
-                        'Scanner',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 24,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 1.2,
-                        ),
+                      // HUD Status Labels at corners
+                      Positioned(
+                        top: -20,
+                        left: 0,
+                        child: Text('AF-C / LEAF', 
+                          style: GoogleFonts.rajdhani(color: const Color(0xFF6CFB7B).withOpacity(0.5), fontSize: 10, fontWeight: FontWeight.bold)),
                       ),
-                      const Spacer(),
-                      SizedBox(
-                        width: frameW,
-                        height: frameH,
-                        child: AnimatedBuilder(
-                          animation: Listenable.merge([_scanLineController, _cornersController]),
-                          builder: (context, child) {
-                            return CustomPaint(
-                              painter: _ScannerFramePainter(
-                                scanLineProgress: disableAnimations ? 0.5 : _scanLineAnimation.value,
-                                cornersProgress: disableAnimations ? 1.0 : _cornersAnimation.value,
-                                  color: Theme.of(context).primaryColor,
-                              ),
-                            );
-                          },
-                        ),
+                      Positioned(
+                        top: -20,
+                        right: 0,
+                        child: Text('ISO AUTO', 
+                          style: GoogleFonts.rajdhani(color: const Color(0xFF6CFB7B).withOpacity(0.5), fontSize: 10, fontWeight: FontWeight.bold)),
                       ),
-                      const Spacer(flex: 2),
+                      Positioned(
+                        bottom: -20,
+                        left: 0,
+                        child: Text('RICE_MODEL_V2.4', 
+                          style: GoogleFonts.rajdhani(color: const Color(0xFF6CFB7B).withOpacity(0.5), fontSize: 10, fontWeight: FontWeight.bold)),
+                      ),
+                      
+                      AnimatedBuilder(
+                        animation: Listenable.merge([_scanLineController, _cornersController]),
+                        builder: (context, child) {
+                          return CustomPaint(
+                            painter: _ScannerFramePainter(
+                              scanLineProgress: disableAnimations ? 0.5 : _scanLineAnimation.value,
+                              cornersProgress: disableAnimations ? 1.0 : _cornersAnimation.value,
+                              color: const Color(0xFF6CFB7B),
+                            ),
+                            size: Size.infinite,
+                          );
+                        },
+                      ),
                     ],
                   ),
-                );
-              },
+                ),
+              ],
             ),
           ),
 
@@ -776,29 +892,46 @@ class _ScannerScreenState extends State<ScannerScreen> with TickerProviderStateM
 
           if (_isProcessing)
             Container(
-              color: Colors.black54,
-              child: Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // 4. Loading state: rotating leaf icon
-                    AnimatedBuilder(
-                      animation: _leafRotationController,
-                      builder: (context, child) {
-                        return Transform.rotate(
-                          angle: disableAnimations ? 0.0 : _leafRotationController.value * 2 * 3.14159,
-                          child: child,
-                        );
-                      },
-                      child: const Icon(Icons.eco, color: Color(0xFF6CFB7B), size: 48),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Analyzing leaf...',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600),
-                    ),
-                  ],
+              color: Colors.black87,
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+                child: Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      AnimatedBuilder(
+                        animation: _leafRotationController,
+                        builder: (context, child) {
+                          return Transform.rotate(
+                            angle: disableAnimations ? 0.0 : _leafRotationController.value * 2 * 3.14159,
+                            child: child,
+                          );
+                        },
+                        child: const Icon(Icons.eco, color: Color(0xFF6CFB7B), size: 48),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'PRECISION ANALYSIS IN PROGRESS',
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.rajdhani(
+                          color: const Color(0xFF6CFB7B), 
+                          fontSize: 12, 
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 2.0,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Decoding leaf pathology patterns...',
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.inter(
+                          color: Colors.white70, 
+                          fontSize: 10, 
+                          fontWeight: FontWeight.w500
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -813,91 +946,90 @@ class _ScannerScreenState extends State<ScannerScreen> with TickerProviderStateM
     return SafeArea(
       top: false,
       child: Container(
-        height: 100,
-        margin: const EdgeInsets.only(bottom: 12, left: 20, right: 20),
-        decoration: BoxDecoration(
-          color: const Color(0xFF1A1A1A).withOpacity(0.9),
-          borderRadius: BorderRadius.circular(40),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.3),
-              blurRadius: 16,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: () => Navigator.pop(context),
-              child: const Padding(
-                padding: EdgeInsets.all(8.0),
-                child: Icon(Icons.home_outlined, color: Colors.white60, size: 28),
+        height: 90,
+        margin: const EdgeInsets.fromLTRB(24, 0, 24, 20),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(45),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.5),
+                borderRadius: BorderRadius.circular(45),
+                border: Border.all(color: Colors.white.withOpacity(0.1)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.2),
+                    blurRadius: 20,
+                    spreadRadius: 5,
+                  ),
+                ],
               ),
-            ),
-
-            GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: _pickFromGallery,
-              child: const Padding(
-                padding: EdgeInsets.all(8.0),
-                child: Icon(Icons.grid_view_outlined, color: Colors.white60, size: 28),
-              ),
-            ),
-
-            GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: _isProcessing ? null : _captureAndAnalyze,
-              child: Container(
-                height: 70,
-                width: 70,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF1B5E20),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Color(0x441B5E20),
-                      blurRadius: 12,
-                      offset: Offset(0, 3),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _buildNavIcon(Icons.home_filled, () => Navigator.pop(context)),
+                  _buildNavIcon(Icons.collections_rounded, _pickFromGallery),
+                  
+                  // Capture Button
+                  GestureDetector(
+                    onTap: _isProcessing ? null : _captureAndAnalyze,
+                    child: AnimatedBuilder(
+                      animation: _shutterPulseController,
+                      builder: (context, child) {
+                        return Container(
+                          width: 74,
+                          height: 74,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: const Color(0xFF6CFB7B).withOpacity(0.3 * (1 - _shutterPulseController.value)),
+                              width: 3 * _shutterPulseController.value,
+                            ),
+                          ),
+                          alignment: Alignment.center,
+                          child: Container(
+                            width: 62,
+                            height: 62,
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [Color(0xFF2E7D32), Color(0xFF6CFB7B)],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(0xFF6CFB7B).withOpacity(0.4),
+                                  blurRadius: 15,
+                                  spreadRadius: 2,
+                                )
+                              ],
+                            ),
+                            child: _isProcessing
+                                ? const Center(child: SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)))
+                                : const Icon(Icons.camera_rounded, color: Colors.white, size: 32),
+                          ),
+                        );
+                      },
                     ),
-                  ],
-                ),
-                child: _isProcessing
-                    ? AnimatedBuilder(
-                        animation: _leafRotationController,
-                        builder: (context, child) {
-                          return Transform.rotate(
-                            angle: disableAnimations ? 0.0 : _leafRotationController.value * 2 * 3.14159,
-                            child: child,
-                          );
-                        },
-                        child: const Icon(Icons.eco, color: Colors.black, size: 30),
-                      )
-                    : const Icon(Icons.add_a_photo, color: Colors.black, size: 30),
-              ),
-            ),
+                  ),
 
-            GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const HistoryScreen())),
-              child: const Padding(
-                padding: EdgeInsets.all(8.0),
-                child: Icon(Icons.history, color: Colors.white60, size: 28),
+                  _buildNavIcon(Icons.history_edu_rounded, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const HistoryScreen()))),
+                  _buildNavIcon(Icons.account_circle_rounded, () => Navigator.push(context, MaterialPageRoute(builder: (_) => ProfileScreen()))),
+                ],
               ),
             ),
-
-            GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ProfileScreen())),
-              child: const Padding(
-                padding: EdgeInsets.all(8.0),
-                child: Icon(Icons.person_outline, color: Colors.white60, size: 28),
-              ),
-            ),
-          ],
+          ),
         ),
       ),
+    );
+  }
+
+  Widget _buildNavIcon(IconData icon, VoidCallback onTap) {
+    return IconButton(
+      icon: Icon(icon, color: Colors.white.withOpacity(0.8), size: 28),
+      onPressed: onTap,
     );
   }
 }
@@ -939,20 +1071,42 @@ class _ScannerFramePainter extends CustomPainter {
     canvas.drawLine(Offset(size.width - pathGap, size.height - pathGap), Offset(size.width - pathGap - cornerLen, size.height - pathGap), paint);
     canvas.drawLine(Offset(size.width - pathGap, size.height - pathGap), Offset(size.width - pathGap, size.height - pathGap - cornerLen), paint);
 
-    // Horizontal Scanning Line
-    final linePaint = Paint()
-      ..color = color.withOpacity(0.8)
-      ..strokeWidth = 2
-      ..style = PaintingStyle.fill;
-    
+    // Horizontal Scanning Beam
     final double y = size.height * scanLineProgress;
+    
+    final beamPaint = Paint()
+      ..shader = LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [
+          color.withOpacity(0.0),
+          color.withOpacity(0.4),
+          color,
+          color.withOpacity(0.4),
+          color.withOpacity(0.0),
+        ],
+        stops: const [0.0, 0.4, 0.5, 0.6, 1.0],
+      ).createShader(Rect.fromLTWH(0, y - 25, size.width, 50));
+
+    canvas.drawRect(Rect.fromLTWH(0, y - 25, size.width, 50), beamPaint);
+
+    // Sharp center line
+    final linePaint = Paint()
+      ..color = Colors.white.withOpacity(0.8)
+      ..strokeWidth = 1.5;
     canvas.drawLine(Offset(0, y), Offset(size.width, y), linePaint);
 
-    // Sweep Glow Effect
+    // Glowing Corners Effect
     final glowPaint = Paint()
-      ..color = color.withOpacity(0.15);
+      ..color = color.withOpacity(0.3)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8);
     
-    canvas.drawRect(Rect.fromLTWH(0, y - 20, size.width, 40), glowPaint);
+    // (We reuse corner logic for glow)
+    final double gLen = cornerLen + 4;
+    canvas.drawLine(Offset(pathGap, pathGap), Offset(pathGap + gLen, pathGap), glowPaint);
+    canvas.drawLine(Offset(pathGap, pathGap), Offset(pathGap, pathGap + gLen), glowPaint);
+    canvas.drawLine(Offset(size.width - pathGap, pathGap), Offset(size.width - pathGap - gLen, pathGap), glowPaint);
+    canvas.drawLine(Offset(size.width - pathGap, pathGap), Offset(size.width - pathGap, pathGap + gLen), glowPaint);
   }
 
   @override

@@ -1,0 +1,212 @@
+{
+    "aloevera": {
+        "name_en": "Aloe Vera",
+        "name_ur": "ایلویرا",
+        "scientific_name": "Aloe barbadensis miller",
+        "details": "A succulent plant species of the genus Aloe. Known for its medicinal uses in skin care and health.",
+        "care_tips": "Needs well-drained sandy soil and bright, sunny conditions. Water only when soil is completely dry."
+    },
+    "banana": {
+        "name_en": "Banana",
+        "name_ur": "کیلا",
+        "scientific_name": "Musa acuminata",
+        "details": "A tropical fruit plant. High in potassium and widely cultivated in warm climates.",
+        "care_tips": "Requires deep, fertile, well-drained soil and protection from strong winds."
+    },
+    "bilimbi": {
+        "name_en": "Bilimbi (Cucumber Tree)",
+        "name_ur": "بلنمبی",
+        "scientific_name": "Averrhoa bilimbi",
+        "details": "A fruit-bearing tree related to the starfruit. The fruit is very sour and used in cooking.",
+        "care_tips": "Thrives in tropical climates with regular watering and organic mulch."
+    },
+    "cantaloupe": {
+        "name_en": "Cantaloupe",
+        "name_ur": "گرما / خربوزہ",
+        "scientific_name": "Cucumis melo var. cantalupensis",
+        "details": "A variety of muskmelon. Known for its sweet, orange flesh.",
+        "care_tips": "Requires full sun and consistent moisture during the fruiting stage."
+    },
+    "cassava": {
+        "name_en": "Cassava",
+        "name_ur": "کیساوا",
+        "scientific_name": "Manihot esculenta",
+        "details": "A woody shrub native to South America. Its starchy tuberous root is a major source of carbohydrates.",
+        "care_tips": "Very drought-tolerant but needs well-aerated soil to develop healthy roots."
+    },
+    "coconut": {
+        "name_en": "Coconut",
+        "name_ur": "ناریل",
+        "scientific_name": "Cocos nucifera",
+        "details": "A member of the palm tree family. Provides water, milk, oil, and edible meat.",
+        "care_tips": "Needs high humidity, sandy soil, and tolerance to salt spray."
+    },
+    "corn": {
+        "name_en": "Corn (Maize)",
+        "name_ur": "مکئی",
+        "scientific_name": "Zea mays",
+        "details": "A cereal grain first domesticated in southern Mexico. A staple food crop worldwide.",
+        "care_tips": "Requires high nitrogen soil and frequent watering during pollination."
+    },
+    "cucumber": {
+        "name_en": "Cucumber",
+        "name_ur": "کھیرا",
+        "scientific_name": "Cucumis sativus",
+        "details": "A widely cultivated creeping vine plant that bears cylindrical fruits.",
+        "care_tips": "Provide a trellis for climbing and keep the soil consistently moist."
+    },
+    "curcuma": {
+        "name_en": "Curcuma (Turmeric)",
+        "name_ur": "ہلدی",
+        "scientific_name": "Curcuma longa",
+        "details": "A flowering plant of the ginger family, the roots of which are used in cooking and medicine.",
+        "care_tips": "Needs partial shade and rich, moist soil."
+    },
+    "eggplant": {
+        "name_en": "Eggplant (Brinjal)",
+        "name_ur": "بینگن",
+        "scientific_name": "Solanum melongena",
+        "details": "A species of nightshade grown for its edible fruit. Commonly purple.",
+        "care_tips": "Requires warm temperatures and well-drained soil rich in organic matter."
+    },
+    "galangal": {
+        "name_en": "Galangal",
+        "name_ur": "گلنگل",
+        "scientific_name": "Alpinia galanga",
+        "details": "A rhizomatous herbaceous plant used as an herb in Southeast Asian cuisine.",
+        "care_tips": "Grows best in filtered sunlight and damp, fertile soil."
+    },
+    "ginger": {
+        "name_en": "Ginger",
+        "name_ur": "ادرک",
+        "scientific_name": "Zingiber officinale",
+        "details": "A flowering plant whose rhizome is widely used as a spice and folk medicine.",
+        "care_tips": "Keep in a sheltered spot with filtered sunlight and high humidity."
+    },
+    "guava": {
+        "name_en": "Guava",
+        "name_ur": "امرود",
+        "scientific_name": "Psidium guajava",
+        "details": "A common tropical fruit. The leaves are also used for medicinal teas.",
+        "care_tips": "Can grow in various soils but prefers a pH between 5.0 and 7.0."
+    },
+    "kale": {
+        "name_en": "Kale",
+        "name_ur": "کالے (کرم کلا)",
+        "scientific_name": "Brassica oleracea var. sabellica",
+        "details": "A green or purple leaf vegetable. Highly nutritious superfood.",
+        "care_tips": "Prefers cool weather and nitrogen-rich soil."
+    },
+    "longbeans": {
+        "name_en": "Long Beans",
+        "name_ur": "لمبی پھلیاں",
+        "scientific_name": "Vigna unguiculata subsp. sesquipedalis",
+        "details": "A legume cultivated for its edible green pods that can grow very long.",
+        "care_tips": "Needs full sun and a strong support system or trellis."
+    },
+    "mango": {
+        "name_en": "Mango",
+        "name_ur": "آم",
+        "scientific_name": "Mangifera indica",
+        "details": "Known as the king of fruits. A tropical stone fruit tree.",
+        "care_tips": "Requires deep soil for its long taproot and dry weather during flowering."
+    },
+    "melon": {
+        "name_en": "Melon",
+        "name_ur": "خربوزہ",
+        "scientific_name": "Cucumis melo",
+        "details": "A fleshy fruit of the trailing vine. Sweet and hydrating.",
+        "care_tips": "Requires lots of space and warm soil to develop sugar content."
+    },
+    "orange": {
+        "name_en": "Orange",
+        "name_ur": "مالٹا / سنترہ",
+        "scientific_name": "Citrus × sinensis",
+        "details": "A citrus fruit known for high Vitamin C content.",
+        "care_tips": "Requires excellent drainage and protection from frost."
+    },
+    "paddy": {
+        "name_en": "Paddy (Rice)",
+        "name_ur": "دھان",
+        "scientific_name": "Oryza sativa",
+        "details": "The seed of the grass species Oryza sativa. A staple food crop.",
+        "care_tips": "Needs flooded fields or consistent standing water during growth."
+    },
+    "papaya": {
+        "name_en": "Papaya",
+        "name_ur": "پپیتہ",
+        "scientific_name": "Carica papaya",
+        "details": "A tropical fruit known for digestive enzymes like papain.",
+        "care_tips": "Requires very well-drained soil as the roots are prone to rot."
+    },
+    "peper chili": {
+        "name_en": "Chili Pepper",
+        "name_ur": "مرچ",
+        "scientific_name": "Capsicum annuum",
+        "details": "The fruit of plants from the genus Capsicum, noted for their heat.",
+        "care_tips": "Keep soil moist but not soggy. Use potassium-rich fertilizer."
+    },
+    "pineapple": {
+        "name_en": "Pineapple",
+        "name_ur": "انناس",
+        "scientific_name": "Ananas comosus",
+        "details": "A tropical plant with an edible fruit consisting of coalesced berries.",
+        "care_tips": "Grows well in pots; prefers acidic soil and moderate watering."
+    },
+    "pomelo": {
+        "name_en": "Pomelo",
+        "name_ur": "چکوترا",
+        "scientific_name": "Citrus maxima",
+        "details": "The largest citrus fruit, ancestor to the grapefruit.",
+        "care_tips": "Needs regular fertilization with citrus-specific nutrients."
+    },
+    "shallot": {
+        "name_en": "Shallot",
+        "name_ur": "چھوٹا پیاز",
+        "scientific_name": "Allium cepa var. aggregatum",
+        "details": "A botanical variety of the onion, growing in clusters of bulbs.",
+        "care_tips": "Keep the area weed-free and avoid over-watering the bulbs."
+    },
+    "soybeans": {
+        "name_en": "Soybeans",
+        "name_ur": "سویا بین",
+        "scientific_name": "Glycine max",
+        "details": "A species of legume widely grown for its edible bean.",
+        "care_tips": "Requires full sun and soil with a neutral pH."
+    },
+    "spinach": {
+        "name_en": "Spinach",
+        "name_ur": "پالک",
+        "scientific_name": "Spinacia oleracea",
+        "details": "A leafy green flowering plant native to central and western Asia.",
+        "care_tips": "Thrives in cool weather and requires consistent moisture."
+    },
+    "sweet potatoes": {
+        "name_en": "Sweet Potatoes",
+        "name_ur": "شکر قندی",
+        "scientific_name": "Ipomoea batatas",
+        "details": "A dicotyledonous plant that belongs to the morning glory family.",
+        "care_tips": "Requires a long, warm growing season and loose, sandy soil."
+    },
+    "tobacco": {
+        "name_en": "Tobacco",
+        "name_ur": "تمباکو",
+        "scientific_name": "Nicotiana tabacum",
+        "details": "An herbaceous plant in the nightshade family cultivated for its leaves.",
+        "care_tips": "Requires high nitrogen levels and frequent cultivation to remove weeds."
+    },
+    "waterapple": {
+        "name_en": "Water Apple",
+        "name_ur": "جامن (واٹر ایپل)",
+        "scientific_name": "Syzygium samarangense",
+        "details": "A tropical fruit shaped like a bell. Crunchy and watery.",
+        "care_tips": "Thrives in heavy rainfall and moist, swampy soil conditions."
+    },
+    "watermelon": {
+        "name_en": "Watermelon",
+        "name_ur": "تربوز",
+        "scientific_name": "Citrullus lanatus",
+        "details": "A sprawling vine fruit known for its high water content and sweet taste.",
+        "care_tips": "Needs full sun, plenty of space to spread, and consistent watering."
+    }
+}

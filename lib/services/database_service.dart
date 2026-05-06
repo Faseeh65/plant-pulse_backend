@@ -89,6 +89,7 @@ class DatabaseService {
 
       // Save to Supabase (Protected by PostgREST parametrization)
       await _client.from('scan_history').insert({
+        'id': id,
         'user_id': userId,
         'disease_name': disease,
         'confidence': conf,
@@ -216,5 +217,39 @@ class DatabaseService {
       diseasedPct: (diseased / total) * 100,
       topDiseases: topDiseases,
     );
+  }
+
+  /// Deletes a single scan from both local and remote storage
+  Future<void> deleteScan(String id) async {
+    final userId = _client.auth.currentUser?.id;
+
+    // 1. Delete Local
+    await _localDb.deleteScan(id);
+
+    // 2. Delete Remote
+    if (userId != null) {
+      try {
+        await _client.from('scan_history').delete().eq('id', id).eq('user_id', userId);
+      } catch (e) {
+        print('Error deleting remote scan: $e');
+      }
+    }
+  }
+
+  /// Clears all scans from both local and remote storage
+  Future<void> clearAllScans() async {
+    final userId = _client.auth.currentUser?.id;
+    
+    // 1. Clear Local
+    await _localDb.deleteAllScans();
+    
+    // 2. Clear Remote
+    if (userId != null) {
+      try {
+        await _client.from('scan_history').delete().eq('user_id', userId);
+      } catch (e) {
+        print('Error clearing remote history: $e');
+      }
+    }
   }
 }

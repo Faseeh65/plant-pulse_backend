@@ -49,7 +49,7 @@ class _WeatherHeaderState extends State<WeatherHeader> {
       margin: const EdgeInsets.all(20),
       height: 160,
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
+        color: Theme.of(context).brightness == Brightness.dark ? Colors.white.withOpacity(0.05) : const Color(0xFFE8F5E9).withOpacity(0.5),
         borderRadius: BorderRadius.circular(32),
       ),
       child: const Center(child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF2E5E32))),
@@ -234,22 +234,26 @@ class _WeatherHeaderState extends State<WeatherHeader> {
       margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.9),
+        color: Theme.of(context).brightness == Brightness.dark ? Colors.white.withOpacity(0.05) : Colors.white.withOpacity(0.9),
         borderRadius: BorderRadius.circular(32),
+        border: Border.all(color: Theme.of(context).brightness == Brightness.dark ? Colors.white12 : Colors.transparent),
       ),
       child: Row(
         children: [
-          const Icon(Icons.cloud_off_rounded, color: Color(0xFF2E5E32), size: 30),
+          Icon(Icons.cloud_off_rounded, color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF6CFB7B) : const Color(0xFF2E5E32), size: 30),
           const SizedBox(width: 16),
           Expanded(
             child: Text(
               'Weather data unavailable',
-              style: GoogleFonts.inter(color: const Color(0xFF2E5E32), fontWeight: FontWeight.bold),
+              style: GoogleFonts.inter(
+                color: Theme.of(context).brightness == Brightness.dark ? Colors.white : const Color(0xFF2E5E32), 
+                fontWeight: FontWeight.bold
+              ),
             ),
           ),
           IconButton(
             onPressed: () => context.read<WeatherProvider>().refreshWeather(),
-            icon: const Icon(Icons.refresh_rounded, color: Color(0xFF2E5E32)),
+            icon: Icon(Icons.refresh_rounded, color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF6CFB7B) : const Color(0xFF2E5E32)),
           ),
         ],
       ),

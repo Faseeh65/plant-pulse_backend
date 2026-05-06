@@ -22,9 +22,14 @@ class ReminderScreen extends StatefulWidget {
   State<ReminderScreen> createState() => _ReminderScreenState();
 }
 
-class _ReminderScreenState extends State<ReminderScreen> {
+class _ReminderScreenState extends State<ReminderScreen> with TickerProviderStateMixin {
   late Future<List<SprayReminder>> _future;
   final Set<String> _completing = {}; // IDs currently being "done"
+
+  // Animation Controllers
+  late AnimationController _headerIconController;
+  late AnimationController _pulseController;
+  late AnimationController _blobController;
 
   // Use Theme primary as default
   Color get _primary => Theme.of(context).primaryColor;
@@ -40,7 +45,25 @@ class _ReminderScreenState extends State<ReminderScreen> {
   void initState() {
     super.initState();
     _load();
-    
+
+    // Header Icon: Subtle Float/Rotate
+    _headerIconController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 4),
+    )..repeat(reverse: true);
+
+    // Pulse: For FAB
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    )..repeat(reverse: true);
+
+    // Background Blobs
+    _blobController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 10),
+    )..repeat();
+
     // If opened with initial values, show add dialog automatically
     if (widget.initialPlant != null || widget.initialDisease != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -51,6 +74,14 @@ class _ReminderScreenState extends State<ReminderScreen> {
         );
       });
     }
+  }
+
+  @override
+  void dispose() {
+    _headerIconController.dispose();
+    _pulseController.dispose();
+    _blobController.dispose();
+    super.dispose();
   }
 
   void _load() => setState(() {
@@ -433,200 +464,348 @@ class _ReminderScreenState extends State<ReminderScreen> {
   // ── build ────────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor: isDark ? const Color(0xFF0A0E0A) : const Color(0xFFF8FFF5),
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        backgroundColor: Colors.transparent,
         elevation: 0,
+        centerTitle: true,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new,
-              color: (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black).withOpacity(0.7), size: 20),
+          icon: Icon(Icons.arrow_back_ios_new, color: isDark ? Colors.white70 : Colors.black87, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          'Spray Reminders',
-          overflow: TextOverflow.ellipsis,
-          style: TextStyle(
-              color: (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black), 
-              fontWeight: FontWeight.w900, 
-              height: 1.3,
-              fontSize: 16),
+          'REMINDERS',
+          style: GoogleFonts.poppins(
+            color: isDark ? Colors.white : const Color(0xFF2E5E32),
+            fontWeight: FontWeight.w900,
+            letterSpacing: 2.0,
+            fontSize: 18,
+          ),
         ),
         actions: [
           IconButton(
-            icon: Icon(Icons.refresh_rounded, color: _green),
+            icon: Icon(Icons.refresh_rounded, color: _primary),
             onPressed: _load,
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: _green,
-        foregroundColor: Colors.black,
-        icon: Icon(Icons.add_alarm_rounded),
-        label: Text('Add Reminder',
-            style: TextStyle(fontWeight: FontWeight.w900)),
-        onPressed: _showAddDialog,
-      ),
-      body: FutureBuilder<List<SprayReminder>>(
-        future: _future,
-        builder: (context, snap) {
-          if (snap.connectionState == ConnectionState.waiting) {
-            return Center(
-                child: CircularProgressIndicator(
-                    color: _green, strokeWidth: 2.5));
-          }
-          if (snap.hasError) return _errorState(snap.error.toString());
-          final reminders = snap.data ?? [];
-          if (reminders.isEmpty) return _emptyState();
-          return _buildList(reminders);
-        },
-      ),
-    );
-  }
+      floatingActionButton: _buildPulsingFAB(),
+      body: Stack(
+        children: [
+          // 1. Background Blobs
+          _buildBackgroundBlobs(isDark),
 
-  Widget _buildList(List<SprayReminder> reminders) {
-    return RefreshIndicator(
-      color: _green,
-      backgroundColor: Theme.of(context).cardColor,
-      onRefresh: () async => _load(),
-      child: ListView.builder(
-        physics: const BouncingScrollPhysics(
-            parent: AlwaysScrollableScrollPhysics()),
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
-        itemCount: reminders.length,
-        itemBuilder: (ctx, i) => _reminderCard(reminders[i]),
-      ),
-    );
-  }
+          // 2. Main Content
+          SafeArea(
+            child: FutureBuilder<List<SprayReminder>>(
+              future: _future,
+              builder: (context, snap) {
+                if (snap.connectionState == ConnectionState.waiting) {
+                  return Center(
+                    child: CircularProgressIndicator(color: _green, strokeWidth: 2.5),
+                  );
+                }
+                if (snap.hasError) return _errorState(snap.error.toString());
+                final reminders = snap.data ?? [];
+                
+                return CustomScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  slivers: [
+                    // Moving Logo Header
+                    SliverToBoxAdapter(
+                      child: _buildMovingLogoHeader(isDark),
+                    ),
 
-  Widget _reminderCard(SprayReminder r) {
-    final urgency     = _urgencyColor(r.scheduledTime);
-    final isCompleting = _completing.contains(r.id);
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 14),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Theme.of(context).dividerColor),
-        boxShadow: [
-          BoxShadow(
-            color: urgency.withOpacity(0.08),
-            blurRadius: 12,
-            offset: const Offset(0, 2),
+                    if (reminders.isEmpty)
+                      SliverFillRemaining(
+                        hasScrollBody: false,
+                        child: _emptyState(),
+                      )
+                    else
+                      SliverPadding(
+                        padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
+                        sliver: SliverList(
+                          delegate: SliverChildBuilderDelegate(
+                            (ctx, i) => _reminderCard(reminders[i]),
+                            childCount: reminders.length,
+                          ),
+                        ),
+                      ),
+                  ],
+                );
+              },
+            ),
           ),
         ],
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    );
+  }
+
+  Widget _buildBackgroundBlobs(bool isDark) {
+    return AnimatedBuilder(
+      animation: _blobController,
+      builder: (context, child) {
+        return Stack(
           children: [
-            // Row 1: plant icon + name + countdown chip
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: _green.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Icon(Icons.eco_rounded, color: _green, size: 20),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(r.plantName.toDisplayDisease(),
-                          style: TextStyle(
-                              color: (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black),
-                              fontWeight: FontWeight.w900,
-                              fontSize: 15)),
-                      const SizedBox(height: 2),
-                      Text(r.diseaseName.toDisplayDisease(),
-                          style: TextStyle(
-                              color: (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black).withOpacity(0.5),
-                              fontSize: 12)),
-                    ],
-                  ),
-                ),
-                // Countdown pill
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 10, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: urgency.withOpacity(0.12),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: urgency.withOpacity(0.3)),
-                  ),
-                  child: Text(
-                    _countdown(r.scheduledTime),
-                    style: TextStyle(
-                        color: urgency,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w900),
-                  ),
-                ),
-              ],
+            Positioned(
+              top: -100 + (20 * _blobController.value),
+              right: -100,
+              child: _blob(300, const Color(0xFF6CFB7B).withOpacity(isDark ? 0.05 : 0.1)),
             ),
-
-            const SizedBox(height: 12),
-            Divider(color: Theme.of(context).dividerColor, height: 1),
-            const SizedBox(height: 12),
-
-            // Row 2: treatment + scheduled time
-            Row(
-              children: [
-                Icon(Icons.medical_services_outlined,
-                    color: _amber, size: 15),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Text(r.treatmentType,
-                      style: TextStyle(
-                          color: (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black).withOpacity(0.7), fontSize: 13)),
-                ),
-                Icon(Icons.schedule_rounded,
-                    color: (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black).withOpacity(0.24), size: 14),
-                const SizedBox(width: 4),
-                Text(_fmt(r.scheduledTime.toLocal()),
-                    style: TextStyle(
-                        color: (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black).withOpacity(0.38), fontSize: 11)),
-              ],
-            ),
-
-            const SizedBox(height: 14),
-
-            // Mark as Done button
-            SizedBox(
-              width: double.infinity,
-              height: 40,
-              child: isCompleting
-                  ? Center(
-                      child: SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                            color: _green, strokeWidth: 2),
-                      ),
-                    )
-                  : OutlinedButton.icon(
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: _green,
-                        side: BorderSide(color: _green, width: 1.2),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
-                      ),
-                      icon: Icon(Icons.check_circle_outline, size: 16),
-                      label: Text(
-                        'Mark as Done',
-                        style: TextStyle(
-                            fontWeight: FontWeight.w900, fontSize: 13, height: 1.3),
-                      ),
-                      onPressed: () => _markDone(r),
-                    ),
+            Positioned(
+              bottom: 100 - (30 * _blobController.value),
+              left: -50,
+              child: _blob(250, _primary.withOpacity(isDark ? 0.03 : 0.07)),
             ),
           ],
+        );
+      },
+    );
+  }
+
+  Widget _blob(double size, Color color) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: color,
+        shape: BoxShape.circle,
+      ),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 50, sigmaY: 50),
+        child: Container(color: Colors.transparent),
+      ),
+    );
+  }
+
+  Widget _buildMovingLogoHeader(bool isDark) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 40),
+      child: Column(
+        children: [
+          AnimatedBuilder(
+            animation: _headerIconController,
+            builder: (context, child) {
+              return Transform.rotate(
+                angle: (0.1 * _headerIconController.value) - 0.05,
+                child: Transform.translate(
+                  offset: Offset(0, 10 * _headerIconController.value),
+                  child: child,
+                ),
+              );
+            },
+            child: Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: isDark ? Colors.white.withOpacity(0.05) : _primary.withOpacity(0.1),
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: _primary.withOpacity(0.2),
+                    blurRadius: 30,
+                    spreadRadius: 2,
+                  )
+                ],
+              ),
+              child: Icon(
+                Icons.notifications_active_rounded,
+                size: 64,
+                color: _primary,
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+          Text(
+            'ACTIVE PLANS',
+            style: GoogleFonts.poppins(
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+              color: _primary,
+              letterSpacing: 4.0,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Maintenance Schedule',
+            style: GoogleFonts.inter(
+              fontSize: 14,
+              color: isDark ? Colors.white54 : Colors.black45,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPulsingFAB() {
+    return AnimatedBuilder(
+      animation: _pulseController,
+      builder: (context, child) {
+        return Container(
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: _primary.withOpacity(0.3 * _pulseController.value),
+                blurRadius: 15,
+                spreadRadius: 8 * _pulseController.value,
+              )
+            ],
+          ),
+          child: child,
+        );
+      },
+      child: FloatingActionButton(
+        onPressed: _showAddDialog,
+        backgroundColor: _primary,
+        child: const Icon(Icons.add_rounded, color: Colors.black, size: 30),
+      ),
+    );
+  }
+
+
+  Widget _reminderCard(SprayReminder r) {
+    final urgency = _urgencyColor(r.scheduledTime);
+    final isCompleting = _completing.contains(r.id);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(28),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 16),
+          decoration: BoxDecoration(
+            color: isDark ? Colors.white.withOpacity(0.03) : Colors.white.withOpacity(0.7),
+            borderRadius: BorderRadius.circular(28),
+            border: Border.all(
+              color: isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.05),
+            ),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: _primary.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Icon(Icons.eco_rounded, color: _primary, size: 24),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            r.plantName.toDisplayDisease(),
+                            style: GoogleFonts.poppins(
+                              color: isDark ? Colors.white : Colors.black87,
+                              fontWeight: FontWeight.w900,
+                              fontSize: 16,
+                            ),
+                          ),
+                          Text(
+                            r.diseaseName.toDisplayDisease(),
+                            style: GoogleFonts.inter(
+                              color: isDark ? Colors.white38 : Colors.black38,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: urgency.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        _countdown(r.scheduledTime),
+                        style: GoogleFonts.poppins(
+                          color: urgency,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    Icon(Icons.auto_awesome_rounded, color: _amber, size: 16),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        r.treatmentType,
+                        style: GoogleFonts.inter(
+                          color: isDark ? Colors.white70 : Colors.black54,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Icon(Icons.access_time_rounded, color: isDark ? Colors.white24 : Colors.black26, size: 14),
+                    const SizedBox(width: 6),
+                    Text(
+                      _fmt(r.scheduledTime.toLocal()),
+                      style: GoogleFonts.inter(
+                        color: isDark ? Colors.white38 : Colors.black38,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: isCompleting
+                      ? Center(child: CircularProgressIndicator(color: _green, strokeWidth: 2))
+                      : ElevatedButton.icon(
+                          onPressed: () => _markDone(r),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: _primary.withOpacity(0.1),
+                            foregroundColor: _primary,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              side: BorderSide(color: _primary.withOpacity(0.3)),
+                            ),
+                          ),
+                          icon: const Icon(Icons.check_circle_outline, size: 18),
+                          label: Text(
+                            'MARK COMPLETED',
+                            style: GoogleFonts.poppins(
+                              fontWeight: FontWeight.w800,
+                              fontSize: 12,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -640,25 +819,42 @@ class _ReminderScreenState extends State<ReminderScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Container(
-                padding: const EdgeInsets.all(28),
-                decoration: BoxDecoration(
-                    color: _green.withOpacity(0.07), shape: BoxShape.circle),
-                child: Icon(Icons.notifications_none_rounded,
-                    color: _green, size: 64),
+              AnimatedBuilder(
+                animation: _headerIconController,
+                builder: (context, child) {
+                  return Transform.scale(
+                    scale: 1.0 + (0.1 * _headerIconController.value),
+                    child: Container(
+                      padding: const EdgeInsets.all(40),
+                      decoration: BoxDecoration(
+                        color: _primary.withOpacity(0.05),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(Icons.notifications_none_rounded, color: _primary.withOpacity(0.3), size: 100),
+                    ),
+                  );
+                },
               ),
-              const SizedBox(height: 20),
-              Text('No upcoming reminders',
-                  style: TextStyle(
-                      color: (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black),
-                      fontSize: 20,
-                      fontWeight: FontWeight.w900)),
-              const SizedBox(height: 8),
+              const SizedBox(height: 32),
               Text(
-                'Tap ＋ Add Reminder to schedule\nyour next spray treatment.',
+                'NO REMINDERS',
+                style: GoogleFonts.poppins(
+                  color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black,
+                  fontSize: 22,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.2,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Schedule your next treatment action\nby tapping the plus button.',
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                    color: (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black).withOpacity(0.4), fontSize: 14),
+                style: GoogleFonts.inter(
+                  color: (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black).withOpacity(0.4),
+                  fontSize: 14,
+                  height: 1.5,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ],
           ),

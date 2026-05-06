@@ -93,6 +93,48 @@ except Exception as e:
 with open(os.path.join(os.path.dirname(__file__), "AI_Model", "causal_rules.json"), "r", encoding="utf-8") as f:
     EXPERT_RULES = json.load(f)
 
+# --- 3b. PLANT IDENTIFICATION MODEL ---
+
+PLANT_MODEL_PATH = os.path.join(
+    os.path.dirname(__file__),
+    "AI_Model",
+    "plant_model.tflite"
+)
+
+PLANT_LABELS_PATH = os.path.join(
+    os.path.dirname(__file__),
+    "AI_Model",
+    "plant_identification_class_indices.json"
+)
+
+PLANT_RULES_PATH = os.path.join(
+    os.path.dirname(__file__),
+    "AI_Model",
+    "Plant_Identification_Model_casual_rule.json"
+)
+
+plant_engine = None
+plant_idx_to_class = {}
+plant_rules = {}
+
+try:
+    plant_engine = RiceInferenceEngine(
+        PLANT_MODEL_PATH,
+        labels_path=PLANT_LABELS_PATH,
+    )
+    logger.info("SUCCESS: Plant Identification engine loaded.")
+except Exception as e:
+    logger.error(f"Failed to load Plant Identification engine: {e}")
+
+try:
+    with open(PLANT_LABELS_PATH, "r", encoding="utf-8") as f:
+        plant_idx_to_class = json.load(f)
+    with open(PLANT_RULES_PATH, "r", encoding="utf-8") as f:
+        plant_rules = json.load(f)
+    logger.info(f"SUCCESS: Plant ID labels ({len(plant_idx_to_class)}) and rules ({len(plant_rules)}) loaded.")
+except Exception as e:
+    logger.error(f"Failed to load plant labels/rules: {e}")
+
 # --- 4. ENDPOINTS ---
 
 @app.get("/health")
@@ -114,6 +156,35 @@ async def predict(file: UploadFile = File(...)):
         return result
     except Exception as e:
         logger.error(f"Inference error: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/identify")
+async def identify_plant(file: UploadFile = File(...)):
+    if not plant_engine:
+        raise HTTPException(status_code=500, detail="Plant Identification Engine not initialized")
+    
+    try:
+        contents = await file.read()
+        result = plant_engine.predict(contents)
+        
+        class_name = result.get("class_name", "unknown")
+        confidence = result.get("confidence", 0.0)
+        
+        # Look up detailed info from plant rules JSON
+        rule = plant_rules.get(class_name, {})
+        
+        return {
+            "status": "success",
+            "plant_name": rule.get("name_en", class_name.replace("_", " ").title()),
+            "scientific_name": rule.get("scientific_name", "N/A"),
+            "category": class_name,
+            "description": rule.get("details", "No description available."),
+            "growing_tips": rule.get("care_tips", "No tips available."),
+            "confidence": confidence,
+            "predicted_index": result.get("predicted_index", -1),
+        }
+    except Exception as e:
+        logger.error(f"Plant identification error: {e}")
         raise HTTPException(status_code=400, detail=str(e))
 
 @app.get("/treatment/{disease_id}")

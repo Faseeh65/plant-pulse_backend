@@ -12,6 +12,7 @@ import 'screens/history_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/reminder_screen.dart';
 import 'screens/scanner_screen.dart';
+import 'screens/plant_identify_screen.dart';
 import 'screens/splash_screen.dart';
 import 'screens/stats_screen.dart';
 import 'services/causal_service.dart';
@@ -120,6 +121,7 @@ class PlantPulseApp extends StatelessWidget {
         '/profile': (context) => const ProfileScreen(),
         '/reminders': (context) => const ReminderScreen(),
         '/stats': (context) => const StatsScreen(),
+        '/plant-identify': (context) => const PlantIdentifyScreen(),
       },
     );
   }

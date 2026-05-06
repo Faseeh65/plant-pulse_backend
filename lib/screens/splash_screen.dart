@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../utils/app_assets.dart';
 import '../services/api_service.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -127,9 +128,11 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
   @override
   Widget build(BuildContext context) {
     final disableAnimations = MediaQuery.of(context).disableAnimations;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0A1108), // Dark Green Background
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: Stack(
         fit: StackFit.expand,
         children: [
@@ -141,6 +144,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                 return CustomPaint(
                   painter: _ParticlesPainter(
                     progress: _floatingController.value,
+                    color: isDark ? const Color(0xFF6CFB7B).withOpacity(0.05) : const Color(0xFF245C34).withOpacity(0.05),
                   ),
                 );
               },
@@ -185,14 +189,21 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                       ),
                     );
                   },
-                  child: const Text(
+                  child: Text(
                     'Plant Pulse',
-                    style: TextStyle(
-                      fontSize: 36,
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.playfairDisplay(
+                      fontSize: 44,
                       fontWeight: FontWeight.w900,
-                      color: const Color(0xFF1B5E20),
-                      letterSpacing: 2.0,
-                      fontFamily: 'Poppins',
+                      color: isDark ? const Color(0xFF6CFB7B) : const Color(0xFF245C34),
+                      letterSpacing: -0.5,
+                      shadows: [
+                        Shadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -208,11 +219,13 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                     );
                   },
                   child: Text(
-                    _status,
+                    _status.toUpperCase(),
                     textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: _isError ? Colors.redAccent : Colors.white70,
-                      fontSize: 16,
+                    style: GoogleFonts.orbitron(
+                      color: _isError ? Colors.redAccent : (isDark ? Colors.white70 : Colors.black54),
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1.5,
                     ),
                   ),
                 ),
@@ -239,13 +252,14 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
 
 class _ParticlesPainter extends CustomPainter {
   final double progress;
+  final Color color;
 
-  _ParticlesPainter({required this.progress});
+  _ParticlesPainter({required this.progress, required this.color});
 
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = const Color(0xFF1B5E20).withOpacity(0.1)
+      ..color = color
       ..style = PaintingStyle.fill;
 
     final particles = [

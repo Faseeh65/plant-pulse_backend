@@ -26,6 +26,45 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   late AnimationController _entranceController;
   late AnimationController _floatingController;
   late AnimationController _pulseController;
+
+  // Notification State
+  List<Map<String, dynamic>> _notifications = [
+    {
+      'icon': Icons.wb_sunny_rounded,
+      'title': 'Weather Update',
+      'body': 'High humidity detected. Increased risk of Blast disease.',
+      'time': 'Just now',
+      'color': Colors.orangeAccent,
+    },
+    {
+      'icon': Icons.check_circle_rounded,
+      'title': 'Scan Successful',
+      'body': 'Rice Leaf Folder detected in Field A. View recommendations.',
+      'time': '2 hours ago',
+      'color': const Color(0xFF2E5E32),
+    },
+    {
+      'icon': Icons.info_outline_rounded,
+      'title': 'System Update',
+      'body': 'New AI models for Brown Spot detection are now live.',
+      'time': '1 day ago',
+      'color': Colors.blueAccent,
+    },
+  ];
+
+  void _clearNotifications() {
+    setState(() {
+      _notifications.clear();
+    });
+    Navigator.pop(context); // Close drawer
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Notifications cleared'),
+        behavior: SnackBarBehavior.floating,
+        duration: Duration(seconds: 1),
+      ),
+    );
+  }
   
   @override
   void initState() {
@@ -108,7 +147,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                 height: 50,
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
-                                  color: Colors.white.withOpacity(0.8),
+                                  color: isDark ? Colors.white.withOpacity(0.1) : Colors.white.withOpacity(0.8),
                                   boxShadow: [
                                     BoxShadow(
                                       color: Colors.black.withOpacity(0.05),
@@ -117,7 +156,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                     )
                                   ],
                                 ),
-                                child: const Icon(Icons.menu_rounded, color: Color(0xFF2E5E32), size: 24),
+                                child: Icon(Icons.menu_rounded, color: isDark ? const Color(0xFF6CFB7B) : const Color(0xFF2E5E32), size: 24),
                               ),
                             ),
                             
@@ -131,7 +170,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                     style: GoogleFonts.playfairDisplay(
                                       fontSize: 26,
                                       fontWeight: FontWeight.w900,
-                                      color: const Color(0xFF2E5E32),
+                                      color: isDark ? Colors.white : const Color(0xFF2E5E32),
                                       letterSpacing: -0.5,
                                     ),
                                     textAlign: TextAlign.center,
@@ -139,7 +178,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                   Text(
                                     'PRECISION RICE PATHOLOGY',
                                     style: GoogleFonts.inter(
-                                      color: Colors.black38,
+                                      color: isDark ? Colors.white38 : Colors.black38,
                                       fontWeight: FontWeight.w800,
                                       fontSize: 9,
                                       letterSpacing: 1.2,
@@ -158,7 +197,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                 height: 50,
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
-                                  color: Colors.white.withOpacity(0.8),
+                                  color: isDark ? Colors.white.withOpacity(0.1) : Colors.white.withOpacity(0.8),
                                   boxShadow: [
                                     BoxShadow(
                                       color: Colors.black.withOpacity(0.05),
@@ -170,7 +209,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                 child: Stack(
                                   alignment: Alignment.center,
                                   children: [
-                                    const Icon(Icons.notifications_none_rounded, color: Color(0xFF2E5E32), size: 24),
+                                    Icon(Icons.notifications_none_rounded, color: isDark ? const Color(0xFF6CFB7B) : const Color(0xFF2E5E32), size: 24),
                                     Positioned(
                                       top: 12,
                                       right: 12,
@@ -187,7 +226,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                           ],
                         ),
                         const SizedBox(height: 20),
-                        const WeatherHeader(),
+                        _buildHeroScanZone(),
                       ],
                     ),
                   ),
@@ -199,9 +238,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 child: _buildIntelligenceCarousel(weather),
               ),
 
-              // 3. Hero Scan Zone (Laser Animation)
-              SliverToBoxAdapter(
-                child: _buildHeroScanZone(),
+              // 3. Weather Widget (Moved from top)
+              const SliverToBoxAdapter(
+                child: WeatherHeader(),
               ),
 
               const SliverPadding(padding: EdgeInsets.only(bottom: 160)),
@@ -225,7 +264,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     return Stack(
       children: [
         // Base Background
-        Container(color: const Color(0xFFF5F5F5)), // Light grey/white base
+        Container(color: isDark ? const Color(0xFF0A0E0A) : const Color(0xFFF5F5F5)), 
         
         // Header Area: Soft curved mint-green-to-white gradient
         Positioned(
@@ -234,16 +273,16 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           right: 0,
           height: MediaQuery.of(context).size.height * 0.4,
           child: Container(
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  Color(0xFFE8F5E9), // Soft Mint
-                  Color(0xFFF5F5F5), // White/Grey
+                  isDark ? const Color(0xFF1B2E1B) : const Color(0xFFE8F5E9), // Soft Mint or Darker Green
+                  isDark ? const Color(0xFF0A0E0A) : const Color(0xFFF5F5F5), // Base Match
                 ],
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
               ),
-              borderRadius: BorderRadius.only(
+              borderRadius: const BorderRadius.only(
                 bottomLeft: Radius.circular(60),
                 bottomRight: Radius.circular(60),
               ),
@@ -296,44 +335,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // --- Header Row: Notification Icon & Theme Toggle ---
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Container(
-                    width: 64,
-                    height: 64,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF152213),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: const Icon(Icons.notifications_none_rounded, color: Color(0xFF6CFB7B), size: 32),
-                  ),
-                  // Custom Theme Toggle matching the screenshot
-                  GestureDetector(
-                    onTap: () => themeProvider.toggleTheme(),
-                    child: Container(
-                      width: 48,
-                      height: 48,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: const Color(0xFF1A1F1A),
-                        border: Border.all(color: const Color(0xFF6CFB7B).withOpacity(0.3), width: 1),
-                      ),
-                      child: const Center(
-                        child: Icon(Icons.nightlight_round, color: Color(0xFF6CFB7B), size: 20),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
             // --- Titles ---
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+              padding: const EdgeInsets.fromLTRB(24, 60, 24, 20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -360,7 +364,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               ),
             ),
 
-            const SizedBox(height: 30),
+            const SizedBox(height: 20),
 
             // --- Menu Items ---
             Expanded(
@@ -383,18 +387,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     icon: Icons.person_outline_rounded,
                     label: 'My Profile',
                     routeName: '/profile',
-                    isDark: isDark,
-                  ),
-                  
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 16, horizontal: 10),
-                    child: Divider(color: Colors.white12, thickness: 1.5),
-                  ),
-
-                  _buildDrawerItem(
-                    icon: Icons.settings_outlined,
-                    label: 'App Settings',
-                    routeName: '/settings',
                     isDark: isDark,
                   ),
                 ],
@@ -484,19 +476,23 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'NOTIFICATIONS',
-                    style: GoogleFonts.poppins(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w900,
-                      color: isDark ? Colors.white : Colors.black,
-                      letterSpacing: 1.2,
+                    'Recent Scans',
+                    style: GoogleFonts.inter(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                      color: Theme.of(context).brightness == Brightness.dark ? Colors.white54 : Colors.black54,
+                      letterSpacing: 1,
                     ),
                   ),
                   TextButton(
-                    onPressed: () => Navigator.pop(context),
+                    onPressed: _clearNotifications,
                     child: Text(
                       'Clear All',
-                      style: TextStyle(color: primaryColor, fontWeight: FontWeight.w700),
+                      style: TextStyle(
+                        color: primaryColor,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
+                      ),
                     ),
                   ),
                 ],
@@ -505,35 +501,42 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
             // --- Notification List ---
             Expanded(
-              child: ListView(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                children: [
-                  _notificationItem(
-                    icon: Icons.wb_sunny_rounded,
-                    title: 'Weather Update',
-                    body: 'High humidity detected. Increased risk of Blast disease.',
-                    time: 'Just now',
-                    color: Colors.orangeAccent,
-                    isDark: isDark,
-                  ),
-                  _notificationItem(
-                    icon: Icons.check_circle_rounded,
-                    title: 'Scan Successful',
-                    body: 'Rice Leaf Folder detected in Field A. View recommendations.',
-                    time: '2 hours ago',
-                    color: primaryColor,
-                    isDark: isDark,
-                  ),
-                  _notificationItem(
-                    icon: Icons.info_outline_rounded,
-                    title: 'System Update',
-                    body: 'New AI models for Brown Spot detection are now live.',
-                    time: '1 day ago',
-                    color: Colors.blueAccent,
-                    isDark: isDark,
-                  ),
-                ],
-              ),
+              child: _notifications.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.notifications_none_rounded,
+                            size: 64,
+                            color: isDark ? Colors.white24 : Colors.black12,
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'No new notifications',
+                            style: GoogleFonts.poppins(
+                              color: isDark ? Colors.white38 : Colors.black38,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : ListView.builder(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      itemCount: _notifications.length,
+                      itemBuilder: (context, index) {
+                        final item = _notifications[index];
+                        return _notificationItem(
+                          icon: item['icon'],
+                          title: item['title'],
+                          body: item['body'],
+                          time: item['time'],
+                          color: item['color'],
+                          isDark: isDark,
+                        );
+                      },
+                    ),
             ),
           ],
         ),
@@ -655,6 +658,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     return FutureBuilder<Map<String, dynamic>>(
       future: _dbService.getFieldSummary(),
       builder: (context, snapshot) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
         final stats = snapshot.data ?? {'count': 0, 'most_common': 'None'};
 
         return Container(
@@ -694,7 +698,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                           alignment: Alignment.centerLeft,
                           widthFactor: ((weather?.humidity ?? 0) / 100).clamp(0.0, 1.0),
                           child: Container(
-                            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(4)),
+                            decoration: BoxDecoration(
+                              color: isDark ? Colors.white.withOpacity(0.1) : Colors.white,
+                              borderRadius: BorderRadius.circular(4)
+                            ),
                           ),
                         ),
                       ),
@@ -741,12 +748,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   Widget _buildHeroScanZone() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 30),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? Colors.white.withOpacity(0.05) : Colors.white,
         borderRadius: BorderRadius.circular(32),
+        border: Border.all(color: isDark ? Colors.white12 : Colors.transparent),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.05),
@@ -769,11 +778,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               height: 140,
               width: 140,
               decoration: BoxDecoration(
-                color: const Color(0xFFE8F5E9),
+                color: isDark ? Colors.white.withOpacity(0.1) : const Color(0xFFE8F5E9),
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF2E5E32).withOpacity(0.05),
+                    color: isDark ? Colors.black.withOpacity(0.2) : const Color(0xFF2E5E32).withOpacity(0.05),
                     blurRadius: 20,
                     spreadRadius: 5,
                   )
@@ -782,7 +791,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               child: Stack(
                 alignment: Alignment.center,
                 children: [
-                  const Icon(Icons.eco_rounded, size: 80, color: Color(0xFF2E5E32)),
+                  Icon(Icons.eco_rounded, size: 80, color: isDark ? const Color(0xFF6CFB7B) : const Color(0xFF2E5E32)),
                   // Custom Scanning Laser Effect
                   AnimatedBuilder(
                     animation: _floatingController,
@@ -813,65 +822,117 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           const SizedBox(height: 16),
           Text(
             'Field Scanner',
-            style: GoogleFonts.playfairDisplay(fontSize: 22, fontWeight: FontWeight.w900, color: const Color(0xFF2E5E32)),
+            style: GoogleFonts.playfairDisplay(
+              fontSize: 22, 
+              fontWeight: FontWeight.w900, 
+              color: isDark ? Colors.white : const Color(0xFF2E5E32)
+            ),
           ),
           const Text(
-            'Identify rice diseases instantly with AI',
+            'Scan rice diseases or identify any plant',
             style: TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.w500),
           ),
           const SizedBox(height: 30),
-          _buildPulseButton(),
+          _buildDualScanButtons(),
         ],
       ),
     );
   }
 
-  Widget _buildPulseButton() {
+  Widget _buildDualScanButtons() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return AnimatedBuilder(
       animation: _pulseController,
       builder: (context, child) {
         return Transform.scale(
-          scale: 1.0 + (_pulseController.value * 0.05),
-          child: Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: Theme.of(context).primaryColor.withOpacity(0.3 * _pulseController.value),
-                  blurRadius: 15,
-                  spreadRadius: 5 * _pulseController.value,
-                )
-              ],
-            ),
-            child: child,
-          ),
+          scale: 1.0 + (_pulseController.value * 0.03),
+          child: child,
         );
       },
-      child: ElevatedButton(
-        onPressed: () => Navigator.pushNamed(context, '/scanner'),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Theme.of(context).primaryColor,
-          foregroundColor: Colors.white,
-          minimumSize: const Size(220, 64),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
-          elevation: 8,
-          shadowColor: Colors.black26,
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.camera_alt_rounded, size: 24),
-            const SizedBox(width: 12),
-            Text(
-              'START SCANNING',
-              style: GoogleFonts.poppins(
-                fontWeight: FontWeight.w800,
-                fontSize: 16,
-                letterSpacing: 0.5,
+      child: Row(
+        children: [
+          // ── Button 1: Rice Scan ──
+          Expanded(
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF2E5E32).withOpacity(0.25),
+                    blurRadius: 12,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
+              ),
+              child: ElevatedButton(
+                onPressed: () => Navigator.pushNamed(context, '/scanner'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Theme.of(context).primaryColor,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 18),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                  elevation: 0,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.eco_rounded, size: 28),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Rice Scan',
+                      style: GoogleFonts.poppins(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 14,
+                        letterSpacing: 0.3,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ],
-        ),
+          ),
+          const SizedBox(width: 14),
+          // ── Button 2: Plant Identify ──
+          Expanded(
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF81C784).withOpacity(0.25),
+                    blurRadius: 12,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
+              ),
+              child: ElevatedButton(
+                onPressed: () => Navigator.pushNamed(context, '/plant-identify'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: isDark ? const Color(0xFF2E7D32) : const Color(0xFF81C784),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 18),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                  elevation: 0,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.local_florist, size: 28),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Plant Identify',
+                      style: GoogleFonts.poppins(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 14,
+                        letterSpacing: 0.3,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -881,8 +942,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       height: 70,
       padding: const EdgeInsets.symmetric(horizontal: 20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? const Color(0xFF1B2E1B).withOpacity(0.9) : Colors.white,
         borderRadius: BorderRadius.circular(35),
+        border: Border.all(color: isDark ? Colors.white12 : Colors.transparent),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.1),
@@ -917,17 +979,19 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   Widget _dotDivider() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       width: 4,
       height: 4,
-      decoration: const BoxDecoration(
-        color: Colors.black12,
+      decoration: BoxDecoration(
+        color: isDark ? Colors.white24 : Colors.black12,
         shape: BoxShape.circle,
       ),
     );
   }
 
   Widget _dockItem({required IconData icon, required bool active, required VoidCallback onTap}) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
@@ -936,7 +1000,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         height: 50,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: active ? const Color(0xFFF0F7F0) : Colors.transparent,
+          color: active 
+            ? (isDark ? Colors.white.withOpacity(0.1) : const Color(0xFFF0F7F0))
+            : Colors.transparent,
         ),
         child: Center(
           child: Column(
@@ -944,7 +1010,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             children: [
               Icon(
                 icon,
-                color: active ? const Color(0xFF2E5E32) : Colors.black45,
+                color: active 
+                  ? (isDark ? const Color(0xFF6CFB7B) : const Color(0xFF2E5E32))
+                  : (isDark ? Colors.white54 : Colors.black45),
                 size: 24,
               ),
               if (active)
@@ -952,8 +1020,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   margin: const EdgeInsets.only(top: 4),
                   width: 4,
                   height: 4,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFF2E5E32),
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF6CFB7B) : const Color(0xFF2E5E32),
                     shape: BoxShape.circle,
                   ),
                 ),

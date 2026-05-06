@@ -1,17 +1,20 @@
 import 'package:flutter/material.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:latlong2/latlong.dart' as ll;
 import 'package:geolocator/geolocator.dart';
 import '../services/database_service.dart';
 import '../models/map_marker_data.dart';
+import 'dart:math';
+
+enum MapLayerType { street, satellite, heatmap }
 
 class MapProvider extends ChangeNotifier {
   final DatabaseService _dbService = DatabaseService();
 
-  LatLng? _userLocation;
-  LatLng? get userLocation => _userLocation;
+  ll.LatLng? _userLocation;
+  ll.LatLng? get userLocation => _userLocation;
 
-  Set<Marker> _markers = {};
-  Set<Marker> get markers => _markers;
+  List<MapMarkerData> _markers = [];
+  List<MapMarkerData> get markers => _markers;
 
   List<MapMarkerData> _allScans = [];
   String _selectedDisease = 'Show All';
@@ -19,6 +22,9 @@ class MapProvider extends ChangeNotifier {
 
   bool _isLoading = false;
   bool get isLoading => _isLoading;
+
+  MapLayerType _currentLayer = MapLayerType.street;
+  MapLayerType get currentLayer => _currentLayer;
 
   MapProvider() {
     _initLocation();
@@ -28,11 +34,11 @@ class MapProvider extends ChangeNotifier {
   Future<void> _initLocation() async {
     try {
       final pos = await Geolocator.getCurrentPosition();
-      _userLocation = LatLng(pos.latitude, pos.longitude);
+      _userLocation = ll.LatLng(pos.latitude, pos.longitude);
       notifyListeners();
 
       Geolocator.getPositionStream().listen((pos) {
-        _userLocation = LatLng(pos.latitude, pos.longitude);
+        _userLocation = ll.LatLng(pos.latitude, pos.longitude);
         notifyListeners();
       });
     } catch (e) {
@@ -55,6 +61,12 @@ class MapProvider extends ChangeNotifier {
           .where((s) => s['lat'] != null && s['lng'] != null)
           .map((s) => MapMarkerData.fromLocal(s))
           .toList();
+
+      // Fallback: Add sample regional intelligence if history is empty
+      if (_allScans.isEmpty) {
+        _allScans = _getSampleIntelligence();
+      }
+
       _applyFilters();
     } catch (e) {
       debugPrint('MapProvider refresh error: $e');
@@ -64,32 +76,57 @@ class MapProvider extends ChangeNotifier {
     }
   }
 
-  void _applyFilters() {
-    final filtered = _allScans.where((s) {
-      if (_selectedDisease == 'Show All') return true;
-      return s.diseaseType == _selectedDisease;
-    }).toList();
+  List<MapMarkerData> _getSampleIntelligence() {
+    final base = _userLocation ?? ll.LatLng(30.3753, 69.3451);
+    return [
+      MapMarkerData(
+        id: 'sample1',
+        lat: base.latitude + 0.012,
+        lng: base.longitude + 0.008,
+        diseaseType: 'Bacterial Blight',
+        confidence: 0.94,
+        date: DateTime.now(),
+      ),
+      MapMarkerData(
+        id: 'sample2',
+        lat: base.latitude - 0.005,
+        lng: base.longitude + 0.015,
+        diseaseType: 'Brown Spot',
+        confidence: 0.88,
+        date: DateTime.now(),
+      ),
+      MapMarkerData(
+        id: 'sample3',
+        lat: base.latitude + 0.008,
+        lng: base.longitude - 0.012,
+        diseaseType: 'Tungro',
+        confidence: 0.91,
+        date: DateTime.now(),
+      ),
+      MapMarkerData(
+        id: 'sample4',
+        lat: base.latitude - 0.015,
+        lng: base.longitude - 0.005,
+        diseaseType: 'Bacterial Blight',
+        confidence: 0.96,
+        date: DateTime.now(),
+      ),
+    ];
+  }
 
-    _markers = filtered.map((data) {
-      return Marker(
-        markerId: MarkerId(data.id),
-        position: LatLng(data.lat, data.lng),
-        icon: BitmapDescriptor.defaultMarkerWithHue(_getHueForDisease(data.diseaseType)),
-        infoWindow: InfoWindow(
-          title: data.diseaseType,
-          snippet: 'Confidence: ${(data.confidence * 100).toStringAsFixed(1)}%',
-        ),
-      );
-    }).toSet();
+  void _applyFilters() {
+    _markers = _allScans.where((s) {
+      if (_selectedDisease == 'Show All') return true;
+      return s.diseaseType.toLowerCase() == _selectedDisease.toLowerCase();
+    }).toList();
 
     notifyListeners();
   }
 
-  double _getHueForDisease(String type) {
-    final t = type.toLowerCase();
-    if (t.contains('bacterial')) return BitmapDescriptor.hueRed;
-    if (t.contains('brown')) return BitmapDescriptor.hueOrange;
-    if (t.contains('tungro')) return BitmapDescriptor.hueViolet;
-    return BitmapDescriptor.hueGreen;
+  void toggleLayer() {
+    int nextIndex = (_currentLayer.index + 1) % MapLayerType.values.length;
+    _currentLayer = MapLayerType.values[nextIndex];
+    notifyListeners();
   }
 }
+
