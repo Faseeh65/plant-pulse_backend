@@ -397,67 +397,104 @@ class _PlantIdentifyScreenState extends State<PlantIdentifyScreen>
               ),
             ),
 
-          // Bottom controls
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            child: Container(
-              padding: const EdgeInsets.fromLTRB(40, 30, 40, 50),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.bottomCenter,
-                  end: Alignment.topCenter,
-                  colors: [
-                    Colors.black.withOpacity(0.8),
-                    Colors.black.withOpacity(0.0),
-                  ],
+          // Bottom controls (Premium Glassmorphism Dock)
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: SafeArea(
+              top: false,
+              child: Container(
+                height: 90,
+                margin: const EdgeInsets.fromLTRB(24, 0, 24, 20),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(45),
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.5),
+                        borderRadius: BorderRadius.circular(45),
+                        border: Border.all(color: Colors.white.withOpacity(0.1)),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.2),
+                            blurRadius: 20,
+                            spreadRadius: 5,
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          // Gallery Button
+                          GestureDetector(
+                            onTap: _pickFromGallery,
+                            child: Container(
+                              width: 50,
+                              height: 50,
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.1),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(Icons.collections_rounded,
+                                  color: Colors.white, size: 24),
+                            ),
+                          ),
+
+                          // Shutter Button (Premium Design)
+                          GestureDetector(
+                            onTap: _isProcessing ? null : _captureAndIdentify,
+                            child: AnimatedBuilder(
+                              animation: _pulseController,
+                              builder: (context, child) {
+                                return Container(
+                                  width: 74,
+                                  height: 74,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: const Color(0xFF81C784).withOpacity(
+                                          0.3 * (1 - _pulseController.value)),
+                                      width: 3 * _pulseController.value,
+                                    ),
+                                  ),
+                                  alignment: Alignment.center,
+                                  child: Container(
+                                    width: 62,
+                                    height: 62,
+                                    decoration: BoxDecoration(
+                                      gradient: const LinearGradient(
+                                        colors: [
+                                          Color(0xFF2E7D32),
+                                          Color(0xFF81C784)
+                                        ],
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                      ),
+                                      shape: BoxShape.circle,
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: const Color(0xFF81C784)
+                                              .withOpacity(0.3),
+                                          blurRadius: 15,
+                                          spreadRadius: 2,
+                                        ),
+                                      ],
+                                    ),
+                                    child: const Icon(Icons.local_florist,
+                                        color: Colors.white, size: 28),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+
+                          // Placeholder for symmetry
+                          const SizedBox(width: 50),
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  // Gallery button
-                  GestureDetector(
-                    onTap: _pickFromGallery,
-                    child: Container(
-                      width: 56,
-                      height: 56,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.white.withOpacity(0.15),
-                        border: Border.all(
-                            color: Colors.white.withOpacity(0.3), width: 1.5),
-                      ),
-                      child: const Icon(Icons.photo_library_rounded,
-                          color: Colors.white, size: 26),
-                    ),
-                  ),
-                  // Shutter button
-                  GestureDetector(
-                    onTap: _isProcessing ? null : _captureAndIdentify,
-                    child: Container(
-                      width: 80,
-                      height: 80,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                            color: const Color(0xFF81C784), width: 4),
-                      ),
-                      child: Container(
-                        margin: const EdgeInsets.all(4),
-                        decoration: const BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Color(0xFF81C784),
-                        ),
-                        child: const Icon(Icons.local_florist,
-                            color: Colors.white, size: 32),
-                      ),
-                    ),
-                  ),
-                  // Placeholder for symmetry
-                  const SizedBox(width: 56, height: 56),
-                ],
               ),
             ),
           ),

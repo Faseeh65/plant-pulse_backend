@@ -399,40 +399,42 @@ class _ResultsScreenState extends State<ResultsScreen> with TickerProviderStateM
   }
 
   Widget _buildAnalysisFrame() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 24),
-      height: 280,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(30),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 20, offset: const Offset(0, 10))],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(30),
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            Image.file(File(widget.imagePath), fit: BoxFit.cover),
-            // Target Crosshairs
-            _buildCrosshairs(),
-            // Scanning Line Animation
-            AnimatedBuilder(
-              animation: _scanLineAnimation,
-              builder: (context, child) {
-                return Positioned(
-                  top: 280 * _scanLineAnimation.value,
-                  left: 0,
-                  right: 0,
-                  child: Container(
-                    height: 2,
-                    decoration: BoxDecoration(
-                      color: Colors.greenAccent,
-                      boxShadow: [BoxShadow(color: Colors.greenAccent.withOpacity(0.8), blurRadius: 10, spreadRadius: 2)],
+    return RepaintBoundary(
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 24),
+        height: 280,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(30),
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 20, offset: const Offset(0, 10))],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(30),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              Image.file(File(widget.imagePath), fit: BoxFit.cover, cacheWidth: 800),
+              // Target Crosshairs
+              _buildCrosshairs(),
+              // Scanning Line Animation
+              AnimatedBuilder(
+                animation: _scanLineAnimation,
+                builder: (context, child) {
+                  return Positioned(
+                    top: 280 * _scanLineAnimation.value,
+                    left: 0,
+                    right: 0,
+                    child: Container(
+                      height: 2,
+                      decoration: BoxDecoration(
+                        color: Colors.greenAccent,
+                        boxShadow: [BoxShadow(color: Colors.greenAccent.withOpacity(0.8), blurRadius: 10, spreadRadius: 2)],
+                      ),
                     ),
-                  ),
-                );
-              },
-            ),
-          ],
+                  );
+                },
+              ),
+            ],
+          ),
         ),
       ),
     );

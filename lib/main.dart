@@ -30,31 +30,13 @@ Future<void> main() async {
 
   await dotenv.load(fileName: ".env");
 
-  // --- Session Guard Deployment ---
-  final String supabaseUrl = dotenv.env['SUPABASE_URL'] ?? '';
-  final String supabaseAnonKey = dotenv.env['SUPABASE_ANON_KEY'] ?? '';
-
-  if (supabaseUrl.isNotEmpty && supabaseAnonKey.isNotEmpty) {
-    try {
-      await Supabase.initialize(url: supabaseUrl, anonKey: supabaseAnonKey);
-    } catch (e) {
-      debugPrint('⚠️ Supabase Connection Failed: $e');
-    }
-  }
-
-  final causalService = CausalService();
-  await causalService.init();
-
-  final dbService = DatabaseService();
-  await dbService.syncOfflineScans();
-
+  // Very fast initializations before runApp
   final localeProvider = LocaleProvider();
   await localeProvider.loadSaved();
 
   final bool savedIsDark = await ThemeProvider.getSavedTheme();
   final themeProvider = ThemeProvider(savedIsDark);
 
-  // Theme and Locale will be managed inside the build method via Providers
   runApp(
     MultiProvider(
       providers: [
@@ -66,6 +48,27 @@ Future<void> main() async {
       child: const PlantPulseApp(),
     ),
   );
+
+  // Heavy init after first frame
+  WidgetsBinding.instance.addPostFrameCallback((_) async {
+    // --- Session Guard Deployment ---
+    final String supabaseUrl = dotenv.env['SUPABASE_URL'] ?? '';
+    final String supabaseAnonKey = dotenv.env['SUPABASE_ANON_KEY'] ?? '';
+
+    if (supabaseUrl.isNotEmpty && supabaseAnonKey.isNotEmpty) {
+      try {
+        await Supabase.initialize(url: supabaseUrl, anonKey: supabaseAnonKey);
+      } catch (e) {
+        debugPrint('⚠️ Supabase Connection Failed: $e');
+      }
+    }
+
+    final causalService = CausalService();
+    await causalService.init();
+
+    final dbService = DatabaseService();
+    await dbService.syncOfflineScans();
+  });
 }
 
 class PlantPulseApp extends StatelessWidget {

@@ -66,9 +66,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
   
+  late Future<Map<String, dynamic>> _fieldSummaryFuture;
+
   @override
   void initState() {
     super.initState();
+    _fieldSummaryFuture = _dbService.getFieldSummary();
     _entranceController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1500),
@@ -656,7 +659,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   Widget _buildIntelligenceCarousel(dynamic weather) {
     return FutureBuilder<Map<String, dynamic>>(
-      future: _dbService.getFieldSummary(),
+      future: _fieldSummaryFuture,
       builder: (context, snapshot) {
         final isDark = Theme.of(context).brightness == Brightness.dark;
         final stats = snapshot.data ?? {'count': 0, 'most_common': 'None'};
@@ -766,15 +769,16 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       ),
       child: Column(
         children: [
-          AnimatedBuilder(
-            animation: _floatingController,
-            builder: (context, child) {
-              return Transform.translate(
-                offset: Offset(0, 5 * _floatingController.value),
-                child: child,
-              );
-            },
-            child: Container(
+          RepaintBoundary(
+            child: AnimatedBuilder(
+              animation: _floatingController,
+              builder: (context, child) {
+                return Transform.translate(
+                  offset: Offset(0, 5 * _floatingController.value),
+                  child: child,
+                );
+              },
+              child: Container(
               height: 140,
               width: 140,
               decoration: BoxDecoration(
@@ -822,6 +826,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           const SizedBox(height: 16),
           Text(
             'Field Scanner',
+            textAlign: TextAlign.center,
             style: GoogleFonts.playfairDisplay(
               fontSize: 22, 
               fontWeight: FontWeight.w900, 
@@ -830,6 +835,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           ),
           const Text(
             'Scan rice diseases or identify any plant',
+            textAlign: TextAlign.center,
             style: TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.w500),
           ),
           const SizedBox(height: 30),
@@ -851,83 +857,73 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       },
       child: Row(
         children: [
-          // ── Button 1: Rice Scan ──
+          // ── Button 1: Rice Scan (Glassmorphism) ──
           Expanded(
-            child: Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF2E5E32).withOpacity(0.25),
-                    blurRadius: 12,
-                    offset: const Offset(0, 6),
-                  ),
-                ],
-              ),
-              child: ElevatedButton(
-                onPressed: () => Navigator.pushNamed(context, '/scanner'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Theme.of(context).primaryColor,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 18),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                  elevation: 0,
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.eco_rounded, size: 28),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Rice Scan',
-                      style: GoogleFonts.poppins(
-                        fontWeight: FontWeight.w800,
-                        fontSize: 14,
-                        letterSpacing: 0.3,
-                      ),
+            child: GestureDetector(
+              onTap: () => Navigator.pushNamed(context, '/scanner'),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(24),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 20),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF2E7D32).withOpacity(isDark ? 0.2 : 0.8),
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(color: Colors.white.withOpacity(0.2)),
                     ),
-                  ],
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.eco_rounded, size: 30, color: Colors.white),
+                        const SizedBox(height: 10),
+                        Text(
+                          'Rice Scan',
+                          style: GoogleFonts.poppins(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 14,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ),
           ),
-          const SizedBox(width: 14),
-          // ── Button 2: Plant Identify ──
+          const SizedBox(width: 16),
+          // ── Button 2: Plant Identify (Glassmorphism) ──
           Expanded(
-            child: Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF81C784).withOpacity(0.25),
-                    blurRadius: 12,
-                    offset: const Offset(0, 6),
-                  ),
-                ],
-              ),
-              child: ElevatedButton(
-                onPressed: () => Navigator.pushNamed(context, '/plant-identify'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: isDark ? const Color(0xFF2E7D32) : const Color(0xFF81C784),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 18),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                  elevation: 0,
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.local_florist, size: 28),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Plant Identify',
-                      style: GoogleFonts.poppins(
-                        fontWeight: FontWeight.w800,
-                        fontSize: 14,
-                        letterSpacing: 0.3,
-                      ),
+            child: GestureDetector(
+              onTap: () => Navigator.pushNamed(context, '/plant-identify'),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(24),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 20),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF81C784).withOpacity(isDark ? 0.15 : 0.7),
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(color: Colors.white.withOpacity(0.2)),
                     ),
-                  ],
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.local_florist, size: 30, color: Colors.white),
+                        const SizedBox(height: 10),
+                        Text(
+                          'Plant Identify',
+                          style: GoogleFonts.poppins(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 14,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ),

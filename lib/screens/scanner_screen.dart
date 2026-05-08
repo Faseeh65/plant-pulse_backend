@@ -16,6 +16,8 @@ import '../models/disease_result.dart';
 import 'results_screen.dart';
 import 'history_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:image/image.dart' as img;
+import 'dart:typed_data';
 import '../widgets/questionnaire_overlay.dart';
 import '../utils/string_extensions.dart';
 import 'profile_screen.dart';
@@ -280,19 +282,51 @@ class _ScannerScreenState extends State<ScannerScreen> with TickerProviderStateM
     }
   }
 
+  Future<Uint8List> compressImage(File imageFile) async {
+    final bytes = await imageFile.readAsBytes();
+    final image = img.decodeImage(bytes);
+    if (image == null) return bytes;
+    final resized = img.copyResize(image, width: 800);
+    return Uint8List.fromList(img.encodeJpg(resized, quality: 85));
+  }
+
   Future<Map<String, dynamic>> _predictViaApi(File imageFile) async {
     final uri = Uri.parse('${ApiService.baseUrl}/predict');
     final request = http.MultipartRequest('POST', uri);
+    final compressedBytes = await compressImage(imageFile);
     request.files.add(
-      await http.MultipartFile.fromPath(
+      http.MultipartFile.fromBytes(
         'file',
-        imageFile.path,
+        compressedBytes,
+        filename: 'scan.jpg',
         contentType: MediaType('image', 'jpeg'),
       ),
     );
     request.headers['Accept'] = 'application/json';
 
-    final streamedResponse = await request.send().timeout(const Duration(seconds: 30));
+    http.StreamedResponse? streamedResponse;
+    for (int i = 0; i < 2; i++) {
+      try {
+        final newRequest = http.MultipartRequest('POST', uri);
+        newRequest.files.add(
+          http.MultipartFile.fromBytes(
+            'file',
+            compressedBytes,
+            filename: 'scan.jpg',
+            contentType: MediaType('image', 'jpeg'),
+          ),
+        );
+        newRequest.headers['Accept'] = 'application/json';
+        streamedResponse = await newRequest.send().timeout(const Duration(seconds: 30));
+        break;
+      } catch (e) {
+        if (i == 1) rethrow;
+        await Future.delayed(const Duration(seconds: 1));
+      }
+    }
+    
+    if (streamedResponse == null) throw Exception('API_TIMEOUT');
+
     final responseBody = await streamedResponse.stream.bytesToString();
     
     // --- DIAGNOSTIC LOGGING ---
@@ -723,7 +757,9 @@ class _ScannerScreenState extends State<ScannerScreen> with TickerProviderStateM
       body: Stack(
         fit: StackFit.expand,
         children: [
-          CameraPreview(_controller!),
+          RepaintBoundary(
+            child: CameraPreview(_controller!),
+          ),
 
           // Premium HUD Overlay (Top & Corners)
           Positioned(

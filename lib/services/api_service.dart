@@ -31,15 +31,24 @@ class ApiService {
   /// Fetches structured diagnosis data from FastAPI backend
   Future<DiseaseResult> fetchDiagnosisDetails(String diseaseId, {double acres = 1.0, String lang = 'en'}) async {
     try {
-      final response = await http.get(
-        Uri.parse('$baseUrl/treatment/$diseaseId?acres=$acres'),
-        headers: {
-          'Content-Type': 'application/json',
-          'lang': lang,
-        },
-      ).timeout(const Duration(seconds: 8));
+      http.Response? response;
+      for (int i = 0; i < 2; i++) {
+        try {
+          response = await http.get(
+            Uri.parse('$baseUrl/treatment/$diseaseId?acres=$acres'),
+            headers: {
+              'Content-Type': 'application/json',
+              'lang': lang,
+            },
+          ).timeout(const Duration(seconds: 30));
+          break; // success
+        } catch (e) {
+          if (i == 1) rethrow;
+          await Future.delayed(const Duration(seconds: 1));
+        }
+      }
 
-      if (response.statusCode == 200) {
+      if (response != null && response.statusCode == 200) {
         if (!_hasLoggedSuccess) {
           _hasLoggedSuccess = true;
           debugPrint('✅ Successfully connected to FastAPI at $baseUrl');
@@ -68,18 +77,27 @@ class ApiService {
   }) async {
     if (userId.isEmpty) return false;
     try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/history/save'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'user_id':          userId,
-          'crop_name':        plantName,
-          'disease_result':   diseaseResult,
-          'confidence_score': confidenceScore,
-        }),
-      ).timeout(const Duration(seconds: 10));
+      http.Response? response;
+      for (int i = 0; i < 2; i++) {
+        try {
+          response = await http.post(
+            Uri.parse('$baseUrl/history/save'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({
+              'user_id':          userId,
+              'crop_name':        plantName,
+              'disease_result':   diseaseResult,
+              'confidence_score': confidenceScore,
+            }),
+          ).timeout(const Duration(seconds: 30));
+          break;
+        } catch (e) {
+          if (i == 1) throw e;
+          await Future.delayed(const Duration(seconds: 1));
+        }
+      }
 
-      return response.statusCode == 200;
+      return response != null && response.statusCode == 200;
     } catch (e) {
       debugPrint('saveScanResult failed: $e');
       return false;

@@ -38,6 +38,9 @@ dependencies:
   font_awesome_flutter: ^11.0.0
   animations: ^2.2.0
   flutter_map: ^8.3.0
+  cached_network_image: ^3.4.1
+  image: ^4.8.0
+  connectivity_plus: ^7.1.1
 
 dev_dependencies:
   flutter_test:
@@ -48,9 +51,9 @@ dev_dependencies:
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: "assets/images/LOGO_.png"
+  image_path: "assets/images/LOGO_.webp"
   adaptive_icon_background: "#0A1108"
-  adaptive_icon_foreground: "assets/images/LOGO_.png"
+  adaptive_icon_foreground: "assets/images/LOGO_.webp"
   min_sdk_android: 21
 
 flutter:
