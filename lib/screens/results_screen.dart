@@ -458,6 +458,8 @@ class _ResultsScreenState extends State<ResultsScreen> with TickerProviderStateM
 
   Widget _buildIntelligenceSection() {
     final primaryColor = Theme.of(context).primaryColor;
+    final locale = context.read<LocaleProvider>().locale;
+    final isUrdu = locale.languageCode == 'ur';
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

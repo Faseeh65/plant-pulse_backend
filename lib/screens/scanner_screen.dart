@@ -11,6 +11,7 @@ import '../services/causal_service.dart';
 import '../services/database_service.dart';
 import '../services/scan_guard.dart';
 import 'package:geolocator/geolocator.dart';
+
 import '../models/causal_logic.dart';
 import '../models/disease_result.dart';
 import 'results_screen.dart';
@@ -33,11 +34,35 @@ class ScannerScreen extends StatefulWidget {
 class _ScannerScreenState extends State<ScannerScreen> with TickerProviderStateMixin {
   CameraController? _controller;
   bool _isProcessing = false;
+  bool _isCameraReady = false; // Track camera initialization state
   final CausalService _causalService = CausalService();
   final ApiService _apiService = ApiService();
   final DatabaseService _dbService = DatabaseService();
 
-  // Animations
+  // Added loading overlay method
+  void _showLoadingOverlay() {
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => Center(
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Colors.black.withOpacity(0.7),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: const CircularProgressIndicator(color: Colors.white),
+        ),
+      ),
+    );
+  }
+
+  void _hideLoadingOverlay() {
+    if (Navigator.canPop(context)) {
+      Navigator.pop(context);
+    }
+  }
   late AnimationController _scanLineController;
   late AnimationController _cornersController;
   late AnimationController _flashController;
@@ -52,6 +77,7 @@ class _ScannerScreenState extends State<ScannerScreen> with TickerProviderStateM
   @override
   void initState() {
     super.initState();
+    // Start camera initialization without waiting for backend health.
     _initializeCamera();
 
     // 1. Scanning frame corners drawing
@@ -167,11 +193,14 @@ class _ScannerScreenState extends State<ScannerScreen> with TickerProviderStateM
         return;
       }
 
-      // ── Immediately enter loading state & predict ──────────────────────
-      setState(() => _isProcessing = true);
-
+      // Show loading overlay before prediction
+      _showLoadingOverlay();
       final rawResult = await _predictViaApi(imageFile);
-      final String label      = rawResult['label'] as String;
+      _hideLoadingOverlay();
+      if (rawResult.isEmpty) {
+        throw Exception('EMPTY_RESPONSE');
+      }
+      final String label = rawResult['label'] as String;
       final double confidence = rawResult['confidence'] as double;
 
       ScanGuard.instance.validate(label, confidence);
@@ -268,47 +297,47 @@ class _ScannerScreenState extends State<ScannerScreen> with TickerProviderStateM
     try {
       final cameras = await availableCameras();
       if (cameras.isEmpty) return;
-
       _controller = CameraController(
         cameras.first,
-        ResolutionPreset.high,
+        // Use low resolution for faster preview init
+        ResolutionPreset.low,
         enableAudio: false,
       );
-
       await _controller!.initialize();
-      if (mounted) setState(() {});
+      if (mounted) {
+        setState(() {
+          _isCameraReady = true;
+        });
+      }
     } catch (e) {
       debugPrint('Camera error: $e');
     }
   }
 
+
   Future<Uint8List> compressImage(File imageFile) async {
     final bytes = await imageFile.readAsBytes();
     final image = img.decodeImage(bytes);
     if (image == null) return bytes;
-    final resized = img.copyResize(image, width: 800);
-    return Uint8List.fromList(img.encodeJpg(resized, quality: 85));
+    // Reduce size to speed up upload while preserving enough detail.
+    // Reduce size further for quicker upload while keeping sufficient detail
+    final resized = img.copyResize(image, width: 400);
+    return Uint8List.fromList(img.encodeJpg(resized, quality: 75));
   }
 
   Future<Map<String, dynamic>> _predictViaApi(File imageFile) async {
+    // Ensure backend is reachable before sending image
+    final healthOk = await _apiService.checkHealth().timeout(const Duration(seconds: 5), onTimeout: () => false);
+    if (!healthOk) {
+      throw Exception('CONNECTION_FAILED');
+    }
     final uri = Uri.parse('${ApiService.baseUrl}/predict');
-    final request = http.MultipartRequest('POST', uri);
     final compressedBytes = await compressImage(imageFile);
-    request.files.add(
-      http.MultipartFile.fromBytes(
-        'file',
-        compressedBytes,
-        filename: 'scan.jpg',
-        contentType: MediaType('image', 'jpeg'),
-      ),
-    );
-    request.headers['Accept'] = 'application/json';
-
     http.StreamedResponse? streamedResponse;
     for (int i = 0; i < 2; i++) {
       try {
-        final newRequest = http.MultipartRequest('POST', uri);
-        newRequest.files.add(
+        final request = http.MultipartRequest('POST', uri);
+        request.files.add(
           http.MultipartFile.fromBytes(
             'file',
             compressedBytes,
@@ -316,8 +345,8 @@ class _ScannerScreenState extends State<ScannerScreen> with TickerProviderStateM
             contentType: MediaType('image', 'jpeg'),
           ),
         );
-        newRequest.headers['Accept'] = 'application/json';
-        streamedResponse = await newRequest.send().timeout(const Duration(seconds: 30));
+        request.headers['Accept'] = 'application/json';
+        streamedResponse = await request.send().timeout(const Duration(seconds: 25));
         break;
       } catch (e) {
         if (i == 1) rethrow;
@@ -355,6 +384,7 @@ class _ScannerScreenState extends State<ScannerScreen> with TickerProviderStateM
     _flashController.forward(from: 0.0);
 
     setState(() => _isProcessing = true);
+    _showLoadingOverlay();
 
     try {
       final XFile photo = await _controller!.takePicture();
@@ -379,6 +409,7 @@ class _ScannerScreenState extends State<ScannerScreen> with TickerProviderStateM
 
       ScanGuard.instance.validate(label, confidence);
 
+      _hideLoadingOverlay();
       if (!mounted) return;
 
       final bool isHealthy = label.toLowerCase().contains('healthy');
@@ -440,37 +471,31 @@ class _ScannerScreenState extends State<ScannerScreen> with TickerProviderStateM
           },
         );
       }
-    } catch (e) {
-      debugPrint('SCAN ERROR: $e');
+    } on UnrecognizedScanException catch (e) {
+      _hideLoadingOverlay();
+      debugPrint('CAPTURE SCAN REJECTED: $e');
       if (mounted) {
         setState(() => _isProcessing = false);
-
-        if (e is UnrecognizedScanException) {
-          _showRejectionSheet(e);
-          return;
-        }
-
-        final String errStr = e.toString().toUpperCase();
-        final isConnError = errStr.contains('CONNECT') ||
-            errStr.contains('SOCKETEXCEPTION') ||
-            errStr.contains('TIMEOUTEXCEPTION') ||
-            errStr.contains('CONNECTION_FAILED') ||
-            errStr.contains('REFUSED');
-
-        if (isConnError) {
-          _showConnectionErrorDialog();
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                'Scan Error: $e',
-                style: const TextStyle(fontWeight: FontWeight.w900),
-              ),
-              backgroundColor: Colors.redAccent,
-              duration: const Duration(seconds: 5),
+        _showRejectionSheet(e);
+      }
+    } catch (e) {
+      _hideLoadingOverlay();
+      debugPrint('CAPTURE SCAN ERROR: $e');
+      if (mounted) {
+        setState(() => _isProcessing = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text(
+              'Scan Error: Unable to reach server. Please check your connection.',
+              style: TextStyle(fontWeight: FontWeight.w900),
             ),
-          );
-        }
+            backgroundColor: Colors.redAccent,
+            duration: const Duration(seconds: 4),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            margin: const EdgeInsets.all(16),
+          ),
+        );
       }
     }
   }
@@ -743,6 +768,22 @@ class _ScannerScreenState extends State<ScannerScreen> with TickerProviderStateM
 
   @override
   Widget build(BuildContext context) {
+    if (!_isCameraReady) {
+      // Show a premium loading screen while the camera is preparing
+      return Scaffold(
+        backgroundColor: Colors.black,
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: const [
+              CircularProgressIndicator(color: Color(0xFF6CFB7B)),
+              SizedBox(height: 16),
+              Text('Initializing scanner...', style: TextStyle(color: Colors.white70)),
+            ],
+          ),
+        ),
+      );
+    }
     if (_controller == null || !_controller!.value.isInitialized) {
       return const Scaffold(
         backgroundColor: Colors.black,

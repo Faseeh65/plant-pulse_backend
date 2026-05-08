@@ -661,42 +661,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         final isDark = Theme.of(context).brightness == Brightness.dark;
         final stats = snapshot.data ?? {'count': 0, 'most_common': 'None'};
 
-        if (stats['count'] == 0 && snapshot.connectionState == ConnectionState.done) {
-          return Container(
-            height: 240,
-            margin: const EdgeInsets.only(top: 10, left: 24, right: 24),
-            decoration: BoxDecoration(
-              color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white,
-              borderRadius: BorderRadius.circular(32),
-              border: Border.all(color: isDark ? Colors.white12 : Colors.black.withValues(alpha: 0.05)),
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.spa_rounded, size: 64, color: isDark ? Colors.white24 : Colors.black26),
-                const SizedBox(height: 16),
-                Text(
-                  'Scan Your First Crop',
-                  style: GoogleFonts.playfairDisplay(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w900,
-                    color: isDark ? Colors.white : const Color(0xFF2E5E32),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Your scanning history and insights will appear here',
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.inter(
-                    fontSize: 12,
-                    color: isDark ? Colors.white54 : Colors.black54,
-                  ),
-                ),
-              ],
-            ),
-          );
-        }
-
         return Container(
           height: 240,
           margin: const EdgeInsets.only(top: 10),
@@ -856,6 +820,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               ),
             ),
           ),
+          ),
           const SizedBox(height: 16),
           Text(
             'Field Scanner',
@@ -890,43 +855,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       },
       child: Row(
         children: [
-          // ── Button 1: Rice Scan (Glassmorphism) ──
-          Expanded(
-            child: GestureDetector(
-              onTap: () => Navigator.pushNamed(context, '/scanner'),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(24),
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 20),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF2E7D32).withValues(alpha: isDark ? 0.2 : 0.8),
-                      borderRadius: BorderRadius.circular(24),
-                      border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.eco_rounded, size: 30, color: Colors.white),
-                        const SizedBox(height: 10),
-                        Text(
-                          'Rice Scan',
-                          style: GoogleFonts.poppins(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 14,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 16),
-          // ── Button 2: Plant Identify (Glassmorphism) ──
+          // ── Button 1: Plant Identify (Glassmorphism) ──
           Expanded(
             child: GestureDetector(
               onTap: () => Navigator.pushNamed(context, '/plant-identify'),
@@ -948,6 +877,42 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                         const SizedBox(height: 10),
                         Text(
                           'Plant Identify',
+                          style: GoogleFonts.poppins(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 14,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 16),
+          // ── Button 2: Rice Scan (Glassmorphism) ──
+          Expanded(
+            child: GestureDetector(
+              onTap: () => Navigator.pushNamed(context, '/scanner'),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(24),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 20),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF2E7D32).withValues(alpha: isDark ? 0.2 : 0.8),
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.eco_rounded, size: 30, color: Colors.white),
+                        const SizedBox(height: 10),
+                        Text(
+                          'Rice Scan',
                           style: GoogleFonts.poppins(
                             fontWeight: FontWeight.w700,
                             fontSize: 14,

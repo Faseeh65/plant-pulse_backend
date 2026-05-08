@@ -55,8 +55,8 @@ class ApiService {
         final decoded = jsonDecode(utf8.decode(response.bodyBytes));
         return DiseaseResult.fromJson(decoded);
       } else {
-        debugPrint('API Error: ${response.statusCode} - ${response.body}');
-        throw Exception('API_ERROR_${response.statusCode}');
+        debugPrint('API Error: ${response?.statusCode} - ${response?.body}');
+        throw Exception('API_ERROR_${response?.statusCode ?? 500}');
       }
     } catch (e) {
       debugPrint('FastAPI communication error: $e');
