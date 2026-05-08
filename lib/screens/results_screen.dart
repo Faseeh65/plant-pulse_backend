@@ -11,6 +11,7 @@ import '../providers/weather_provider.dart';
 import '../models/weather_data.dart';
 import 'treatment_detail_screen.dart';
 import 'reminder_screen.dart';
+import '../providers/locale_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'dart:ui';
@@ -181,6 +182,11 @@ class _ResultsScreenState extends State<ResultsScreen> with TickerProviderStateM
     final disableAnimations = MediaQuery.of(context).disableAnimations;
     final weather = context.watch<WeatherProvider>().currentWeather;
     final primaryColor = Theme.of(context).primaryColor;
+    final locale = context.watch<LocaleProvider>().locale;
+    final isUrdu = locale.languageCode == 'ur';
+
+    final String displayCrop = isUrdu && _rule?.nameUr != null && _rule!.nameUr.isNotEmpty ? _rule!.nameUr.split(' ').first : plantType;
+    final String displayDisease = isUrdu && _rule?.nameUr != null && _rule!.nameUr.isNotEmpty ? _rule!.nameUr : cleanName;
 
     return Scaffold(
       body: Stack(
@@ -193,7 +199,7 @@ class _ResultsScreenState extends State<ResultsScreen> with TickerProviderStateM
                 end: Alignment.bottomRight,
                 colors: [
                   Theme.of(context).scaffoldBackgroundColor,
-                  primaryColor.withOpacity(0.05),
+                  primaryColor.withValues(alpha: 0.05),
                 ],
               ),
             ),
@@ -229,7 +235,7 @@ class _ResultsScreenState extends State<ResultsScreen> with TickerProviderStateM
                         children: [
                           const SizedBox(height: 8),
                             Text(
-                              plantType,
+                              displayCrop,
                               style: GoogleFonts.poppins(
                                 fontSize: 44, 
                                 fontWeight: FontWeight.w900, 
@@ -242,11 +248,11 @@ class _ResultsScreenState extends State<ResultsScreen> with TickerProviderStateM
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                               decoration: BoxDecoration(
-                                color: primaryColor.withOpacity(0.1),
+                                color: primaryColor.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Text(
-                                cleanName.toUpperCase(),
+                                displayDisease.toUpperCase(),
                                 style: GoogleFonts.inter(
                                   fontSize: 12, 
                                   color: primaryColor, 
@@ -269,9 +275,9 @@ class _ResultsScreenState extends State<ResultsScreen> with TickerProviderStateM
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                     decoration: BoxDecoration(
-                      color: primaryColor.withOpacity(0.08),
+                      color: primaryColor.withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: primaryColor.withOpacity(0.2)),
+                      border: Border.all(color: primaryColor.withValues(alpha: 0.2)),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -335,9 +341,9 @@ class _ResultsScreenState extends State<ResultsScreen> with TickerProviderStateM
                   width: 44,
                   height: 44,
                   decoration: BoxDecoration(
-                    color: Theme.of(context).cardColor.withOpacity(0.5),
+                    color: Theme.of(context).cardColor.withValues(alpha: 0.5),
                     shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white.withOpacity(0.2)),
+                    border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
                   ),
                   child: IconButton(
                     icon: Icon(Icons.arrow_back_ios_new_rounded, color: Theme.of(context).textTheme.bodyLarge?.color, size: 18),
@@ -356,9 +362,9 @@ class _ResultsScreenState extends State<ResultsScreen> with TickerProviderStateM
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.3),
+        color: Colors.white.withValues(alpha: 0.3),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withOpacity(0.5)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.5)),
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(20),
@@ -405,7 +411,7 @@ class _ResultsScreenState extends State<ResultsScreen> with TickerProviderStateM
         height: 280,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(30),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 20, offset: const Offset(0, 10))],
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 20, offset: const Offset(0, 10))],
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(30),
@@ -427,7 +433,7 @@ class _ResultsScreenState extends State<ResultsScreen> with TickerProviderStateM
                       height: 2,
                       decoration: BoxDecoration(
                         color: Colors.greenAccent,
-                        boxShadow: [BoxShadow(color: Colors.greenAccent.withOpacity(0.8), blurRadius: 10, spreadRadius: 2)],
+                        boxShadow: [BoxShadow(color: Colors.greenAccent.withValues(alpha: 0.8), blurRadius: 10, spreadRadius: 2)],
                       ),
                     ),
                   );
@@ -443,9 +449,9 @@ class _ResultsScreenState extends State<ResultsScreen> with TickerProviderStateM
   Widget _buildCrosshairs() {
     return Stack(
       children: [
-        Center(child: Container(width: 40, height: 40, decoration: BoxDecoration(border: Border.all(color: Colors.white.withOpacity(0.5), width: 1)))),
-        Center(child: Container(width: 2, height: 60, color: Colors.white.withOpacity(0.3))),
-        Center(child: Container(width: 60, height: 2, color: Colors.white.withOpacity(0.3))),
+        Center(child: Container(width: 40, height: 40, decoration: BoxDecoration(border: Border.all(color: Colors.white.withValues(alpha: 0.5), width: 1)))),
+        Center(child: Container(width: 2, height: 60, color: Colors.white.withValues(alpha: 0.3))),
+        Center(child: Container(width: 60, height: 2, color: Colors.white.withValues(alpha: 0.3))),
       ],
     );
   }
@@ -462,14 +468,14 @@ class _ResultsScreenState extends State<ResultsScreen> with TickerProviderStateM
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: primaryColor.withOpacity(0.1),
+                  color: primaryColor.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(Icons.psychology_outlined, color: primaryColor, size: 20),
               ),
               const SizedBox(width: 12),
               Text(
-                'Diagnosis Intelligence', 
+                isUrdu ? 'تشخیصی معلومات' : 'Diagnosis Intelligence', 
                 style: GoogleFonts.poppins(
                   fontSize: 20, 
                   fontWeight: FontWeight.w900, 
@@ -487,9 +493,9 @@ class _ResultsScreenState extends State<ResultsScreen> with TickerProviderStateM
             padding: const EdgeInsets.symmetric(horizontal: 24),
             physics: const BouncingScrollPhysics(),
             children: [
-              _buildIntelCard('Scientific', _rule?.scientificName ?? 'N/A', Icons.biotech_rounded, primaryColor),
-              _buildIntelCard('Symptoms', _rule?.symptoms ?? 'N/A', Icons.visibility_rounded, Colors.orangeAccent),
-              _buildIntelCard('Primary Cause', _rule?.cause ?? 'N/A', Icons.info_outline_rounded, Colors.blueAccent),
+              _buildIntelCard(isUrdu ? 'سائنسی نام' : 'Scientific', _rule?.scientificName ?? 'N/A', Icons.biotech_rounded, primaryColor),
+              _buildIntelCard(isUrdu ? 'علامات' : 'Symptoms', isUrdu && _rule?.symptoms != null ? _rule!.symptoms : (_rule?.symptoms ?? 'N/A'), Icons.visibility_rounded, Colors.orangeAccent),
+              _buildIntelCard(isUrdu ? 'بنیادی وجہ' : 'Primary Cause', isUrdu && _rule?.cause != null ? _rule!.cause : (_rule?.cause ?? 'N/A'), Icons.info_outline_rounded, Colors.blueAccent),
             ],
           ),
         ),
@@ -502,12 +508,12 @@ class _ResultsScreenState extends State<ResultsScreen> with TickerProviderStateM
       width: 190,
       margin: const EdgeInsets.only(right: 16, bottom: 8),
       decoration: BoxDecoration(
-        color: Theme.of(context).cardColor.withOpacity(0.7),
+        color: Theme.of(context).cardColor.withValues(alpha: 0.7),
         borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: Colors.white.withOpacity(0.1)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04), 
+            color: Colors.black.withValues(alpha: 0.04), 
             blurRadius: 15, 
             offset: const Offset(0, 8),
           )
@@ -547,7 +553,7 @@ class _ResultsScreenState extends State<ResultsScreen> with TickerProviderStateM
                       fontSize: 12, 
                       fontWeight: FontWeight.w500, 
                       height: 1.4,
-                      color: Theme.of(context).textTheme.bodyLarge?.color?.withOpacity(0.8),
+                      color: Theme.of(context).textTheme.bodyLarge?.color?.withValues(alpha: 0.8),
                     ),
                   ),
                 ),
@@ -569,9 +575,9 @@ class _ResultsScreenState extends State<ResultsScreen> with TickerProviderStateM
       child: Container(
         padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
-          color: Theme.of(context).cardColor.withOpacity(0.6),
+          color: Theme.of(context).cardColor.withValues(alpha: 0.6),
           borderRadius: BorderRadius.circular(32),
-          border: Border.all(color: Colors.white.withOpacity(0.1)),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -585,7 +591,7 @@ class _ResultsScreenState extends State<ResultsScreen> with TickerProviderStateM
                   style: GoogleFonts.poppins(
                     fontSize: 18, 
                     fontWeight: FontWeight.w900, 
-                    color: Theme.of(context).textTheme.bodyLarge?.color?.withOpacity(0.8),
+                    color: Theme.of(context).textTheme.bodyLarge?.color?.withValues(alpha: 0.8),
                   ),
                 ),
               ],
@@ -622,7 +628,7 @@ class _ResultsScreenState extends State<ResultsScreen> with TickerProviderStateM
                           style: GoogleFonts.poppins(
                             fontSize: 18, 
                             fontWeight: FontWeight.w600,
-                            color: Theme.of(context).textTheme.bodyLarge?.color?.withOpacity(0.6),
+                            color: Theme.of(context).textTheme.bodyLarge?.color?.withValues(alpha: 0.6),
                           ),
                         ),
                       ],
@@ -632,7 +638,7 @@ class _ResultsScreenState extends State<ResultsScreen> with TickerProviderStateM
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: (alert['color'] as Color).withOpacity(0.1),
+                    color: (alert['color'] as Color).withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
@@ -647,9 +653,9 @@ class _ResultsScreenState extends State<ResultsScreen> with TickerProviderStateM
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: (alert['color'] as Color).withOpacity(0.08),
+                color: (alert['color'] as Color).withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: (alert['color'] as Color).withOpacity(0.3)),
+                border: Border.all(color: (alert['color'] as Color).withValues(alpha: 0.3)),
               ),
               child: Row(
                 children: [
@@ -676,8 +682,10 @@ class _ResultsScreenState extends State<ResultsScreen> with TickerProviderStateM
   }
 
   Widget _buildTreatmentActions() {
-    final String treatment = _rule?.treatmentEn ?? widget.diagnosisData.instruction;
-    final String prevention = _rule?.prevention ?? 'Monitor crop regularly.';
+    final locale = context.read<LocaleProvider>().locale;
+    final isUrdu = locale.languageCode == 'ur';
+    final String treatment = isUrdu && _rule != null && _rule!.treatmentUr.isNotEmpty ? _rule!.treatmentUr : (_rule?.treatmentEn ?? widget.diagnosisData.instruction);
+    final String prevention = isUrdu && _rule != null && _rule!.prevention.isNotEmpty ? _rule!.prevention : (_rule?.prevention ?? 'Monitor crop regularly.');
     final primaryColor = Theme.of(context).primaryColor;
     
     return Padding(
@@ -697,14 +705,14 @@ class _ResultsScreenState extends State<ResultsScreen> with TickerProviderStateM
           Row(
             children: [
               _buildActionTile(
-                'Primary Treatment', 
+                isUrdu ? 'علاج' : 'Primary Treatment', 
                 treatment.split('.').first,
                 Icons.health_and_safety_rounded, 
                 Colors.tealAccent.shade700
               ),
               const SizedBox(width: 16),
               _buildActionTile(
-                'Prevention', 
+                isUrdu ? 'احتیاط' : 'Prevention', 
                 prevention.split('.').first, 
                 Icons.shield_rounded, 
                 Colors.indigoAccent
@@ -737,7 +745,7 @@ class _ResultsScreenState extends State<ResultsScreen> with TickerProviderStateM
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
-                    color: primaryColor.withOpacity(0.3),
+                    color: primaryColor.withValues(alpha: 0.3),
                     blurRadius: 15,
                     offset: const Offset(0, 8),
                   ),
@@ -793,9 +801,9 @@ class _ResultsScreenState extends State<ResultsScreen> with TickerProviderStateM
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
+          color: color.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: color.withOpacity(0.3)),
+          border: Border.all(color: color.withValues(alpha: 0.3)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -806,7 +814,7 @@ class _ResultsScreenState extends State<ResultsScreen> with TickerProviderStateM
               title, 
               style: GoogleFonts.orbitron(
                 fontSize: 9, 
-                color: color.withOpacity(0.8), 
+                color: color.withValues(alpha: 0.8), 
                 fontWeight: FontWeight.w800,
                 letterSpacing: 0.5,
               ),
@@ -874,7 +882,7 @@ class _ResultsScreenState extends State<ResultsScreen> with TickerProviderStateM
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withOpacity(0.2)),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -904,15 +912,15 @@ class _ResultsScreenState extends State<ResultsScreen> with TickerProviderStateM
     );
   }
 
-  Widget _buildSimpleInfoBox(String title, String en, {String? urduText, required IconData icon, Color color = Colors.grey}) {
+  Widget _buildSimpleInfoBox(String title, String en, {required IconData icon, Color color = Colors.grey}) {
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.only(bottom: 20),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.05),
+        color: color.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withOpacity(0.2)),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -931,7 +939,7 @@ class _ResultsScreenState extends State<ResultsScreen> with TickerProviderStateM
           Text(
             en, 
             style: GoogleFonts.rajdhani(
-              color: Theme.of(context).textTheme.bodyLarge?.color?.withOpacity(0.9), 
+              color: Theme.of(context).textTheme.bodyLarge?.color?.withValues(alpha: 0.9), 
               fontSize: 14, 
               height: 1.3,
               fontWeight: FontWeight.w500,
@@ -960,7 +968,7 @@ class _ResultsScreenState extends State<ResultsScreen> with TickerProviderStateM
           Text(
             description,
             style: TextStyle(
-              color: Theme.of(context).textTheme.bodyLarge?.color?.withOpacity(0.7),
+              color: Theme.of(context).textTheme.bodyLarge?.color?.withValues(alpha: 0.7),
               fontSize: 14,
               height: 1.5,
             ),

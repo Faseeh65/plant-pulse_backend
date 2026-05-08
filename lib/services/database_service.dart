@@ -153,7 +153,7 @@ class DatabaseService {
             .eq('user_id', userId)
             .order('created_at', ascending: false);
         
-        if (remoteScans != null && remoteScans.isNotEmpty) {
+        if (remoteScans.isNotEmpty) {
           // Cache remote scans locally for next time
           for (var s in remoteScans) {
             await _localDb.insertScan({

@@ -583,7 +583,7 @@ class _ScannerScreenState extends State<ScannerScreen> with TickerProviderStateM
             Container(
               padding: const EdgeInsets.all(18),
               decoration: BoxDecoration(
-                color: Colors.redAccent.withOpacity(0.1),
+                color: Colors.redAccent.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               child: const Icon(
@@ -609,9 +609,9 @@ class _ScannerScreenState extends State<ScannerScreen> with TickerProviderStateM
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                 decoration: BoxDecoration(
-                  color: Colors.redAccent.withOpacity(0.08),
+                  color: Colors.redAccent.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.redAccent.withOpacity(0.25)),
+                  border: Border.all(color: Colors.redAccent.withValues(alpha: 0.25)),
                 ),
                 child: Text(
                   'Confidence: ${(e.confidence * 100).toStringAsFixed(1)}%  '  
@@ -677,7 +677,7 @@ class _ScannerScreenState extends State<ScannerScreen> with TickerProviderStateM
           Expanded(
               child: Text(text,
                 style: TextStyle(
-                  color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.8), 
+                  color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.8), 
                   fontSize: 13, 
                   height: 1.4
                 )),
@@ -773,8 +773,8 @@ class _ScannerScreenState extends State<ScannerScreen> with TickerProviderStateM
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    Colors.black.withOpacity(0.7),
-                    Colors.black.withOpacity(0.0),
+                    Colors.black.withValues(alpha: 0.7),
+                    Colors.black.withValues(alpha: 0.0),
                   ],
                 ),
               ),
@@ -785,12 +785,12 @@ class _ScannerScreenState extends State<ScannerScreen> with TickerProviderStateM
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                       decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.3),
+                        color: Colors.black.withValues(alpha: 0.3),
                         borderRadius: BorderRadius.circular(24),
-                        border: Border.all(color: Colors.white.withOpacity(0.1)),
+                        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.2),
+                            color: Colors.black.withValues(alpha: 0.2),
                             blurRadius: 10,
                           ),
                         ],
@@ -824,11 +824,11 @@ class _ScannerScreenState extends State<ScannerScreen> with TickerProviderStateM
                                           width: 8,
                                           height: 8,
                                           decoration: BoxDecoration(
-                                            color: const Color(0xFF6CFB7B).withOpacity(0.4 + (0.6 * _shutterPulseController.value)),
+                                            color: const Color(0xFF6CFB7B).withValues(alpha: 0.4 + (0.6 * _shutterPulseController.value)),
                                             shape: BoxShape.circle,
                                             boxShadow: [
                                               BoxShadow(
-                                                color: const Color(0xFF6CFB7B).withOpacity(0.5 * _shutterPulseController.value),
+                                                color: const Color(0xFF6CFB7B).withValues(alpha: 0.5 * _shutterPulseController.value),
                                                 blurRadius: 8,
                                                 spreadRadius: 2,
                                               )
@@ -841,7 +841,7 @@ class _ScannerScreenState extends State<ScannerScreen> with TickerProviderStateM
                                     Text(
                                       'SYSTEM READY',
                                       style: GoogleFonts.rajdhani(
-                                        color: Colors.white.withOpacity(0.7),
+                                        color: Colors.white.withValues(alpha: 0.7),
                                         fontSize: 12,
                                         fontWeight: FontWeight.w700,
                                         letterSpacing: 2.0,
@@ -876,19 +876,19 @@ class _ScannerScreenState extends State<ScannerScreen> with TickerProviderStateM
                         top: -20,
                         left: 0,
                         child: Text('AF-C / LEAF', 
-                          style: GoogleFonts.rajdhani(color: const Color(0xFF6CFB7B).withOpacity(0.5), fontSize: 10, fontWeight: FontWeight.bold)),
+                          style: GoogleFonts.rajdhani(color: const Color(0xFF6CFB7B).withValues(alpha: 0.5), fontSize: 10, fontWeight: FontWeight.bold)),
                       ),
                       Positioned(
                         top: -20,
                         right: 0,
                         child: Text('ISO AUTO', 
-                          style: GoogleFonts.rajdhani(color: const Color(0xFF6CFB7B).withOpacity(0.5), fontSize: 10, fontWeight: FontWeight.bold)),
+                          style: GoogleFonts.rajdhani(color: const Color(0xFF6CFB7B).withValues(alpha: 0.5), fontSize: 10, fontWeight: FontWeight.bold)),
                       ),
                       Positioned(
                         bottom: -20,
                         left: 0,
                         child: Text('RICE_MODEL_V2.4', 
-                          style: GoogleFonts.rajdhani(color: const Color(0xFF6CFB7B).withOpacity(0.5), fontSize: 10, fontWeight: FontWeight.bold)),
+                          style: GoogleFonts.rajdhani(color: const Color(0xFF6CFB7B).withValues(alpha: 0.5), fontSize: 10, fontWeight: FontWeight.bold)),
                       ),
                       
                       AnimatedBuilder(
@@ -916,7 +916,7 @@ class _ScannerScreenState extends State<ScannerScreen> with TickerProviderStateM
             animation: _flashAnimation,
             builder: (context, child) {
               return Container(
-                color: Colors.white.withOpacity(disableAnimations ? 0.0 : _flashAnimation.value),
+                color: Colors.white.withValues(alpha: disableAnimations ? 0.0 : _flashAnimation.value),
               );
             },
           ),
@@ -990,12 +990,12 @@ class _ScannerScreenState extends State<ScannerScreen> with TickerProviderStateM
             filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
             child: Container(
               decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.5),
+                color: Colors.black.withValues(alpha: 0.5),
                 borderRadius: BorderRadius.circular(45),
-                border: Border.all(color: Colors.white.withOpacity(0.1)),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.2),
+                    color: Colors.black.withValues(alpha: 0.2),
                     blurRadius: 20,
                     spreadRadius: 5,
                   ),
@@ -1019,7 +1019,7 @@ class _ScannerScreenState extends State<ScannerScreen> with TickerProviderStateM
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             border: Border.all(
-                              color: const Color(0xFF6CFB7B).withOpacity(0.3 * (1 - _shutterPulseController.value)),
+                              color: const Color(0xFF6CFB7B).withValues(alpha: 0.3 * (1 - _shutterPulseController.value)),
                               width: 3 * _shutterPulseController.value,
                             ),
                           ),
@@ -1036,7 +1036,7 @@ class _ScannerScreenState extends State<ScannerScreen> with TickerProviderStateM
                               shape: BoxShape.circle,
                               boxShadow: [
                                 BoxShadow(
-                                  color: const Color(0xFF6CFB7B).withOpacity(0.4),
+                                  color: const Color(0xFF6CFB7B).withValues(alpha: 0.4),
                                   blurRadius: 15,
                                   spreadRadius: 2,
                                 )
@@ -1064,7 +1064,7 @@ class _ScannerScreenState extends State<ScannerScreen> with TickerProviderStateM
 
   Widget _buildNavIcon(IconData icon, VoidCallback onTap) {
     return IconButton(
-      icon: Icon(icon, color: Colors.white.withOpacity(0.8), size: 28),
+      icon: Icon(icon, color: Colors.white.withValues(alpha: 0.8), size: 28),
       onPressed: onTap,
     );
   }
@@ -1115,11 +1115,11 @@ class _ScannerFramePainter extends CustomPainter {
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
         colors: [
-          color.withOpacity(0.0),
-          color.withOpacity(0.4),
+          color.withValues(alpha: 0.0),
+          color.withValues(alpha: 0.4),
           color,
-          color.withOpacity(0.4),
-          color.withOpacity(0.0),
+          color.withValues(alpha: 0.4),
+          color.withValues(alpha: 0.0),
         ],
         stops: const [0.0, 0.4, 0.5, 0.6, 1.0],
       ).createShader(Rect.fromLTWH(0, y - 25, size.width, 50));
@@ -1128,13 +1128,13 @@ class _ScannerFramePainter extends CustomPainter {
 
     // Sharp center line
     final linePaint = Paint()
-      ..color = Colors.white.withOpacity(0.8)
+      ..color = Colors.white.withValues(alpha: 0.8)
       ..strokeWidth = 1.5;
     canvas.drawLine(Offset(0, y), Offset(size.width, y), linePaint);
 
     // Glowing Corners Effect
     final glowPaint = Paint()
-      ..color = color.withOpacity(0.3)
+      ..color = color.withValues(alpha: 0.3)
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8);
     
     // (We reuse corner logic for glow)

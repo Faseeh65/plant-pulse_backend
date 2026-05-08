@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/disease_result.dart';
 import '../models/crop_summary.dart';
 
@@ -92,7 +91,7 @@ class ApiService {
           ).timeout(const Duration(seconds: 30));
           break;
         } catch (e) {
-          if (i == 1) throw e;
+          if (i == 1) rethrow;
           await Future.delayed(const Duration(seconds: 1));
         }
       }

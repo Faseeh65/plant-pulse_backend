@@ -104,7 +104,9 @@ class _PlantIdentifyScreenState extends State<PlantIdentifyScreen>
   void _captureAndIdentify() async {
     if (_controller == null ||
         !_controller!.value.isInitialized ||
-        _isProcessing) return;
+        _isProcessing) {
+      return;
+    }
 
     setState(() {
       _isProcessing = true;
@@ -245,8 +247,8 @@ class _PlantIdentifyScreenState extends State<PlantIdentifyScreen>
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    Colors.black.withOpacity(0.7),
-                    Colors.black.withOpacity(0.0),
+                    Colors.black.withValues(alpha: 0.7),
+                    Colors.black.withValues(alpha: 0.0),
                   ],
                 ),
               ),
@@ -327,7 +329,7 @@ class _PlantIdentifyScreenState extends State<PlantIdentifyScreen>
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(24),
                 border: Border.all(
-                    color: const Color(0xFF81C784).withOpacity(0.5), width: 2),
+                    color: const Color(0xFF81C784).withValues(alpha: 0.5), width: 2),
               ),
               child: Stack(
                 children: [
@@ -346,7 +348,7 @@ class _PlantIdentifyScreenState extends State<PlantIdentifyScreen>
                             boxShadow: [
                               BoxShadow(
                                 color:
-                                    const Color(0xFF81C784).withOpacity(0.8),
+                                    const Color(0xFF81C784).withValues(alpha: 0.8),
                                 blurRadius: 10,
                                 spreadRadius: 2,
                               )
@@ -364,7 +366,7 @@ class _PlantIdentifyScreenState extends State<PlantIdentifyScreen>
           // Loading overlay
           if (_isProcessing)
             Container(
-              color: Colors.black.withOpacity(0.7),
+              color: Colors.black.withValues(alpha: 0.7),
               child: Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -411,12 +413,12 @@ class _PlantIdentifyScreenState extends State<PlantIdentifyScreen>
                     filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
                     child: Container(
                       decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.5),
+                        color: Colors.black.withValues(alpha: 0.5),
                         borderRadius: BorderRadius.circular(45),
-                        border: Border.all(color: Colors.white.withOpacity(0.1)),
+                        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.2),
+                            color: Colors.black.withValues(alpha: 0.2),
                             blurRadius: 20,
                             spreadRadius: 5,
                           ),
@@ -432,7 +434,7 @@ class _PlantIdentifyScreenState extends State<PlantIdentifyScreen>
                               width: 50,
                               height: 50,
                               decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.1),
+                                color: Colors.white.withValues(alpha: 0.1),
                                 shape: BoxShape.circle,
                               ),
                               child: const Icon(Icons.collections_rounded,
@@ -474,7 +476,7 @@ class _PlantIdentifyScreenState extends State<PlantIdentifyScreen>
                                       boxShadow: [
                                         BoxShadow(
                                           color: const Color(0xFF81C784)
-                                              .withOpacity(0.3),
+                                              .withValues(alpha: 0.3),
                                           blurRadius: 15,
                                           spreadRadius: 2,
                                         ),
@@ -544,7 +546,7 @@ class _PlantIdentifyScreenState extends State<PlantIdentifyScreen>
                           (isDark
                                   ? const Color(0xFF0A0E0A)
                                   : const Color(0xFFF5F5F5))
-                              .withOpacity(0.9),
+                              .withValues(alpha: 0.9),
                         ],
                       ),
                     ),
@@ -565,10 +567,10 @@ class _PlantIdentifyScreenState extends State<PlantIdentifyScreen>
                     padding:
                         const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF81C784).withOpacity(0.15),
+                      color: const Color(0xFF81C784).withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
-                          color: const Color(0xFF81C784).withOpacity(0.4)),
+                          color: const Color(0xFF81C784).withValues(alpha: 0.4)),
                     ),
                     child: Text(
                       '${(confidence * 100).toStringAsFixed(1)}% Confidence',
@@ -610,8 +612,8 @@ class _PlantIdentifyScreenState extends State<PlantIdentifyScreen>
                         horizontal: 12, vertical: 5),
                     decoration: BoxDecoration(
                       color: isDark
-                          ? Colors.white.withOpacity(0.08)
-                          : Colors.black.withOpacity(0.05),
+                          ? Colors.white.withValues(alpha: 0.08)
+                          : Colors.black.withValues(alpha: 0.05),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
@@ -659,7 +661,7 @@ class _PlantIdentifyScreenState extends State<PlantIdentifyScreen>
                           borderRadius: BorderRadius.circular(18),
                         ),
                         elevation: 4,
-                        shadowColor: const Color(0xFF81C784).withOpacity(0.4),
+                        shadowColor: const Color(0xFF81C784).withValues(alpha: 0.4),
                       ),
                       icon: const Icon(Icons.camera_alt_rounded, size: 22),
                       label: Text(
@@ -692,17 +694,17 @@ class _PlantIdentifyScreenState extends State<PlantIdentifyScreen>
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: isDark
-            ? Colors.white.withOpacity(0.05)
+            ? Colors.white.withValues(alpha: 0.05)
             : Colors.white,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: isDark ? Colors.white12 : Colors.black.withOpacity(0.06),
+          color: isDark ? Colors.white12 : Colors.black.withValues(alpha: 0.06),
         ),
         boxShadow: isDark
             ? []
             : [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.04),
+                  color: Colors.black.withValues(alpha: 0.04),
                   blurRadius: 15,
                   offset: const Offset(0, 5),
                 )
@@ -716,7 +718,7 @@ class _PlantIdentifyScreenState extends State<PlantIdentifyScreen>
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: accentColor.withOpacity(0.12),
+                  color: accentColor.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(icon, color: accentColor, size: 20),
@@ -776,7 +778,7 @@ class _PlantIdentifyScreenState extends State<PlantIdentifyScreen>
               Container(
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  color: Colors.redAccent.withOpacity(0.1),
+                  color: Colors.redAccent.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(Icons.search_off_rounded,
@@ -869,7 +871,7 @@ class _PlantIdentifyScreenState extends State<PlantIdentifyScreen>
                     .textTheme
                     .bodyMedium
                     ?.color
-                    ?.withOpacity(0.8),
+                    ?.withValues(alpha: 0.8),
                 fontSize: 13,
                 height: 1.4,
               ),
@@ -885,9 +887,9 @@ class _PlantIdentifyScreenState extends State<PlantIdentifyScreen>
         width: 44,
         height: 44,
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.15),
+          color: Colors.white.withValues(alpha: 0.15),
           shape: BoxShape.circle,
-          border: Border.all(color: Colors.white.withOpacity(0.2)),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
         ),
         child: const Icon(Icons.arrow_back_rounded,
             color: Colors.white, size: 22),
@@ -904,8 +906,8 @@ class _PlantIdentifyScreenState extends State<PlantIdentifyScreen>
         margin: const EdgeInsets.only(left: 8),
         decoration: BoxDecoration(
           color: isDark
-              ? Colors.black.withOpacity(0.5)
-              : Colors.white.withOpacity(0.8),
+              ? Colors.black.withValues(alpha: 0.5)
+              : Colors.white.withValues(alpha: 0.8),
           shape: BoxShape.circle,
         ),
         child: Icon(

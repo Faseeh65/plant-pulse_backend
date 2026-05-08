@@ -1,4 +1,5 @@
 /// Two-layered defense against false positives from the FastAPI /predict endpoint.
+library;
 
 // ─── Custom Exception ─────────────────────────────────────────────────────────
 

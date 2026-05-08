@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/database_service.dart';
 import 'results_screen.dart';
 import '../models/disease_result.dart';
@@ -59,11 +58,11 @@ class _HistoryScreenState extends State<HistoryScreen> with TickerProviderStateM
       builder: (context) => BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
         child: AlertDialog(
-          backgroundColor: Theme.of(context).cardColor.withOpacity(0.9),
+          backgroundColor: Theme.of(context).cardColor.withValues(alpha: 0.9),
           elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(28),
-            side: BorderSide(color: Colors.redAccent.withOpacity(0.2)),
+            side: BorderSide(color: Colors.redAccent.withValues(alpha: 0.2)),
           ),
           title: Row(
             children: [
@@ -153,12 +152,12 @@ class _HistoryScreenState extends State<HistoryScreen> with TickerProviderStateM
           Positioned(
             top: -100,
             right: -50,
-            child: _buildBlob(primaryColor.withOpacity(0.05), 300),
+            child: _buildBlob(primaryColor.withValues(alpha: 0.05), 300),
           ),
           Positioned(
             bottom: 100,
             left: -80,
-            child: _buildBlob(primaryColor.withOpacity(0.03), 250),
+            child: _buildBlob(primaryColor.withValues(alpha: 0.03), 250),
           ),
           
           RefreshIndicator(
@@ -210,7 +209,7 @@ class _HistoryScreenState extends State<HistoryScreen> with TickerProviderStateM
         shape: BoxShape.circle,
         boxShadow: [
           BoxShadow(
-            color: color.withOpacity(0.1),
+            color: color.withValues(alpha: 0.1),
             blurRadius: 100,
             spreadRadius: 50,
           )
@@ -224,7 +223,7 @@ class _HistoryScreenState extends State<HistoryScreen> with TickerProviderStateM
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.error_outline_rounded, size: 60, color: Colors.redAccent.withOpacity(0.5)),
+          Icon(Icons.error_outline_rounded, size: 60, color: Colors.redAccent.withValues(alpha: 0.5)),
           const SizedBox(height: 16),
           Text('Unable to load history', style: GoogleFonts.poppins(fontWeight: FontWeight.w600, color: Colors.grey)),
         ],
@@ -279,7 +278,7 @@ class _HistoryScreenState extends State<HistoryScreen> with TickerProviderStateM
             padding: const EdgeInsets.only(right: 30),
             alignment: Alignment.centerRight,
             decoration: BoxDecoration(
-              color: Colors.redAccent.withOpacity(0.8),
+              color: Colors.redAccent.withValues(alpha: 0.8),
               borderRadius: BorderRadius.circular(30),
             ),
             child: const Icon(Icons.delete_forever_rounded, color: Colors.white, size: 32),
@@ -333,12 +332,12 @@ class _HistoryScreenState extends State<HistoryScreen> with TickerProviderStateM
       child: Container(
         margin: const EdgeInsets.only(bottom: 20),
         decoration: BoxDecoration(
-          color: Theme.of(context).cardColor.withOpacity(0.7),
+          color: Theme.of(context).cardColor.withValues(alpha: 0.7),
           borderRadius: BorderRadius.circular(30),
-          border: Border.all(color: Colors.white.withOpacity(0.15)),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.08),
+              color: Colors.black.withValues(alpha: 0.08),
               blurRadius: 20,
               offset: const Offset(0, 10),
             )
@@ -359,7 +358,7 @@ class _HistoryScreenState extends State<HistoryScreen> with TickerProviderStateM
                       width: 85,
                       height: 85,
                       decoration: BoxDecoration(
-                        color: primaryColor.withOpacity(0.1),
+                        color: primaryColor.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(22),
                         image: scan['image_path'] != null && scan['image_path'].isNotEmpty
                             ? DecorationImage(
@@ -384,7 +383,7 @@ class _HistoryScreenState extends State<HistoryScreen> with TickerProviderStateM
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                               decoration: BoxDecoration(
-                                color: primaryColor.withOpacity(0.1),
+                                color: primaryColor.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(10),
                               ),
                               child: Text(
@@ -401,7 +400,7 @@ class _HistoryScreenState extends State<HistoryScreen> with TickerProviderStateM
                             Text(
                               date.split('  ').first, // Only show date
                               style: GoogleFonts.inter(
-                                color: Theme.of(context).textTheme.bodyLarge?.color?.withOpacity(0.4), 
+                                color: Theme.of(context).textTheme.bodyLarge?.color?.withValues(alpha: 0.4), 
                                 fontSize: 10,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -429,8 +428,8 @@ class _HistoryScreenState extends State<HistoryScreen> with TickerProviderStateM
                                 borderRadius: BorderRadius.circular(4),
                                 child: LinearProgressIndicator(
                                   value: confidence,
-                                  backgroundColor: primaryColor.withOpacity(0.05),
-                                  valueColor: AlwaysStoppedAnimation<Color>(primaryColor.withOpacity(0.8)),
+                                  backgroundColor: primaryColor.withValues(alpha: 0.05),
+                                  valueColor: AlwaysStoppedAnimation<Color>(primaryColor.withValues(alpha: 0.8)),
                                   minHeight: 6,
                                 ),
                               ),
@@ -480,13 +479,13 @@ class _HistoryScreenState extends State<HistoryScreen> with TickerProviderStateM
                     height: 180,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      border: Border.all(color: primaryColor.withOpacity(0.1), width: 2),
+                      border: Border.all(color: primaryColor.withValues(alpha: 0.1), width: 2),
                     ),
                     padding: EdgeInsets.all(20 * (1 - _floatingController.value)),
                     child: Container(
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        border: Border.all(color: primaryColor.withOpacity(0.05), width: 1),
+                        border: Border.all(color: primaryColor.withValues(alpha: 0.05), width: 1),
                       ),
                     ),
                   );
@@ -503,11 +502,11 @@ class _HistoryScreenState extends State<HistoryScreen> with TickerProviderStateM
                       width: 100,
                       height: 100,
                       decoration: BoxDecoration(
-                        color: primaryColor.withOpacity(0.1),
+                        color: primaryColor.withValues(alpha: 0.1),
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
-                            color: primaryColor.withOpacity(0.2),
+                            color: primaryColor.withValues(alpha: 0.2),
                             blurRadius: 30,
                             spreadRadius: 5,
                           )
@@ -535,7 +534,7 @@ class _HistoryScreenState extends State<HistoryScreen> with TickerProviderStateM
             'Your field analysis history is empty. Start your first scan to monitor your crop health.', 
             textAlign: TextAlign.center, 
             style: GoogleFonts.inter(
-              color: Theme.of(context).textTheme.bodyLarge?.color?.withOpacity(0.5), 
+              color: Theme.of(context).textTheme.bodyLarge?.color?.withValues(alpha: 0.5), 
               fontSize: 14, 
               height: 1.5,
               fontWeight: FontWeight.w500,
@@ -551,7 +550,7 @@ class _HistoryScreenState extends State<HistoryScreen> with TickerProviderStateM
               padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
               elevation: 8,
-              shadowColor: primaryColor.withOpacity(0.4),
+              shadowColor: primaryColor.withValues(alpha: 0.4),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,

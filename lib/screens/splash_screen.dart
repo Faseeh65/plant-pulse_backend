@@ -144,7 +144,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                 return CustomPaint(
                   painter: _ParticlesPainter(
                     progress: _floatingController.value,
-                    color: isDark ? const Color(0xFF6CFB7B).withOpacity(0.05) : const Color(0xFF245C34).withOpacity(0.05),
+                    color: isDark ? const Color(0xFF6CFB7B).withValues(alpha: 0.05) : const Color(0xFF245C34).withValues(alpha: 0.05),
                   ),
                 );
               },
@@ -199,7 +199,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                       letterSpacing: -0.5,
                       shadows: [
                         Shadow(
-                          color: Colors.black.withOpacity(0.1),
+                          color: Colors.black.withValues(alpha: 0.1),
                           blurRadius: 10,
                           offset: const Offset(0, 4),
                         ),

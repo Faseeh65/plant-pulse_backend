@@ -3,7 +3,6 @@ import 'package:latlong2/latlong.dart' as ll;
 import 'package:geolocator/geolocator.dart';
 import '../services/database_service.dart';
 import '../models/map_marker_data.dart';
-import 'dart:math';
 
 enum MapLayerType { street, satellite, heatmap }
 

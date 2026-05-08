@@ -163,7 +163,7 @@ class _TreatmentDetailScreenState extends State<TreatmentDetailScreen> with Tick
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -211,14 +211,14 @@ class _TreatmentDetailScreenState extends State<TreatmentDetailScreen> with Tick
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.amber.withOpacity(0.1),
+          color: Colors.amber.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(15),
-          border: Border.all(color: Colors.amber.withOpacity(0.3)),
+          border: Border.all(color: Colors.amber.withValues(alpha: 0.3)),
         ),
         child: const Row(
           children: [
             Icon(Icons.warning_amber_rounded, color: Colors.orange),
-            const SizedBox(width: 12),
+            SizedBox(width: 12),
             Expanded(
               child: Text(
                 'Caution: Follow the recommended dosage strictly.',
@@ -235,7 +235,7 @@ class _TreatmentDetailScreenState extends State<TreatmentDetailScreen> with Tick
     return Container(
       height: 45,
       decoration: BoxDecoration(
-        color: Colors.grey.withOpacity(0.1),
+        color: Colors.grey.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
       ),
       child: TabBar(
@@ -310,7 +310,7 @@ class _TreatmentDetailScreenState extends State<TreatmentDetailScreen> with Tick
         children: [
           Container(
             padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(color: Colors.blue.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
+            decoration: BoxDecoration(color: Colors.blue.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
             child: const Icon(Icons.inventory_2, color: Colors.blue),
           ),
           const SizedBox(width: 15),
@@ -469,7 +469,7 @@ class _ShimmerBoxState extends State<_ShimmerBox> with SingleTickerProviderState
           margin: widget.margin,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(15),
-            color: Colors.grey.shade300.withOpacity(0.3 + (_animation.value.abs() % 0.4)),
+            color: Colors.grey.shade300.withValues(alpha: 0.3 + (_animation.value.abs() % 0.4)),
           ),
         );
       },

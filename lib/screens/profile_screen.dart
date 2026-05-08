@@ -27,8 +27,8 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
   Color get _bg    => Theme.of(context).scaffoldBackgroundColor;
   Color get _card  => Theme.of(context).cardColor;
   Color get _textPrimary => Theme.of(context).colorScheme.onSurface;
-  Color get _textMuted   => Theme.of(context).colorScheme.onSurface.withOpacity(0.7);
-  Color get _textHint    => Theme.of(context).colorScheme.onSurface.withOpacity(0.5);
+  Color get _textMuted   => Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7);
+  Color get _textHint    => Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5);
   bool  get _isDark      => Theme.of(context).brightness == Brightness.dark;
 
   // ── controllers ─────────────────────────────────────────────────────
@@ -164,7 +164,7 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
         backgroundColor: _card,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(24),
-          side: BorderSide(color: _textPrimary.withOpacity(0.1)),
+          side: BorderSide(color: _textPrimary.withValues(alpha: 0.1)),
         ),
         title: Text('Log Out', style: GoogleFonts.poppins(color: _textPrimary, fontWeight: FontWeight.w900)),
         content: Text(
@@ -240,7 +240,7 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
                             child: Text(
                               'PlantPulse v1.0.0-PRO',
                               style: GoogleFonts.poppins(
-                                color: _textPrimary.withOpacity(0.1),
+                                color: _textPrimary.withValues(alpha: 0.1),
                                 fontSize: 11,
                                 fontWeight: FontWeight.bold,
                                 letterSpacing: 1.2,
@@ -279,9 +279,9 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
                 height: 40,
                 width: 40,
                 decoration: BoxDecoration(
-                  color: _textPrimary.withOpacity(0.05),
+                  color: _textPrimary.withValues(alpha: 0.05),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: _textPrimary.withOpacity(0.1)),
+                  border: Border.all(color: _textPrimary.withValues(alpha: 0.1)),
                 ),
                 child: IconButton(
                   icon: Icon(Icons.arrow_back_ios_new, color: _textPrimary, size: 16),
@@ -304,7 +304,7 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
-                    _isDark ? Color(0xFF1B2B1B) : _green.withOpacity(0.1),
+                    _isDark ? Color(0xFF1B2B1B) : _green.withValues(alpha: 0.1),
                     _bg,
                   ],
                 ),
@@ -319,7 +319,7 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
                 height: 200,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: _green.withOpacity(0.03),
+                  color: _green.withValues(alpha: 0.03),
                 ),
               ),
             ),
@@ -362,9 +362,9 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
             padding: const EdgeInsets.all(4),
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              border: Border.all(color: _green.withOpacity(0.3), width: 1.5),
+              border: Border.all(color: _green.withValues(alpha: 0.3), width: 1.5),
               boxShadow: [
-                BoxShadow(color: _green.withOpacity(0.1), blurRadius: 30, spreadRadius: 5),
+                BoxShadow(color: _green.withValues(alpha: 0.1), blurRadius: 30, spreadRadius: 5),
               ],
             ),
             child: CircleAvatar(
@@ -401,7 +401,7 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
       decoration: BoxDecoration(
         color: _card,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: _textPrimary.withOpacity(0.05)),
+        border: Border.all(color: _textPrimary.withValues(alpha: 0.05)),
       ),
       child: Column(
         children: [
@@ -443,10 +443,16 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
       decoration: BoxDecoration(
         color: _card,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: _textPrimary.withOpacity(0.05)),
+        border: Border.all(color: _textPrimary.withValues(alpha: 0.05)),
       ),
       child: Column(
         children: [
+          _settingsTile(
+            icon: Icons.language_rounded,
+            label: 'Application Language',
+            trailing: _languageToggle(context.watch<LocaleProvider>()),
+          ),
+          _divider(),
           _settingsTile(
             icon: Icons.auto_awesome_rounded,
             label: 'Visual Theme',
@@ -463,14 +469,14 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
               child: Container(
                 decoration: BoxDecoration(
-                  color: _textPrimary.withOpacity(0.03),
+                  color: _textPrimary.withValues(alpha: 0.03),
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: _textPrimary.withOpacity(0.1)),
+                  border: Border.all(color: _textPrimary.withValues(alpha: 0.1)),
                 ),
                 child: Column(
                   children: [
                     _notifOption('Instant Alerts', Icons.flash_on_rounded, true),
-                    Divider(height: 1, color: _textPrimary.withOpacity(0.1)),
+                    Divider(height: 1, color: _textPrimary.withValues(alpha: 0.1)),
                     _notifOption('Silent Mode', Icons.notifications_paused_rounded, false),
                   ],
                 ),
@@ -525,7 +531,7 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
         ),
       );
 
-  Widget _divider() => Divider(height: 1, color: _textPrimary.withOpacity(0.05), indent: 78, endIndent: 20);
+  Widget _divider() => Divider(height: 1, color: _textPrimary.withValues(alpha: 0.05), indent: 78, endIndent: 20);
 
   Widget _buildField({
     required TextEditingController controller,
@@ -544,9 +550,9 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
             width: 42,
             height: 42,
             decoration: BoxDecoration(
-              color: _green.withOpacity(0.08),
+              color: _green.withValues(alpha: 0.08),
               shape: BoxShape.circle,
-              border: Border.all(color: _green.withOpacity(0.1), width: 1),
+              border: Border.all(color: _green.withValues(alpha: 0.1), width: 1),
             ),
             child: Icon(icon, color: _green, size: 18),
           ),
@@ -561,9 +567,9 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
                 isDense: true,
                 filled: false,
                 labelText: label,
-                labelStyle: GoogleFonts.poppins(color: _green.withOpacity(0.6), fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 0.8),
+                labelStyle: GoogleFonts.poppins(color: _green.withValues(alpha: 0.6), fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 0.8),
                 hintText: hint,
-                hintStyle: GoogleFonts.poppins(color: _textPrimary.withOpacity(0.15), fontSize: 13),
+                hintStyle: GoogleFonts.poppins(color: _textPrimary.withValues(alpha: 0.15), fontSize: 13),
                 border: InputBorder.none,
                 enabledBorder: InputBorder.none,
                 focusedBorder: InputBorder.none,
@@ -586,10 +592,10 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
             width: 42,
             height: 42,
             decoration: BoxDecoration(
-              color: _textPrimary.withOpacity(0.04),
+              color: _textPrimary.withValues(alpha: 0.04),
               shape: BoxShape.circle,
             ),
-            child: Icon(icon, color: _textPrimary.withOpacity(0.3), size: 18),
+            child: Icon(icon, color: _textPrimary.withValues(alpha: 0.3), size: 18),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -603,7 +609,7 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
               ],
             ),
           ),
-          Icon(Icons.verified_user_rounded, color: _green.withOpacity(0.2), size: 16),
+          Icon(Icons.verified_user_rounded, color: _green.withValues(alpha: 0.2), size: 16),
         ],
       ),
     );
@@ -614,7 +620,7 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
       child: Row(
         children: [
-          Icon(icon, color: _textPrimary.withOpacity(0.6), size: 22),
+          Icon(icon, color: _textPrimary.withValues(alpha: 0.6), size: 22),
           const SizedBox(width: 16),
           Expanded(child: Text(label, style: GoogleFonts.poppins(color: _textPrimary, fontSize: 14, fontWeight: FontWeight.w600))),
           trailing,
@@ -630,9 +636,9 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
         duration: const Duration(milliseconds: 300),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: _notifAllow ? _green.withOpacity(0.1) : _textPrimary.withOpacity(0.05),
+          color: _notifAllow ? _green.withValues(alpha: 0.1) : _textPrimary.withValues(alpha: 0.05),
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: _notifAllow ? _green.withOpacity(0.3) : _textPrimary.withOpacity(0.1)),
+          border: Border.all(color: _notifAllow ? _green.withValues(alpha: 0.3) : _textPrimary.withValues(alpha: 0.1)),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -675,7 +681,7 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
       onTap: () => tp.toggleTheme(),
       child: Container(
         padding: const EdgeInsets.all(4),
-        decoration: BoxDecoration(color: _textPrimary.withOpacity(0.05), borderRadius: BorderRadius.circular(14)),
+        decoration: BoxDecoration(color: _textPrimary.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(14)),
         child: Row(
           children: [
             _toggleChip(Icons.light_mode_rounded, !isDark),
@@ -690,6 +696,30 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
         duration: const Duration(milliseconds: 300),
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(color: active ? _green : Colors.transparent, borderRadius: BorderRadius.circular(10)),
-        child: Icon(icon, size: 16, color: active ? (_isDark ? Colors.black : Colors.white) : _textPrimary.withOpacity(0.2)),
+        child: Icon(icon, size: 16, color: active ? (_isDark ? Colors.black : Colors.white) : _textPrimary.withValues(alpha: 0.2)),
+      );
+
+  Widget _languageToggle(LocaleProvider lp) {
+    bool isUrdu = lp.locale.languageCode == 'ur';
+    return GestureDetector(
+      onTap: () => lp.setLocale(isUrdu ? const Locale('en') : const Locale('ur')),
+      child: Container(
+        padding: const EdgeInsets.all(4),
+        decoration: BoxDecoration(color: _textPrimary.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(14)),
+        child: Row(
+          children: [
+            _textToggleChip('EN', !isUrdu),
+            _textToggleChip('UR', isUrdu),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _textToggleChip(String text, bool active) => AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(color: active ? _green : Colors.transparent, borderRadius: BorderRadius.circular(10)),
+        child: Text(text, style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w800, color: active ? (_isDark ? Colors.black : Colors.white) : _textPrimary.withValues(alpha: 0.4))),
       );
 }

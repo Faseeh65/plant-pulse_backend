@@ -5,7 +5,6 @@ import '../services/database_service.dart';
 import '../utils/string_extensions.dart';
 import '../models/crop_summary.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'dart:ui';
 
 // ─── theme tokens ─────────────────────────────────────────────────────────────
 // These now serve as default fallback/accent colors
@@ -63,7 +62,7 @@ class _StatsScreenState extends State<StatsScreen> {
         leading: IconButton(
           icon: Icon(
             Icons.arrow_back_ios_new,
-            color: Theme.of(context).textTheme.bodyLarge?.color?.withOpacity(0.7),
+            color: Theme.of(context).textTheme.bodyLarge?.color?.withValues(alpha: 0.7),
             size: 20,
           ),
           onPressed: () => Navigator.pop(context),
@@ -280,7 +279,7 @@ class _StatsScreenState extends State<StatsScreen> {
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Theme.of(context).dividerColor.withOpacity(0.05)),
+        border: Border.all(color: Theme.of(context).dividerColor.withValues(alpha: 0.05)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -290,11 +289,11 @@ class _StatsScreenState extends State<StatsScreen> {
               Container(width: 10, height: 10, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
               const SizedBox(width: 10),
               Expanded(child: Text(d.disease.toDisplayDisease(), style: const TextStyle(fontWeight: FontWeight.w900))),
-              Text('${d.count} scans', style: TextStyle(color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.5))),
+              Text('${d.count} scans', style: TextStyle(color: Theme.of(context).textTheme.bodySmall?.color?.withValues(alpha: 0.5))),
             ],
           ),
           const SizedBox(height: 12),
-          LinearProgressIndicator(value: d.count / total, valueColor: AlwaysStoppedAnimation<Color>(color), minHeight: 6, backgroundColor: Colors.grey.withOpacity(0.1)),
+          LinearProgressIndicator(value: d.count / total, valueColor: AlwaysStoppedAnimation<Color>(color), minHeight: 6, backgroundColor: Colors.grey.withValues(alpha: 0.1)),
         ],
       ),
     );
@@ -306,10 +305,10 @@ class _StatsScreenState extends State<StatsScreen> {
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: color.withOpacity(0.2), width: 1.5),
+        border: Border.all(color: color.withValues(alpha: 0.2), width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: color.withOpacity(0.05),
+            color: color.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           )
@@ -331,7 +330,7 @@ class _StatsScreenState extends State<StatsScreen> {
             label,
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black).withOpacity(0.4),
+              color: (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black).withValues(alpha: 0.4),
               fontSize: 10,
               fontWeight: FontWeight.w600,
               letterSpacing: 0.5,
@@ -348,7 +347,7 @@ class _StatsScreenState extends State<StatsScreen> {
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(32),
-        border: Border.all(color: Theme.of(context).dividerColor.withOpacity(0.05)),
+        border: Border.all(color: Theme.of(context).dividerColor.withValues(alpha: 0.05)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -383,7 +382,7 @@ class _StatsScreenState extends State<StatsScreen> {
         child: Text(
           en.toUpperCase(),
           style: GoogleFonts.poppins(
-            color: _primary.withOpacity(0.8),
+            color: _primary.withValues(alpha: 0.8),
             fontWeight: FontWeight.w900,
             fontSize: 12,
             letterSpacing: 1.5,
@@ -405,7 +404,7 @@ class _StatsScreenState extends State<StatsScreen> {
               Text(
                 label,
                 style: TextStyle(
-                  color: (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black).withOpacity(0.4),
+                  color: (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black).withValues(alpha: 0.4),
                   fontSize: 12,
                 ),
               ),
@@ -432,7 +431,7 @@ class _StatsScreenState extends State<StatsScreen> {
             Icons.cloud_off_outlined,
             color: Theme.of(
               context,
-            ).textTheme.bodyLarge?.color?.withOpacity(0.15),
+            ).textTheme.bodyLarge?.color?.withValues(alpha: 0.15),
             size: 64,
           ),
           const SizedBox(height: 16),
@@ -455,7 +454,7 @@ class _StatsScreenState extends State<StatsScreen> {
               color:
                   Theme.of(
                     context,
-                  ).textTheme.bodyLarge?.color?.withOpacity(0.5) ??
+                  ).textTheme.bodyLarge?.color?.withValues(alpha: 0.5) ??
                   Colors.grey,
               fontSize: 13,
               height: 1.4,
@@ -489,7 +488,7 @@ class _StatsScreenState extends State<StatsScreen> {
         Container(
           padding: const EdgeInsets.all(28),
           decoration: BoxDecoration(
-            color: _green.withOpacity(0.07),
+            color: _green.withValues(alpha: 0.07),
             shape: BoxShape.circle,
           ),
           child: const Icon(
@@ -513,7 +512,7 @@ class _StatsScreenState extends State<StatsScreen> {
           style: TextStyle(
             color: Theme.of(
               context,
-            ).textTheme.bodyLarge?.color?.withOpacity(0.5),
+            ).textTheme.bodyLarge?.color?.withValues(alpha: 0.5),
             fontSize: 14,
           ),
         ),

@@ -72,11 +72,11 @@ class ThemeProvider extends ChangeNotifier {
       cardTheme: _cardTheme.copyWith(
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
-          side: BorderSide(color: Colors.white.withOpacity(0.14), width: 1.25),
+          side: BorderSide(color: Colors.white.withValues(alpha: 0.14), width: 1.25),
         ),
       ),
       elevatedButtonTheme: _buttonTheme,
-      dividerColor: Colors.white.withOpacity(0.14),
+      dividerColor: Colors.white.withValues(alpha: 0.14),
       textTheme: GoogleFonts.interTextTheme(base.textTheme).apply(
         bodyColor: const Color(0xFFE0E0E0),
         displayColor: const Color(0xFFE0E0E0),
@@ -113,7 +113,7 @@ class ThemeProvider extends ChangeNotifier {
         shadowColor: const Color(0x140F2416),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
-          side: BorderSide(color: lightPrimary.withOpacity(0.18), width: 1.25),
+          side: BorderSide(color: lightPrimary.withValues(alpha: 0.18), width: 1.25),
         ),
       ),
       appBarTheme: const AppBarTheme(
@@ -130,27 +130,27 @@ class ThemeProvider extends ChangeNotifier {
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: lightSurfaceRaised.withOpacity(0.82),
+        fillColor: lightSurfaceRaised.withValues(alpha: 0.82),
         hintStyle: const TextStyle(color: lightTextMuted, fontSize: 13),
         labelStyle: const TextStyle(color: lightTextMuted, fontSize: 13),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
           borderSide: BorderSide(
-            color: lightPrimary.withOpacity(0.16),
+            color: lightPrimary.withValues(alpha: 0.16),
             width: 1.2,
           ),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
           borderSide: BorderSide(
-            color: lightPrimary.withOpacity(0.16),
+            color: lightPrimary.withValues(alpha: 0.16),
             width: 1.2,
           ),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
           borderSide: BorderSide(
-            color: lightPrimary.withOpacity(0.34),
+            color: lightPrimary.withValues(alpha: 0.34),
             width: 1.6,
           ),
         ),
@@ -174,7 +174,7 @@ class ThemeProvider extends ChangeNotifier {
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           foregroundColor: lightPrimaryDeep,
-          side: BorderSide(color: lightPrimary.withOpacity(0.22), width: 1.25),
+          side: BorderSide(color: lightPrimary.withValues(alpha: 0.22), width: 1.25),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
@@ -187,7 +187,7 @@ class ThemeProvider extends ChangeNotifier {
           textStyle: const TextStyle(fontWeight: FontWeight.w700),
         ),
       ),
-      dividerColor: lightPrimaryDeep.withOpacity(0.16),
+      dividerColor: lightPrimaryDeep.withValues(alpha: 0.16),
       textTheme: GoogleFonts.interTextTheme(
         base.textTheme,
       ).apply(bodyColor: lightText, displayColor: lightText),

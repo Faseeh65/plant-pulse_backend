@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 
 extension StringFormatting on String {
   /// Cleans technical disease labels for professional UI display.

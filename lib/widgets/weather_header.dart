@@ -1,11 +1,9 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../providers/weather_provider.dart';
 import '../models/weather_data.dart';
-import '../utils/rice_health_logic.dart';
 
 class WeatherHeader extends StatefulWidget {
   const WeatherHeader({super.key});
@@ -49,7 +47,7 @@ class _WeatherHeaderState extends State<WeatherHeader> {
       margin: const EdgeInsets.all(20),
       height: 160,
       decoration: BoxDecoration(
-        color: Theme.of(context).brightness == Brightness.dark ? Colors.white.withOpacity(0.05) : const Color(0xFFE8F5E9).withOpacity(0.5),
+        color: Theme.of(context).brightness == Brightness.dark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFE8F5E9).withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(32),
       ),
       child: const Center(child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF2E5E32))),
@@ -75,7 +73,7 @@ class _WeatherHeaderState extends State<WeatherHeader> {
         ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF1B5E20).withOpacity(0.3),
+            color: const Color(0xFF1B5E20).withValues(alpha: 0.3),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -113,7 +111,7 @@ class _WeatherHeaderState extends State<WeatherHeader> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            '${weather.temp.toStringAsFixed(0)}',
+                            weather.temp.toStringAsFixed(0),
                             style: GoogleFonts.inter(
                               color: Colors.white,
                               fontSize: 48,
@@ -147,7 +145,7 @@ class _WeatherHeaderState extends State<WeatherHeader> {
                       Text(
                         dateStr,
                         style: GoogleFonts.inter(
-                          color: Colors.white.withOpacity(0.8),
+                          color: Colors.white.withValues(alpha: 0.8),
                           fontSize: 12,
                         ),
                         textAlign: TextAlign.end,
@@ -165,7 +163,7 @@ class _WeatherHeaderState extends State<WeatherHeader> {
             margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              color: const Color(0xFF154317).withOpacity(0.6), // Darker green inset
+              color: const Color(0xFF154317).withValues(alpha: 0.6), // Darker green inset
               borderRadius: BorderRadius.circular(20),
             ),
             child: Row(
@@ -234,7 +232,7 @@ class _WeatherHeaderState extends State<WeatherHeader> {
       margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Theme.of(context).brightness == Brightness.dark ? Colors.white.withOpacity(0.05) : Colors.white.withOpacity(0.9),
+        color: Theme.of(context).brightness == Brightness.dark ? Colors.white.withValues(alpha: 0.05) : Colors.white.withValues(alpha: 0.9),
         borderRadius: BorderRadius.circular(32),
         border: Border.all(color: Theme.of(context).brightness == Brightness.dark ? Colors.white12 : Colors.transparent),
       ),

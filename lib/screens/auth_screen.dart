@@ -86,8 +86,10 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
         _showSnackBar('Account created! Please check your email for verification.', Colors.green);
       }
       if (mounted && _isLogin) Navigator.pushReplacementNamed(context, '/home');
+    } on AuthException catch (e) {
+      _showSnackBar(e.message, Colors.red);
     } catch (e) {
-      _showSnackBar(e.toString(), Colors.red);
+      _showSnackBar(e.toString().replaceAll('Exception: ', ''), Colors.red);
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -172,9 +174,9 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
                   end: Alignment.bottomCenter,
                   stops: const [0.0, 0.4, 0.8, 1.0],
                   colors: [
-                    isDark ? Colors.black.withOpacity(0.5) : Colors.black.withOpacity(0.3),
-                    isDark ? Colors.black.withOpacity(0.8) : const Color(0xFF2E5E32).withOpacity(0.5),
-                    isDark ? Colors.black.withOpacity(0.95) : const Color(0xFF4A614A).withOpacity(0.9),
+                    isDark ? Colors.black.withValues(alpha: 0.5) : Colors.black.withValues(alpha: 0.3),
+                    isDark ? Colors.black.withValues(alpha: 0.8) : const Color(0xFF2E5E32).withValues(alpha: 0.5),
+                    isDark ? Colors.black.withValues(alpha: 0.95) : const Color(0xFF4A614A).withValues(alpha: 0.9),
                     isDark ? Colors.black : const Color(0xFF1B2E1B), // Deep forest green foundation
                   ],
                 ),
@@ -300,7 +302,7 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
                         text: TextSpan(
                           text: _isLogin ? "DON'T HAVE AN ACCOUNT? " : "ALREADY HAVE AN ACCOUNT? ",
                           style: GoogleFonts.orbitron(
-                            color: Colors.white.withOpacity(0.6), 
+                            color: Colors.white.withValues(alpha: 0.6), 
                             fontSize: 10,
                             letterSpacing: 1,
                           ),
@@ -332,18 +334,18 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
     return Container(
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        color: isDark ? Colors.white.withOpacity(0.1) : Colors.white.withOpacity(0.8),
+        color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.white.withValues(alpha: 0.8),
         borderRadius: BorderRadius.circular(30),
-        border: Border.all(color: isDark ? Colors.white.withOpacity(0.2) : const Color(0xFF2E5E32).withOpacity(0.1)),
+        border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.2) : const Color(0xFF2E5E32).withValues(alpha: 0.1)),
         boxShadow: [
-          BoxShadow(color: (isDark ? Colors.black : const Color(0xFF2E5E32)).withOpacity(0.1), blurRadius: 30, spreadRadius: -5),
+          BoxShadow(color: (isDark ? Colors.black : const Color(0xFF2E5E32)).withValues(alpha: 0.1), blurRadius: 30, spreadRadius: -5),
         ],
       ),
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
         child: Container(
           decoration: BoxDecoration(
-            color: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03),
+            color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.03),
             borderRadius: BorderRadius.circular(30),
           ),
           padding: const EdgeInsets.all(32.0),
@@ -372,7 +374,7 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
                   alignment: Alignment.centerRight,
                   child: TextButton(
                     onPressed: _handleForgotPassword,
-                    child: Text('Forgot Password?', style: GoogleFonts.inter(color: isDark ? Colors.white54 : const Color(0xFF2E5E32).withOpacity(0.7), fontSize: 12)),
+                    child: Text('Forgot Password?', style: GoogleFonts.inter(color: isDark ? Colors.white54 : const Color(0xFF2E5E32).withValues(alpha: 0.7), fontSize: 12)),
                   ),
                 ),
               const SizedBox(height: 24),
@@ -407,14 +409,14 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
               return AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.05),
+                  color: Colors.white.withValues(alpha: 0.05),
                   borderRadius: BorderRadius.circular(15),
                   border: Border.all(
-                    color: hasFocus ? const Color(0xFF6CFB7B) : Colors.white.withOpacity(0.1),
+                    color: hasFocus ? const Color(0xFF6CFB7B) : Colors.white.withValues(alpha: 0.1),
                     width: hasFocus ? 2 : 1,
                   ),
                   boxShadow: hasFocus 
-                    ? [BoxShadow(color: const Color(0xFF6CFB7B).withOpacity(0.2), blurRadius: 10, spreadRadius: 1)]
+                    ? [BoxShadow(color: const Color(0xFF6CFB7B).withValues(alpha: 0.2), blurRadius: 10, spreadRadius: 1)]
                     : [],
                 ),
                 child: TextField(
@@ -462,7 +464,7 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
                 borderRadius: BorderRadius.circular(15),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF00C853).withOpacity(0.3),
+                    color: const Color(0xFF00C853).withValues(alpha: 0.3),
                     blurRadius: 15,
                     offset: const Offset(0, 8),
                   ),

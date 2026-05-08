@@ -153,7 +153,7 @@ class _ReminderScreenState extends State<ReminderScreen> with TickerProviderStat
       context: context,
       barrierDismissible: true,
       barrierLabel: 'Dismiss',
-      barrierColor: Colors.black.withOpacity(0.7),
+      barrierColor: Colors.black.withValues(alpha: 0.7),
       transitionDuration: const Duration(milliseconds: 400),
       pageBuilder: (ctx, anim1, anim2) {
         return BackdropFilter(
@@ -167,12 +167,12 @@ class _ReminderScreenState extends State<ReminderScreen> with TickerProviderStat
                     margin: const EdgeInsets.symmetric(horizontal: 24),
                     padding: const EdgeInsets.all(28),
                     decoration: BoxDecoration(
-                      color: Theme.of(context).cardColor.withOpacity(0.9),
+                      color: Theme.of(context).cardColor.withValues(alpha: 0.9),
                       borderRadius: BorderRadius.circular(32),
-                      border: Border.all(color: Colors.white.withOpacity(0.1)),
+                      border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
                       boxShadow: [
                         BoxShadow(
-                          color: _primary.withOpacity(0.1),
+                          color: _primary.withValues(alpha: 0.1),
                           blurRadius: 30,
                           spreadRadius: 10,
                         )
@@ -188,7 +188,7 @@ class _ReminderScreenState extends State<ReminderScreen> with TickerProviderStat
                               Container(
                                 padding: const EdgeInsets.all(12),
                                 decoration: BoxDecoration(
-                                  color: _primary.withOpacity(0.1),
+                                  color: _primary.withValues(alpha: 0.1),
                                   shape: BoxShape.circle,
                                 ),
                                 child: Icon(Icons.add_alarm_rounded, color: _primary, size: 28),
@@ -205,7 +205,7 @@ class _ReminderScreenState extends State<ReminderScreen> with TickerProviderStat
                               Text(
                                 'Schedule your next spray action',
                                 style: TextStyle(
-                                  color: (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black).withOpacity(0.4),
+                                  color: (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black).withValues(alpha: 0.4),
                                   fontSize: 12,
                                 ),
                               ),
@@ -257,7 +257,7 @@ class _ReminderScreenState extends State<ReminderScreen> with TickerProviderStat
                           child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 18),
                             decoration: BoxDecoration(
-                              color: (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black).withOpacity(0.04),
+                              color: (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black).withValues(alpha: 0.04),
                               borderRadius: BorderRadius.circular(16),
                               border: Border.all(color: Theme.of(context).dividerColor),
                             ),
@@ -270,14 +270,14 @@ class _ReminderScreenState extends State<ReminderScreen> with TickerProviderStat
                                     picked == null ? 'When to schedule?' : _fmt(picked!),
                                     style: TextStyle(
                                       color: picked == null
-                                          ? (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black).withOpacity(0.38)
+                                          ? (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black).withValues(alpha: 0.38)
                                           : (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black),
                                       fontSize: 14,
                                       fontWeight: picked == null ? FontWeight.normal : FontWeight.bold,
                                     ),
                                   ),
                                 ),
-                                Icon(Icons.keyboard_arrow_down_rounded, color: (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black).withOpacity(0.2)),
+                                Icon(Icons.keyboard_arrow_down_rounded, color: (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black).withValues(alpha: 0.2)),
                               ],
                             ),
                           ),
@@ -353,7 +353,7 @@ class _ReminderScreenState extends State<ReminderScreen> with TickerProviderStat
 
   // ── helpers ─────────────────────────────────────────────────────────────────
   String _fmt(DateTime dt) {
-    final pad  = (int n) => n.toString().padLeft(2, '0');
+    String pad(int n) => n.toString().padLeft(2, '0');
     return '${dt.day}/${dt.month}/${dt.year}  ${pad(dt.hour)}:${pad(dt.minute)}';
   }
 
@@ -396,12 +396,12 @@ class _ReminderScreenState extends State<ReminderScreen> with TickerProviderStat
           prefixIcon: Icon(icon, color: _green, size: 18),
           hintText: label,
           hintStyle: TextStyle(
-            color: (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black).withOpacity(0.38), 
+            color: (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black).withValues(alpha: 0.38), 
             fontSize: 13,
             height: 1.3,
           ),
           filled: true,
-          fillColor: (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black).withOpacity(0.04),
+          fillColor: (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black).withValues(alpha: 0.04),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
             borderSide: BorderSide(color: Theme.of(context).dividerColor),
@@ -427,7 +427,7 @@ class _ReminderScreenState extends State<ReminderScreen> with TickerProviderStat
     required ValueChanged<dynamic> onChanged,
   }) =>
       DropdownButtonFormField<dynamic>(
-        value: value,
+        initialValue: value,
         items: items,
         onChanged: onChanged,
         style: TextStyle(
@@ -438,11 +438,11 @@ class _ReminderScreenState extends State<ReminderScreen> with TickerProviderStat
           prefixIcon: Icon(icon, color: _green, size: 18),
           labelText: label,
           labelStyle: TextStyle(
-            color: (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black).withOpacity(0.38),
+            color: (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black).withValues(alpha: 0.38),
             fontSize: 13,
           ),
           filled: true,
-          fillColor: (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black).withOpacity(0.04),
+          fillColor: (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black).withValues(alpha: 0.04),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
             borderSide: BorderSide(color: Theme.of(context).dividerColor),
@@ -554,12 +554,12 @@ class _ReminderScreenState extends State<ReminderScreen> with TickerProviderStat
             Positioned(
               top: -100 + (20 * _blobController.value),
               right: -100,
-              child: _blob(300, const Color(0xFF6CFB7B).withOpacity(isDark ? 0.05 : 0.1)),
+              child: _blob(300, const Color(0xFF6CFB7B).withValues(alpha: isDark ? 0.05 : 0.1)),
             ),
             Positioned(
               bottom: 100 - (30 * _blobController.value),
               left: -50,
-              child: _blob(250, _primary.withOpacity(isDark ? 0.03 : 0.07)),
+              child: _blob(250, _primary.withValues(alpha: isDark ? 0.03 : 0.07)),
             ),
           ],
         );
@@ -601,11 +601,11 @@ class _ReminderScreenState extends State<ReminderScreen> with TickerProviderStat
             child: Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: isDark ? Colors.white.withOpacity(0.05) : _primary.withOpacity(0.1),
+                color: isDark ? Colors.white.withValues(alpha: 0.05) : _primary.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: _primary.withOpacity(0.2),
+                    color: _primary.withValues(alpha: 0.2),
                     blurRadius: 30,
                     spreadRadius: 2,
                   )
@@ -651,7 +651,7 @@ class _ReminderScreenState extends State<ReminderScreen> with TickerProviderStat
             shape: BoxShape.circle,
             boxShadow: [
               BoxShadow(
-                color: _primary.withOpacity(0.3 * _pulseController.value),
+                color: _primary.withValues(alpha: 0.3 * _pulseController.value),
                 blurRadius: 15,
                 spreadRadius: 8 * _pulseController.value,
               )
@@ -681,10 +681,10 @@ class _ReminderScreenState extends State<ReminderScreen> with TickerProviderStat
         child: Container(
           margin: const EdgeInsets.only(bottom: 16),
           decoration: BoxDecoration(
-            color: isDark ? Colors.white.withOpacity(0.03) : Colors.white.withOpacity(0.7),
+            color: isDark ? Colors.white.withValues(alpha: 0.03) : Colors.white.withValues(alpha: 0.7),
             borderRadius: BorderRadius.circular(28),
             border: Border.all(
-              color: isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.05),
+              color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.05),
             ),
           ),
           child: Padding(
@@ -697,7 +697,7 @@ class _ReminderScreenState extends State<ReminderScreen> with TickerProviderStat
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: _primary.withOpacity(0.1),
+                        color: _primary.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(16),
                       ),
                       child: Icon(Icons.eco_rounded, color: _primary, size: 24),
@@ -729,7 +729,7 @@ class _ReminderScreenState extends State<ReminderScreen> with TickerProviderStat
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
-                        color: urgency.withOpacity(0.12),
+                        color: urgency.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
@@ -784,12 +784,12 @@ class _ReminderScreenState extends State<ReminderScreen> with TickerProviderStat
                       : ElevatedButton.icon(
                           onPressed: () => _markDone(r),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: _primary.withOpacity(0.1),
+                            backgroundColor: _primary.withValues(alpha: 0.1),
                             foregroundColor: _primary,
                             elevation: 0,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(14),
-                              side: BorderSide(color: _primary.withOpacity(0.3)),
+                              side: BorderSide(color: _primary.withValues(alpha: 0.3)),
                             ),
                           ),
                           icon: const Icon(Icons.check_circle_outline, size: 18),
@@ -827,10 +827,10 @@ class _ReminderScreenState extends State<ReminderScreen> with TickerProviderStat
                     child: Container(
                       padding: const EdgeInsets.all(40),
                       decoration: BoxDecoration(
-                        color: _primary.withOpacity(0.05),
+                        color: _primary.withValues(alpha: 0.05),
                         shape: BoxShape.circle,
                       ),
-                      child: Icon(Icons.notifications_none_rounded, color: _primary.withOpacity(0.3), size: 100),
+                      child: Icon(Icons.notifications_none_rounded, color: _primary.withValues(alpha: 0.3), size: 100),
                     ),
                   );
                 },
@@ -850,7 +850,7 @@ class _ReminderScreenState extends State<ReminderScreen> with TickerProviderStat
                 'Schedule your next treatment action\nby tapping the plus button.',
                 textAlign: TextAlign.center,
                 style: GoogleFonts.inter(
-                  color: (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black).withOpacity(0.4),
+                  color: (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black).withValues(alpha: 0.4),
                   fontSize: 14,
                   height: 1.5,
                   fontWeight: FontWeight.w500,
@@ -868,7 +868,7 @@ class _ReminderScreenState extends State<ReminderScreen> with TickerProviderStat
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(Icons.cloud_off_outlined,
-                  color: (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black).withOpacity(0.24), size: 64),
+                  color: (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black).withValues(alpha: 0.24), size: 64),
               const SizedBox(height: 16),
               Text('Could not load reminders',
                   style: TextStyle(
@@ -882,7 +882,7 @@ class _ReminderScreenState extends State<ReminderScreen> with TickerProviderStat
                     : 'Check your internet connection.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                    color: (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black).withOpacity(0.45), fontSize: 13, height: 1.4),
+                    color: (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black).withValues(alpha: 0.45), fontSize: 13, height: 1.4),
               ),
               const SizedBox(height: 24),
               ElevatedButton.icon(

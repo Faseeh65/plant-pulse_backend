@@ -37,6 +37,17 @@ Future<void> main() async {
   final bool savedIsDark = await ThemeProvider.getSavedTheme();
   final themeProvider = ThemeProvider(savedIsDark);
 
+  final String supabaseUrl = dotenv.env['SUPABASE_URL'] ?? '';
+  final String supabaseAnonKey = dotenv.env['SUPABASE_ANON_KEY'] ?? '';
+
+  if (supabaseUrl.isNotEmpty && supabaseAnonKey.isNotEmpty) {
+    try {
+      await Supabase.initialize(url: supabaseUrl, anonKey: supabaseAnonKey);
+    } catch (e) {
+      debugPrint('⚠️ Supabase Connection Failed: $e');
+    }
+  }
+
   runApp(
     MultiProvider(
       providers: [
@@ -52,16 +63,7 @@ Future<void> main() async {
   // Heavy init after first frame
   WidgetsBinding.instance.addPostFrameCallback((_) async {
     // --- Session Guard Deployment ---
-    final String supabaseUrl = dotenv.env['SUPABASE_URL'] ?? '';
-    final String supabaseAnonKey = dotenv.env['SUPABASE_ANON_KEY'] ?? '';
-
-    if (supabaseUrl.isNotEmpty && supabaseAnonKey.isNotEmpty) {
-      try {
-        await Supabase.initialize(url: supabaseUrl, anonKey: supabaseAnonKey);
-      } catch (e) {
-        debugPrint('⚠️ Supabase Connection Failed: $e');
-      }
-    }
+    // Supabase initialized earlier in main()
 
     final causalService = CausalService();
     await causalService.init();

@@ -119,7 +119,7 @@ class _QuestionnaireOverlayState extends State<QuestionnaireOverlay> with Ticker
           // Background Blur
           BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-            child: Container(color: Colors.black.withOpacity(0.7)),
+            child: Container(color: Colors.black.withValues(alpha: 0.7)),
           ),
           
           Center(
@@ -139,9 +139,9 @@ class _QuestionnaireOverlayState extends State<QuestionnaireOverlay> with Ticker
                 width: MediaQuery.of(context).size.width * 0.85,
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1A1A1A).withOpacity(0.9),
+                  color: const Color(0xFF1A1A1A).withValues(alpha: 0.9),
                   borderRadius: BorderRadius.circular(30),
-                  border: Border.all(color: Colors.white.withOpacity(0.1)),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
                 ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -152,7 +152,7 @@ class _QuestionnaireOverlayState extends State<QuestionnaireOverlay> with Ticker
                       builder: (context, child) {
                         return LinearProgressIndicator(
                           value: disableAnimations ? (_currentIndex + 1) / widget.questions.length : _progressAnimation.value,
-                          backgroundColor: Colors.white.withOpacity(0.1),
+                          backgroundColor: Colors.white.withValues(alpha: 0.1),
                           color: Theme.of(context).primaryColor,
                           borderRadius: BorderRadius.circular(10),
                         );
@@ -168,7 +168,7 @@ class _QuestionnaireOverlayState extends State<QuestionnaireOverlay> with Ticker
                     Text(
                       'Diagnostic Questions',
                       style: TextStyle(
-                        color: Colors.white.withOpacity(0.5),
+                        color: Colors.white.withValues(alpha: 0.5),
                         fontSize: 14,
                         fontWeight: FontWeight.w900,
                       ),
@@ -221,7 +221,7 @@ class _QuestionnaireOverlayState extends State<QuestionnaireOverlay> with Ticker
                       child: Text(
                         'Skip (for experts)',
                         style: TextStyle(
-                          color: Colors.white.withOpacity(0.3),
+                          color: Colors.white.withValues(alpha: 0.3),
                           fontSize: 14,
                         ),
                       ),
@@ -242,9 +242,9 @@ class _QuestionnaireOverlayState extends State<QuestionnaireOverlay> with Ticker
       child: Container(
         height: 50,
         decoration: BoxDecoration(
-          color: isPrimary ? Theme.of(context).primaryColor : Colors.white.withOpacity(0.05),
+          color: isPrimary ? Theme.of(context).primaryColor : Colors.white.withValues(alpha: 0.05),
           borderRadius: BorderRadius.circular(15),
-          border: isPrimary ? null : Border.all(color: Colors.white.withOpacity(0.1)),
+          border: isPrimary ? null : Border.all(color: Colors.white.withValues(alpha: 0.1)),
         ),
         child: Center(
           child: Text(

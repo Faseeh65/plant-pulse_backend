@@ -51,7 +51,7 @@ class _MapScreenState extends State<MapScreen> {
                   CircleLayer(
                     circles: provider.markers.map((m) => CircleMarker(
                       point: ll.LatLng(m.lat, m.lng),
-                      color: Colors.redAccent.withOpacity(0.3),
+                      color: Colors.redAccent.withValues(alpha: 0.3),
                       borderStrokeWidth: 0,
                       useRadiusInMeter: true,
                       radius: 300,
@@ -120,8 +120,9 @@ class _MapScreenState extends State<MapScreen> {
   Widget _buildCustomMarker(String type) {
     Color color;
     final t = type.toLowerCase();
-    if (t.contains('bacterial')) color = Colors.redAccent;
-    else if (t.contains('brown')) color = Colors.orangeAccent;
+    if (t.contains('bacterial')) {
+      color = Colors.redAccent;
+    } else if (t.contains('brown')) color = Colors.orangeAccent;
     else if (t.contains('tungro')) color = Colors.purpleAccent;
     else color = _green;
 
@@ -137,7 +138,7 @@ class _MapScreenState extends State<MapScreen> {
             color: color,
             shape: BoxShape.circle,
             border: Border.all(color: Colors.white, width: 2),
-            boxShadow: [BoxShadow(color: color.withOpacity(0.5), blurRadius: 10)],
+            boxShadow: [BoxShadow(color: color.withValues(alpha: 0.5), blurRadius: 10)],
           ),
           child: const Icon(Icons.warning_amber_rounded, color: Colors.white, size: 14),
         ),
@@ -158,7 +159,7 @@ class _MapScreenState extends State<MapScreen> {
             shape: BoxShape.circle,
             border: Border.all(color: Colors.white, width: 2),
             boxShadow: [
-              BoxShadow(color: Colors.blueAccent.withOpacity(0.5), blurRadius: 10, spreadRadius: 2)
+              BoxShadow(color: Colors.blueAccent.withValues(alpha: 0.5), blurRadius: 10, spreadRadius: 2)
             ],
           ),
         ),
@@ -223,10 +224,10 @@ class _MapScreenState extends State<MapScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: isDark ? Colors.black.withOpacity(0.6) : Colors.white.withOpacity(0.8),
+        color: isDark ? Colors.black.withValues(alpha: 0.6) : Colors.white.withValues(alpha: 0.8),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: _green.withOpacity(0.3)),
-        boxShadow: isDark ? [] : [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4)],
+        border: Border.all(color: _green.withValues(alpha: 0.3)),
+        boxShadow: isDark ? [] : [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4)],
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -260,12 +261,12 @@ class _MapScreenState extends State<MapScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 12),
           constraints: const BoxConstraints(minHeight: 56),
           decoration: BoxDecoration(
-            color: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.05),
+            color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.05),
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.1)),
+            border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.1)),
             boxShadow: [
               BoxShadow(
-                color: (isDark ? Colors.black : Colors.grey).withOpacity(0.3),
+                color: (isDark ? Colors.black : Colors.grey).withValues(alpha: 0.3),
                 blurRadius: 20,
                 offset: const Offset(0, 10),
               )
@@ -319,9 +320,9 @@ class _MapScreenState extends State<MapScreen> {
       builder: (context, provider, _) => Container(
         padding: const EdgeInsets.symmetric(horizontal: 12),
         decoration: BoxDecoration(
-          color: _green.withOpacity(0.1),
+          color: _green.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: _green.withOpacity(0.3)),
+          border: Border.all(color: _green.withValues(alpha: 0.3)),
         ),
         child: DropdownButtonHideUnderline(
           child: DropdownButton<String>(
@@ -381,10 +382,10 @@ class _MapScreenState extends State<MapScreen> {
         width: 56,
         height: 56,
         decoration: BoxDecoration(
-          color: isPrimary ? _green : Colors.black.withOpacity(0.7),
+          color: isPrimary ? _green : Colors.black.withValues(alpha: 0.7),
           borderRadius: BorderRadius.circular(18),
           border: Border.all(color: isPrimary ? Colors.white30 : Colors.white12),
-          boxShadow: [BoxShadow(color: (isPrimary ? _green : Colors.black).withOpacity(0.3), blurRadius: 15, spreadRadius: 2)],
+          boxShadow: [BoxShadow(color: (isPrimary ? _green : Colors.black).withValues(alpha: 0.3), blurRadius: 15, spreadRadius: 2)],
         ),
         child: Icon(icon, color: isPrimary ? Colors.black : Colors.white, size: 24),
       ),
@@ -405,11 +406,11 @@ class _MapScreenState extends State<MapScreen> {
             child: Container(
               decoration: BoxDecoration(
                 color: isDark 
-                    ? const Color(0xFF0D120D).withOpacity(0.92)
-                    : Colors.white.withOpacity(0.92),
+                    ? const Color(0xFF0D120D).withValues(alpha: 0.92)
+                    : Colors.white.withValues(alpha: 0.92),
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
                 border: Border.all(
-                  color: isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.08),
+                  color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.08),
                 ),
               ),
               child: ListView(
@@ -499,9 +500,9 @@ class _MapScreenState extends State<MapScreen> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
           decoration: BoxDecoration(
-            color: Colors.redAccent.withOpacity(0.15),
+            color: Colors.redAccent.withValues(alpha: 0.15),
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: Colors.redAccent.withOpacity(0.3)),
+            border: Border.all(color: Colors.redAccent.withValues(alpha: 0.3)),
           ),
           child: Text(
             'RISK: HIGH',
@@ -529,9 +530,9 @@ class _MapScreenState extends State<MapScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 16),
         decoration: BoxDecoration(
-          color: isDark ? Colors.white.withOpacity(0.03) : Colors.black.withOpacity(0.03),
+          color: isDark ? Colors.white.withValues(alpha: 0.03) : Colors.black.withValues(alpha: 0.03),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.05)),
+          border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.05)),
         ),
         child: Column(
           children: [
@@ -575,7 +576,7 @@ class _MapScreenState extends State<MapScreen> {
               belowBarData: BarAreaData(
                 show: true,
                 gradient: LinearGradient(
-                  colors: [_green.withOpacity(0.2), _green.withOpacity(0.0)],
+                  colors: [_green.withValues(alpha: 0.2), _green.withValues(alpha: 0.0)],
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                 ),
@@ -593,13 +594,13 @@ class _MapScreenState extends State<MapScreen> {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: isDark 
-              ? [Colors.white.withOpacity(0.05), Colors.white.withOpacity(0.01)]
-              : [Colors.black.withOpacity(0.05), Colors.black.withOpacity(0.01)],
+              ? [Colors.white.withValues(alpha: 0.05), Colors.white.withValues(alpha: 0.01)]
+              : [Colors.black.withValues(alpha: 0.05), Colors.black.withValues(alpha: 0.01)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.08)),
+        border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.08)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -633,9 +634,9 @@ class _MapScreenState extends State<MapScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: isDark ? Colors.white10 : Colors.black.withOpacity(0.05),
+        color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.05)),
+        border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.05)),
       ),
       child: Text(
         layer.name.toUpperCase(),
@@ -683,7 +684,7 @@ class _MarkerPulseState extends State<_MarkerPulse> with SingleTickerProviderSta
           height: 30 + (20 * _controller.value),
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: widget.color.withOpacity(1 - _controller.value),
+            color: widget.color.withValues(alpha: 1 - _controller.value),
           ),
         );
       },
