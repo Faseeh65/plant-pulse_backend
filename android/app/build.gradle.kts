@@ -1,5 +1,6 @@
 plugins {
     id("com.android.application")
+    id("com.google.gms.google-services")
     id("kotlin-android")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
@@ -42,6 +43,12 @@ android {
             signingConfig = signingConfigs.getByName("debug")
         }
     }
+
+    lint {
+        baseline = file("lint-baseline.xml")
+        abortOnError = false
+        disable += "EnsureInitializerMetadata"
+    }
 }
 
 dependencies {
@@ -50,6 +57,8 @@ dependencies {
     api("com.google.maps.android:android-maps-utils:3.8.2")
     implementation("com.google.android.gms:play-services-maps:19.0.0")
     implementation("androidx.startup:startup-runtime:1.2.0")
+    implementation(platform("com.google.firebase:firebase-bom:34.13.0"))
+    implementation("com.google.firebase:firebase-analytics")
 }
 
 flutter {

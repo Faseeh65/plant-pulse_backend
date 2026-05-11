@@ -4,5 +4,5 @@ class AppConstants {
       'sb_publishable_8JUrSHybNH5TTjqUOssW1g_nR4wwM5q';
 
   // FastAPI inference server
-  static const String inferenceBaseUrl = 'http://127.0.0.1:8000';
+  static const String inferenceBaseUrl = 'http://192.168.1.98:8000';
 }
