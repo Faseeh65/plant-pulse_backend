@@ -198,11 +198,11 @@ async def get_treatment(disease_id: str, acres: float = 1.0):
     
     return {
         "id": disease_id,
-        "name_en": rule['name_en'],
-        "name_ur": rule['name_ur'],
-        "description_en": rule['description_en'],
-        "treatment_en": rule['treatment_en'],
-        "treatment_ur": rule['treatment_ur'],
+        "name_en": rule.get('name_en', 'Unknown'),
+        "name_ur": rule.get('name_ur', 'نامعلوم'),
+        "description_en": rule.get('description_en') or rule.get('symptoms', 'No description available.'),
+        "treatment_en": rule.get('treatment_en', 'No treatment guidelines found.'),
+        "treatment_ur": rule.get('treatment_ur', 'علاج کی ہدایات نہیں ملیں۔'),
         "quantity": quantity
     }
 
@@ -220,7 +220,7 @@ async def save_history(data: HistorySave):
             "crop_name":        data.crop_name,
             "disease_result":   data.disease_result,
             "confidence_score": data.confidence_score,
-            "scanned_at":       datetime.now().isoformat()
+            "created_at":       datetime.now().isoformat()
         }).execute()
         return {"status": "success", "sync_id": res.data[0]['id'] if res.data else "local_only"}
     except Exception as e:
@@ -236,7 +236,7 @@ async def get_history(user_id: str):
         res = supabase.table("scan_history") \
             .select("*") \
             .eq("user_id", user_id) \
-            .order("scanned_at", desc=True) \
+            .order("created_at", desc=True) \
             .execute()
         return {"scans": res.data}
     except Exception as e:
@@ -343,7 +343,7 @@ async def get_profile(user_id: str):
         return {"full_name": "Farmer", "phone": "", "location": "Punjab"}
     
     try:
-        res = supabase.table("user_profiles").select("*").eq("user_id", user_id).single().execute()
+        res = supabase.table("profiles").select("*").eq("id", user_id).single().execute()
         return res.data if res.data else {"full_name": "Farmer", "phone": "", "location": "Punjab"}
     except:
         return {"full_name": "Farmer", "phone": "", "location": "Punjab"}
@@ -354,8 +354,8 @@ async def sync_profile(data: ProfileSync):
         return {"status": "mock_success"}
     
     try:
-        supabase.table("user_profiles").upsert({
-            "user_id":   data.user_id,
+        supabase.table("profiles").upsert({
+            "id":        data.user_id,
             "full_name": data.full_name,
             "phone":     data.phone,
             "location":  data.location,
